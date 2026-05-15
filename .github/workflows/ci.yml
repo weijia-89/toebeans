@@ -101,8 +101,9 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
       - name: Lint (ktlint + detekt)
         run: ./gradlew ktlintCheck detekt --stacktrace
-      - name: Shared tests (this is where SchedulePhaseRulesTest runs and CURRENTLY FAILS)
-        run: ./gradlew :shared:testDebugUnitTest --stacktrace
-        continue-on-error: true  # v0.1: the test-as-spec is intentionally failing. Remove this once implementation lands.
+      - name: Shared JVM tests (scheduler, backup, model)
+        run: ./gradlew :shared:jvmTest :shared:testDebugUnitTest --stacktrace
+      - name: Coverage verification (Kover, line coverage ≥ 85% per ADR-0006)
+        run: ./gradlew :shared:koverVerify --stacktrace
       - name: Android app assembleDebug
         run: ./gradlew :androidApp:assembleDebug --stacktrace

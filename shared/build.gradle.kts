@@ -2,7 +2,7 @@
 //
 // commonMain holds the core domain models, scheduler logic, backup codec, and
 // SQLDelight schema. androidMain holds the Android driver glue. iosMain is
-// scaffolded but disabled at slice 1 (see gradle.properties: toebeans.enableIosTargets).
+// scaffolded but disabled at milestone 1 (see gradle.properties: toebeans.enableIosTargets).
 //
 // Vibe-dangerous surfaces in this module per AGENTS.md:
 //   - commonMain/kotlin/app/toebeans/core/scheduler/
@@ -35,7 +35,7 @@ kotlin {
     jvm()
 
     if (enableIosTargets.toBoolean()) {
-        // Slice 5 — disabled at slice 1 to keep build times sharp.
+        // Milestone 5 — disabled at milestone 1 to keep build times sharp.
         iosX64()
         iosArm64()
         iosSimulatorArm64()
@@ -147,27 +147,9 @@ detekt {
     allRules = false
 }
 
-// --- v0.1 quirk: failing-test-as-spec ---
-// SchedulePhaseRulesTest is required to fail at v0.1 because DefaultScheduleCalculator is a
-// stub. We do NOT want this to block downstream verification tasks (Kover, lint reports).
-// CI separately enforces "no failing tests at slice 1" via .github/workflows/ci.yml.
-// REMOVE THIS BLOCK once the scheduler is implemented.
-tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-    ignoreFailures = true
-    doLast {
-        val failed =
-            (
-                binaryResultsDirectory
-                    .get()
-                    .asFile
-                    .listFiles()
-                    ?.size ?: 0
-            ) > 0
-        if (failed) {
-            logger.lifecycle("(toebeans) ${this@configureEach.name} completed with failing tests; this is expected at v0.1.")
-        }
-    }
-}
+// Test failures are now fatal. The v0.1 `ignoreFailures = true` block has been removed
+// because DefaultScheduleCalculator is implemented and all SchedulePhaseRulesTest cases
+// pass. Any future test regression should fail the build at every layer (local, CI).
 
 // --- Coverage (Kover) ---
 // Why Kover and not pitest? See docs/adr/0006-deferred-mutation-testing.md.
@@ -188,16 +170,20 @@ kover {
                 // Stubs and data classes (auto-generated copy/hashCode are not interesting to cover).
                 classes("*\$Companion")
                 classes("*Kt")
+                // Android-platform expect/actual implementation. Tested by androidUnitTest in
+                // :androidApp via Robolectric, not by :shared:jvmTest. Including it here
+                // double-counts uncovered lines because :shared can never exercise it.
+                classes("app.toebeans.core.backup.AndroidBackupCipher")
             }
         }
         verify {
-            // v0.1: thresholds are intentionally LOW because the scheduler is a stub
-            // and backup codec is incoming. We raise these in slice 1 when implementations
-            // land. The point of having Kover wired now is to make the gate visible.
+            // Per ADR-0006: line coverage is the v0.1 proxy for mutation testing (pitest is
+            // deferred because of KMP integration gaps). Threshold raised from 0 to 85 once
+            // DefaultScheduleCalculator and the backup codec landed with their tests.
             rule {
                 groupBy = kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION
                 bound {
-                    minValue = 0
+                    minValue = 85
                     coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
                 }
             }

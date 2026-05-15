@@ -573,6 +573,59 @@ class SchedulePhaseRulesTest {
         }
     }
 
+    // ADR-0008 mechanical bound: window > 30 days throws WindowTooLarge with the
+    // requested-vs-max days in the typed payload.
+    @Test
+    fun `window exceeding 30 days throws WindowTooLarge with the offending days count`() {
+        val schedule =
+            Schedule(
+                id = "sched-wtl",
+                medicationId = "med-wtl",
+                startDate = baseDate,
+                endDate = null,
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-wtl",
+                scheduleId = "sched-wtl",
+                phaseOrder = 0,
+                durationDays = 60,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+            )
+
+        val thrown =
+            assertFailsWith<MalformedScheduleException.WindowTooLarge> {
+                calculator.computeScheduledDoses(
+                    schedule = schedule,
+                    phases = listOf(phase),
+                    timeZone = utc,
+                    fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                    toExclusive = baseDate.plusDays(31).atTime(0, 0).toInstant(utc),
+                )
+            }
+        assertEquals(31L, thrown.requestedDays, "exception must report the actual requested days")
+        assertEquals(30, thrown.maxDays, "exception must report the ADR-0008 cap")
+        assertEquals("WindowTooLarge", thrown.code)
+    }
+
+    // EventCountExceeded is defense-in-depth — per-field caps make it unreachable from
+    // legitimate input (max realistic = 30d × 6 doses × 1 phase = 180). We still cover its
+    // construction path so the typed payload is exercised against future regressions.
+    @Test
+    fun `EventCountExceeded carries typed payload and stable code`() {
+        val ex = MalformedScheduleException.EventCountExceeded(attemptedCount = 200_000L, maxCount = 100_000)
+        assertEquals(200_000L, ex.attemptedCount)
+        assertEquals(100_000, ex.maxCount)
+        assertEquals("EventCountExceeded", ex.code)
+        assertTrue(
+            ex.message!!.contains("100000"),
+            "message must mention the cap so an AI/UI mapper can present it",
+        )
+    }
+
     // Phase exhaustion: phases sum to fewer days than the schedule's effective range.
     // Per the KDoc "Phase exhaustion" clause: schedule ends at the last phase's last day. No
     // looping, no extension.
