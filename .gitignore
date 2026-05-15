@@ -1,0 +1,61 @@
+# --- toebeans .gitignore ---
+
+# JVM / Gradle
+.gradle/
+build/
+out/
+!**/src/**/build/
+!**/src/**/out/
+local.properties
+*.hprof
+
+# Kotlin / KMP
+.kotlin/
+kotlin-js-store/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# macOS / system
+.DS_Store
+Thumbs.db
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+release/
+
+# Keystores (NEVER commit)
+*.jks
+*.keystore
+keystore.properties
+
+# Coverage / reports
+*.exec
+*.coverage
+jacoco.exec
+
+# codeit state (project-local; not for public sharing without review)
+.codeit/calibration.jsonl
+.codeit/abort-*/
+
+# Local toolchain pins (sdkman/asdf etc. may go elsewhere)
+.tool-versions.local
+
+# Backup / ad-hoc
+*.bak
+*.orig
+
+# Anything matching localonly convention (per workspace policy)
+localonly/

@@ -1,0 +1,30 @@
+# ktlint + IntelliJ editorconfig for toebeans.
+# This file is intentionally checked in.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{kt,kts}]
+# Composable functions conventionally use PascalCase. The Compose team's official guidance
+# (https://developer.android.com/jetpack/compose/api-guidelines) treats Composable functions
+# as "declarative components" that follow type-style naming rather than function-style. ktlint's
+# default function-naming rule disagrees; this exception aligns ktlint with the Compose convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Generated SQLDelight code lives at `<module>/build/generated/sqldelight/`. It is fully
+# machine-formatted to SQLDelight's own conventions and must not be touched by ktlint.
+[**/build/generated/**.{kt,kts}]
+ktlint = disabled
+
+[*.md]
+trim_trailing_whitespace = false  # markdown uses "two trailing spaces" for line breaks
+
+[Makefile]
+indent_style = tab
