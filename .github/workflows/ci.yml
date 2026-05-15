@@ -26,6 +26,63 @@ jobs:
         run: bash scripts/test_permission_allowlist.sh .
       - name: AGENTS / CLAUDE parity
         run: bash scripts/agents_claude_parity.sh .
+      - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)
+        run: bash scripts/test_pre_commit_hook.sh .
+
+  vibe-dangerous-gate:
+    # Survives `git commit --no-verify`. Enforces the same rule as
+    # scripts/git-hooks/pre-commit: any vibe-dangerous path change must be paired
+    # with a new calibration entry. The local hook is the fast path; this is the
+    # belt-and-suspenders gate.
+    name: Vibe-dangerous review gate (--no-verify defense)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history to diff base..head
+      - name: Determine SHA range
+        id: range
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run vibe-dangerous CI check
+        run: |
+          bash scripts/ci-vibe-dangerous-check.sh \
+            "${{ steps.range.outputs.base }}" \
+            "${{ steps.range.outputs.head }}"
+
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+
+  dependency-review:
+    # PR-only. Blocks dependency additions that introduce high-severity CVEs or
+    # are missing licenses. Slopsquatting defense aligns with AGENTS.md §
+    # Hallucination vigilance.
+    name: Dependency review
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run dependency-review-action
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
 
   build-and-test:
     name: Gradle build + shared tests
