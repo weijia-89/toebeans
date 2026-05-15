@@ -46,8 +46,8 @@ keystore.properties
 *.coverage
 jacoco.exec
 
-# codeit state (project-local; not for public sharing without review)
-.codeit/calibration.jsonl
+# codeit state. calibration.jsonl IS tracked (vibe-dangerous audit log per
+# AGENTS.md confidence-score rule). Only ephemeral aborts/sessions are ignored.
 .codeit/abort-*/
 
 # Local toolchain pins (sdkman/asdf etc. may go elsewhere)

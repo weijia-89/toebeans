@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# toebeans pre-commit hook — enforces AGENTS.md vibe-dangerous review gate.
+#
+# RULES
+# -----
+# 1. If any staged file touches a vibe-dangerous path (see PATTERNS below):
+#    a. `.codeit/calibration.jsonl` MUST also be staged.
+#    b. The staged diff of `.codeit/calibration.jsonl` MUST add at least one new JSONL entry
+#       (a line beginning with `{` and ending with `}`).
+# 2. If a staged file modifies `androidApp/src/main/AndroidManifest.xml`, AND the diff adds
+#    a NEW `uses-permission` line, that line's value MUST already be on the AGENTS.md
+#    allowlist (the hook does NOT enforce this — that is the human reviewer's job — but
+#    it WARNS prominently).
+# 3. If a staged file modifies `AGENTS.md` or `CLAUDE.md`, BOTH must be staged and the
+#    fitness-function `scripts/agents_claude_parity.sh` must pass.
+#
+# BYPASS
+# ------
+# `git commit --no-verify` bypasses this hook. Do not do that for vibe-dangerous changes.
+#
+# INSTALL
+# -------
+# This file lives at scripts/git-hooks/pre-commit (tracked).
+# Install by running: bash scripts/install-git-hooks.sh
+# which sets `git config core.hooksPath scripts/git-hooks`.
+
+set -euo pipefail
+
+# Bold red for errors so they cannot be missed in a busy terminal.
+RED='\033[1;31m'
+YEL='\033[1;33m'
+GRN='\033[1;32m'
+NC='\033[0m'
+
+# Vibe-dangerous path patterns (regex, anchored to repo root).
+VIBE_DANGEROUS=(
+    '^shared/src/commonMain/kotlin/app/toebeans/core/scheduler/'
+    '^shared/src/commonMain/kotlin/app/toebeans/core/backup/'
+    '^shared/src/jvmMain/kotlin/app/toebeans/core/backup/'
+    '^shared/src/androidMain/kotlin/app/toebeans/core/backup/'
+    '^shared/src/commonTest/kotlin/app/toebeans/core/scheduler/'
+    '^shared/src/commonTest/kotlin/app/toebeans/core/backup/'
+    '^shared/src/jvmTest/kotlin/app/toebeans/core/backup/'
+    '^androidApp/src/main/kotlin/app/toebeans/android/notifications/'
+    '^androidApp/src/test/kotlin/app/toebeans/android/notifications/'
+    '^shared/src/commonMain/sqldelight/'
+    '^androidApp/src/main/AndroidManifest\.xml$'
+    '^.*/build\.gradle\.kts$'
+    '^gradle/libs\.versions\.toml$'
+)
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+if [[ -z "$STAGED" ]]; then
+    exit 0
+fi
+
+# Build a single regex.
+PATTERN=$(printf '%s\n' "${VIBE_DANGEROUS[@]}" | paste -sd '|' -)
+
+VIBE_HITS=$(echo "$STAGED" | grep -E "$PATTERN" || true)
+
+if [[ -z "$VIBE_HITS" ]]; then
+    # No vibe-dangerous paths touched. Allow.
+    exit 0
+fi
+
+echo -e "${YEL}toebeans pre-commit:${NC} vibe-dangerous paths touched:"
+echo "$VIBE_HITS" | sed 's/^/  /'
+echo ""
+
+# Rule 1a: calibration.jsonl must also be staged.
+if ! echo "$STAGED" | grep -qx '\.codeit/calibration\.jsonl'; then
+    echo -e "${RED}BLOCKED${NC} — vibe-dangerous change without a calibration entry."
+    echo "  Per AGENTS.md § Confidence-score rule, every change to a vibe-dangerous"
+    echo "  surface must be scored and logged to .codeit/calibration.jsonl."
+    echo ""
+    echo "  Append a JSONL line like:"
+    cat <<'EXAMPLE'
+    {"date":"2026-05-15","change":"<short summary>","tier":"vibe-dangerous","score":95,"components":{"code_read":15,"test_verif":18,"halluc":15,"bug_class":11,"adversarial":9,"reversibility":8,"doc":8,"blast":7,"threat_model":5},"reviewer":"<name>","notes":"<optional>"}
+EXAMPLE
+    echo "  then \`git add .codeit/calibration.jsonl\` and re-commit."
+    echo ""
+    exit 1
+fi
+
+# Rule 1b: calibration.jsonl diff must add at least one new JSONL entry line.
+ADDED=$(git diff --cached --no-color -- .codeit/calibration.jsonl \
+    | grep -E '^\+\{.*\}$' || true)
+if [[ -z "$ADDED" ]]; then
+    echo -e "${RED}BLOCKED${NC} — calibration.jsonl is staged but no new entry was added."
+    echo "  Make sure the staged diff includes a new line of the form {...}."
+    exit 1
+fi
+
+# Rule 2: warn on new uses-permission lines.
+if echo "$STAGED" | grep -qx 'androidApp/src/main/AndroidManifest\.xml'; then
+    NEW_PERMS=$(git diff --cached --no-color -- androidApp/src/main/AndroidManifest.xml \
+        | grep -E '^\+.*uses-permission' || true)
+    if [[ -n "$NEW_PERMS" ]]; then
+        echo -e "${YEL}WARN${NC} — AndroidManifest.xml adds uses-permission lines:"
+        echo "$NEW_PERMS" | sed 's/^/  /'
+        echo "  Confirm each is on the AGENTS.md allowlist. The CI fitness"
+        echo "  function 'scripts/test_permission_allowlist.sh' will block merge"
+        echo "  if any is not."
+        echo ""
+    fi
+fi
+
+# Rule 3: AGENTS.md / CLAUDE.md parity.
+TOUCHES_AGENTS=$(echo "$STAGED" | grep -E '^(AGENTS|CLAUDE)\.md$' || true)
+if [[ -n "$TOUCHES_AGENTS" ]]; then
+    if ! echo "$STAGED" | grep -qx 'AGENTS\.md' || ! echo "$STAGED" | grep -qx 'CLAUDE\.md'; then
+        echo -e "${RED}BLOCKED${NC} — AGENTS.md and CLAUDE.md must be staged together."
+        exit 1
+    fi
+    if [[ -x scripts/agents_claude_parity.sh ]]; then
+        if ! bash scripts/agents_claude_parity.sh . >/dev/null 2>&1; then
+            echo -e "${RED}BLOCKED${NC} — AGENTS.md / CLAUDE.md parity check failed."
+            echo "  Run: bash scripts/agents_claude_parity.sh ."
+            exit 1
+        fi
+    fi
+fi
+
+echo -e "${GRN}toebeans pre-commit: OK${NC} — vibe-dangerous change with calibration entry."
+exit 0

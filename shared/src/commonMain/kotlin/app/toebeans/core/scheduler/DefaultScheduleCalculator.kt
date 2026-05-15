@@ -14,13 +14,13 @@ import kotlinx.datetime.TimeZone
  *
  *   1. The failing test (`SchedulePhaseRulesTest`) is already committed.
  *   2. A human reviewer must approve the test signature.
- *   3. Only then may an implementer fill out [computeScheduledTimes] and re-run the test.
+ *   3. Only then may an implementer fill out [computeScheduledDoses] and re-run the test.
  *
  * Throwing [NotImplementedError] is a load-bearing signal: any attempt to call this in
  * production WILL fail loudly. There is no silent fallback.
  */
 public class DefaultScheduleCalculator : ScheduleCalculator {
-    override fun computeScheduledTimes(
+    override fun computeScheduledDoses(
         schedule: Schedule,
         phases: List<SchedulePhase>,
         timeZone: TimeZone,

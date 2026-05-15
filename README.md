@@ -54,13 +54,23 @@ export JAVA_HOME="/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
+**Install the git hooks (one-time, per clone):**
+
+```bash
+bash scripts/install-git-hooks.sh
+# Points `core.hooksPath` at scripts/git-hooks/. The pre-commit hook enforces
+# the AGENTS.md vibe-dangerous review gate (see docs/issues/v0.1-followups.md #8).
+```
+
 **Verify the scaffold (no Android SDK required):**
 
 ```bash
 ./gradlew :shared:jvmTest --console=plain
-# Expected: 4 failures in SchedulePhaseRulesTest with kotlin.NotImplementedError.
+# Expected: 9 failing tests in SchedulePhaseRulesTest.
 # That IS the v0.1 spec — DefaultScheduleCalculator is a stub. The failing tests
 # define what taper-correctness MUST mean before the next agent (or human) writes the impl.
+# Of the 9, 7 fail with kotlin.NotImplementedError (stub) and 2 fail because the
+# stub throws NotImplementedError instead of the expected IllegalArgumentException.
 ```
 
 **Verify the fitness functions (no Android SDK or JDK required):**
