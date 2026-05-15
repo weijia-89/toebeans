@@ -262,21 +262,34 @@ class SchedulePhaseRulesTest {
                 toExclusive = baseDate.plusDays(2).atTime(0, 0).toInstant(utc),
             )
 
-        assertEquals(4, result.size, "2 days × 2 doses == 4 events")
-        assertEquals(
-            LocalDateTime(2026, 6, 1, 0, 0).toInstant(utc),
-            result.first().scheduledAt,
-            "first dose anchors at startDate 00:00 local, NOT next day",
-        )
-        assertEquals(
-            LocalDateTime(2026, 6, 2, 12, 0).toInstant(utc),
-            result.last().scheduledAt,
-        )
+        assertEquals(4, result.size, "2 days × 2 doses == 4 events; got ${result.size}")
+        // Pin every expected dose by index so the failure message identifies which one drifted.
+        val expected =
+            listOf(
+                // day 1, 00:00 — the key anchor assertion
+                LocalDateTime(2026, 6, 1, 0, 0),
+                // day 1, 12:00
+                LocalDateTime(2026, 6, 1, 12, 0),
+                // day 2, 00:00 — not skipped to next noon
+                LocalDateTime(2026, 6, 2, 0, 0),
+                // day 2, 12:00
+                LocalDateTime(2026, 6, 2, 12, 0),
+            ).map { it.toInstant(utc) }
+        expected.forEachIndexed { i, exp ->
+            assertEquals(
+                exp,
+                result[i].scheduledAt,
+                "dose[$i] mismatched: a midnight (00:00) dose on startDate must fire at that instant, " +
+                    "not be deferred to the next valid hour or the next day. " +
+                    "This is the anchor decision D2 from ADR-0004's 2026-05-15 review.",
+            )
+        }
     }
 
-    // D3a: duplicate phaseOrder is a medication-critical bug class. Throw, don't guess.
+    // D3a: duplicate phaseOrder is a medication-critical bug class. Throw the discriminated
+    // structured exception so an AI agent (or UI mapper) can act on it without parsing prose.
     @Test
-    fun `duplicate phaseOrder throws IllegalArgumentException`() {
+    fun `duplicate phaseOrder throws DuplicatePhaseOrder with the offending value and ids`() {
         val schedule =
             Schedule(
                 id = "sched-d3a",
@@ -297,20 +310,29 @@ class SchedulePhaseRulesTest {
             )
         val phaseB = phaseA.copy(id = "phase-d3a-2") // same phaseOrder = 0
 
-        assertFailsWith<IllegalArgumentException> {
-            calculator.computeScheduledDoses(
-                schedule = schedule,
-                phases = listOf(phaseA, phaseB),
-                timeZone = utc,
-                fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
-                toExclusive = baseDate.plusDays(5).atTime(0, 0).toInstant(utc),
-            )
-        }
+        val thrown =
+            assertFailsWith<MalformedScheduleException.DuplicatePhaseOrder> {
+                calculator.computeScheduledDoses(
+                    schedule = schedule,
+                    phases = listOf(phaseA, phaseB),
+                    timeZone = utc,
+                    fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                    toExclusive = baseDate.plusDays(5).atTime(0, 0).toInstant(utc),
+                )
+            }
+        assertEquals(0, thrown.phaseOrder, "exception must report the offending phaseOrder")
+        assertEquals(
+            setOf("phase-d3a-1", "phase-d3a-2"),
+            thrown.phaseIds.toSet(),
+            "exception must report all colliding phase ids so the UI can highlight them",
+        )
+        assertEquals("DuplicatePhaseOrder", thrown.code, "stable code for log keys")
     }
 
     // D3b / F4: gap in phaseOrder is malformed. [0, 2] without a phase 1 is rejected.
+    // Also tested: [1, 2] missing-zero (the gap is at the start).
     @Test
-    fun `phaseOrder gap throws IllegalArgumentException`() {
+    fun `phaseOrder gap throws PhaseOrderGap with the actual phaseOrder list`() {
         val schedule =
             Schedule(
                 id = "sched-d3b",
@@ -331,10 +353,30 @@ class SchedulePhaseRulesTest {
             )
         val phase2 = phase0.copy(id = "phase-d3b-2", phaseOrder = 2) // skips 1
 
-        assertFailsWith<IllegalArgumentException> {
+        val thrown =
+            assertFailsWith<MalformedScheduleException.PhaseOrderGap> {
+                calculator.computeScheduledDoses(
+                    schedule = schedule,
+                    phases = listOf(phase0, phase2),
+                    timeZone = utc,
+                    fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                    toExclusive = baseDate.plusDays(10).atTime(0, 0).toInstant(utc),
+                )
+            }
+        assertEquals(
+            listOf(0, 2),
+            thrown.phaseOrders.sorted(),
+            "exception must report the malformed phaseOrder list so a UI can show " +
+                "'phases must be numbered 0, 1, 2, ... without gaps; got [0, 2]'",
+        )
+
+        // Variant: missing-zero (phases start at 1).
+        val phase1 = phase0.copy(id = "phase-d3b-1-alt", phaseOrder = 1)
+        val phase2alt = phase0.copy(id = "phase-d3b-2-alt", phaseOrder = 2)
+        assertFailsWith<MalformedScheduleException.PhaseOrderGap> {
             calculator.computeScheduledDoses(
                 schedule = schedule,
-                phases = listOf(phase0, phase2),
+                phases = listOf(phase1, phase2alt),
                 timeZone = utc,
                 fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
                 toExclusive = baseDate.plusDays(10).atTime(0, 0).toInstant(utc),
@@ -400,6 +442,180 @@ class SchedulePhaseRulesTest {
         assertTrue(
             result.isEmpty(),
             "schedule starting 2026-06-11 must yield no doses in window ending 2026-06-06",
+        )
+    }
+
+    // B2: schedule already over before the window starts. Symmetric to D5.
+    @Test
+    fun `schedule whose endDate precedes fromInclusive returns empty result`() {
+        val schedule =
+            Schedule(
+                id = "sched-b2",
+                medicationId = "med-b2",
+                startDate = baseDate,
+                endDate = baseDate.plusDays(2), // 2026-06-03 inclusive — schedule ends here
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-b2",
+                scheduleId = "sched-b2",
+                phaseOrder = 0,
+                durationDays = 5,
+                dosesPerDay = 2,
+                doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
+                doseAmount = null,
+            )
+
+        // Query 7 days AFTER the schedule ended.
+        val from = LocalDateTime(2026, 6, 10, 0, 0).toInstant(utc)
+        val to = LocalDateTime(2026, 6, 17, 0, 0).toInstant(utc)
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phase),
+                timeZone = utc,
+                fromInclusive = from,
+                toExclusive = to,
+            )
+
+        assertTrue(
+            result.isEmpty(),
+            "schedule with endDate=2026-06-03 must yield no doses in window 2026-06-10..2026-06-17",
+        )
+    }
+
+    // B3: degenerate or inverted window is a programmer error. Throw the structured exception
+    // so a caller bug surfaces immediately rather than silently returning empty.
+    @Test
+    fun `non-positive window throws WindowNotPositive with the offending instants`() {
+        val schedule =
+            Schedule(
+                id = "sched-b3",
+                medicationId = "med-b3",
+                startDate = baseDate,
+                endDate = null,
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-b3",
+                scheduleId = "sched-b3",
+                phaseOrder = 0,
+                durationDays = 5,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+            )
+        val from = baseDate.atTime(12, 0).toInstant(utc)
+        val to = baseDate.atTime(8, 0).toInstant(utc) // to < from on purpose
+
+        val thrown =
+            assertFailsWith<MalformedScheduleException.WindowNotPositive> {
+                calculator.computeScheduledDoses(
+                    schedule = schedule,
+                    phases = listOf(phase),
+                    timeZone = utc,
+                    fromInclusive = from,
+                    toExclusive = to,
+                )
+            }
+        assertEquals(from, thrown.fromInclusive)
+        assertEquals(to, thrown.toExclusive)
+        assertEquals("WindowNotPositive", thrown.code)
+    }
+
+    // Skip-day dosing via SchedulePhase.dayInterval. New in commit 2; ADR-0004 D2 mentions this
+    // implicitly via "phase day N is a dosing day iff N % dayInterval == 0".
+    @Test
+    fun `dayInterval=2 fires on alternate calendar days starting from startDate`() {
+        val schedule =
+            Schedule(
+                id = "sched-skip",
+                medicationId = "med-skip",
+                startDate = baseDate, // 2026-06-01 (Mon)
+                endDate = null,
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        // Phase: 7 calendar days, every other day, single morning dose.
+        val phase =
+            SchedulePhase(
+                id = "phase-skip",
+                scheduleId = "sched-skip",
+                phaseOrder = 0,
+                durationDays = 7,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+                dayInterval = 2,
+            )
+
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phase),
+                timeZone = utc,
+                fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                toExclusive = baseDate.plusDays(7).atTime(0, 0).toInstant(utc),
+            )
+
+        // Phase day 0=Jun1, day 2=Jun3, day 4=Jun5, day 6=Jun7. Days 1, 3, 5 are off.
+        val expected =
+            listOf(
+                LocalDateTime(2026, 6, 1, 8, 0),
+                LocalDateTime(2026, 6, 3, 8, 0),
+                LocalDateTime(2026, 6, 5, 8, 0),
+                LocalDateTime(2026, 6, 7, 8, 0),
+            ).map { it.toInstant(utc) }
+        assertEquals(4, result.size, "7 days, dayInterval=2 → days 0,2,4,6 fire = 4 doses")
+        expected.forEachIndexed { i, exp ->
+            assertEquals(exp, result[i].scheduledAt, "skip-day dose[$i] must fall on the alternate day")
+        }
+    }
+
+    // Phase exhaustion: phases sum to fewer days than the schedule's effective range.
+    // Per the KDoc "Phase exhaustion" clause: schedule ends at the last phase's last day. No
+    // looping, no extension.
+    @Test
+    fun `phases shorter than schedule effective range terminates at last phase last day`() {
+        val schedule =
+            Schedule(
+                id = "sched-exh",
+                medicationId = "med-exh",
+                startDate = baseDate, // 2026-06-01
+                endDate = baseDate.plusDays(19), // 2026-06-20 inclusive; effective range = 20d
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        // ONLY 5 days of phase; the remaining 15 days have NO doses despite endDate=Jun20.
+        val phase =
+            SchedulePhase(
+                id = "phase-exh",
+                scheduleId = "sched-exh",
+                phaseOrder = 0,
+                durationDays = 5,
+                dosesPerDay = 2,
+                doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
+                doseAmount = null,
+            )
+
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phase),
+                timeZone = utc,
+                fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                toExclusive = baseDate.plusDays(25).atTime(0, 0).toInstant(utc),
+            )
+
+        assertEquals(
+            10,
+            result.size,
+            "phase exhausts at 5 days × 2 doses = 10; phases must NOT loop or extend to endDate",
+        )
+        assertEquals(
+            LocalDateTime(2026, 6, 5, 20, 0).toInstant(utc),
+            result.last().scheduledAt,
+            "last dose must be at the last phase's last day (Jun-5), not at the schedule's endDate (Jun-20)",
         )
     }
 }

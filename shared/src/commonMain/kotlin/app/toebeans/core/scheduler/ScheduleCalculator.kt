@@ -37,13 +37,19 @@ import kotlinx.datetime.TimeZone
  *        within this window).
  *      * The schedule's effective range (capped by `endDate`) lies entirely outside
  *        `[fromInclusive, toExclusive)`.
- *  - **Throws [IllegalArgumentException]** for malformed input:
- *      * Two phases share the same [SchedulePhase.phaseOrder] (duplicate).
- *      * The phases' `phaseOrder` values, sorted, are not the dense sequence `0, 1, 2, ...`
- *        (gaps such as `[0, 2]` are rejected; missing-zero is rejected).
- *      * [fromInclusive] is not strictly less than [toExclusive].
+ *  - **Throws [MalformedScheduleException]** (a sealed subclass of [IllegalArgumentException])
+ *    for malformed input. Each subclass carries typed fields for machine ingestion:
+ *      * [MalformedScheduleException.DuplicatePhaseOrder] — two phases share the same `phaseOrder`.
+ *      * [MalformedScheduleException.PhaseOrderGap] — `phaseOrder` values, sorted, are not the
+ *        dense sequence `0, 1, 2, ...` (gaps like `[0, 2]` are rejected; missing-zero is rejected).
+ *      * [MalformedScheduleException.WindowNotPositive] — [fromInclusive] is not strictly less
+ *        than [toExclusive].
+ *      * [MalformedScheduleException.WindowTooLarge] — window exceeds the ADR-0008 cap of 30 days.
+ *      * [MalformedScheduleException.EventCountExceeded] — the calculator would allocate more
+ *        events than the ADR-0008 safety cap of 100,000.
  *    Silently producing nonsense from malformed input is a medication-critical bug class;
- *    we crash loudly instead.
+ *    we crash loudly with a discriminated error instead. Callers should pattern-match on the
+ *    subclass type, not parse the message string.
  *
  * @param phases the schedule's phases in any order; the implementation sorts by [SchedulePhase.phaseOrder].
  * @param timeZone the local timezone in which dose times are interpreted. v0.1 callers pass

@@ -34,12 +34,14 @@ We need an **explicit lowest-supported-device target** that every ADR and every 
 
 | Bound | Value | Enforced in |
 |---|---|---|
-| `SchedulePhase.dosesPerDay` max | 24 (q1h saturation) | `SchedulePhase.init` `require` |
+| `SchedulePhase.dosesPerDay` max | **6** (owner-care ceiling; q4h; q1h is clinical-care territory and out of scope) | `SchedulePhase.init` `require` |
 | `SchedulePhase.durationDays` max | 3,650 (10 years; covers any realistic chronic taper) | `SchedulePhase.init` `require` |
 | `SchedulePhase.dayInterval` max | 30 (monthly dosing is the longest interval; e.g., bravecto in dogs) | `SchedulePhase.init` `require` |
 | `SchedulePhase.doseTimesLocal.size` ≤ `dosesPerDay` | (already enforced) | `SchedulePhase.init` `require` |
-| `ScheduleCalculator.computeScheduledDoses` window max | 30 days (720h; covers slice 2 "next month" view) | `computeScheduledDoses` `require` |
-| `ScheduleCalculator` event-count safety cap | 100,000 events | `computeScheduledDoses` final-size assertion |
+| `ScheduleCalculator.computeScheduledDoses` window max | 30 days (720h; covers milestone 2 "next month" view) | `computeScheduledDoses` `require` |
+| `ScheduleCalculator` event-count safety cap | 100,000 events (defense in depth; the per-field caps make this unreachable for legitimate input) | `computeScheduledDoses` final-size assertion |
+
+**On `dosesPerDay`:** the hardware (ADR-0008) could comfortably handle 24/day (q1h). The domain (toebeans is for owner-administered medication, not clinical care) caps it at 6. The enforced bound is the stricter (6). If a future feature targets clinical-care (post-op, ICU pets in foster homes), this cap may need a re-evaluation — but that is a new ADR, not an in-place edit.
 
 These caps are **defense in depth.** A correctly-built UI never reaches them. They exist to prevent a buggy or malicious caller from allocating gigabytes.
 
@@ -47,7 +49,7 @@ These caps are **defense in depth.** A correctly-built UI never reaches them. Th
 
 | Surface | Budget | Where measured |
 |---|---|---|
-| App cold-start (Activity onCreate → first frame) | < 2,000 ms on Nokia C12 class | Macrobenchmark module (slice 1) |
+| App cold-start (Activity onCreate → first frame) | < 2,000 ms on Nokia C12 class | Macrobenchmark module (milestone 1) |
 | Reminder-list scroll | 60 fps median, ≤ 5% frames > 32ms | Macrobenchmark |
 | `computeScheduledDoses` for 72h × 4 doses/day × 2 phases | < 50 ms on Helio G37 | JVM microbenchmark |
 | Backup export of 1,000-event archive | < 3,000 ms (PBKDF2 dominates) | JVM microbenchmark |
@@ -63,7 +65,7 @@ These caps are **defense in depth.** A correctly-built UI never reaches them. Th
 
 ### Reference devices (CI matrix when budget allows)
 
-Slice 1 ships with macrobenchmarks on a single device class (emulator-config approximating Nokia C12). Slice 1.5+ should expand to:
+Milestone 1 ships with macrobenchmarks on a single device class (emulator-config approximating Nokia C12). Milestone 1.5+ should expand to:
 
 - Nokia C12 (Android Go, 2 GB) — minimum viable user
 - Moto G Play 2023 (3 GB) — modal budget Android
@@ -81,7 +83,7 @@ Slice 1 ships with macrobenchmarks on a single device class (emulator-config app
 ### Negative
 
 - Some "nice" features (heavy animations, ML-on-device, large embedded reference databases) are off the table or require explicit ADR override.
-- CI matrix expansion is a recurring cost (~2 min added per push at slice 1.5+).
+- CI matrix expansion is a recurring cost (~2 min added per push at milestone 1.5+).
 
 ### Rejected alternatives
 
@@ -93,4 +95,4 @@ Slice 1 ships with macrobenchmarks on a single device class (emulator-config app
 - Macrobenchmark module added in milestone 1 (`androidApp/macrobenchmark/`).
 - `gradle.properties` declares `toebeans.perfTarget=nokia-c12-class` as documentation.
 - ADR-0004 § STRIDE-DoS row references this ADR for the mechanical bound source.
-- Slice 2 may add a "performance regression" CI gate that fails if any benchmark exceeds its budget by > 20%.
+- Milestone 2 may add a "performance regression" CI gate that fails if any benchmark exceeds its budget by > 20%.

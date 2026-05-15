@@ -12,11 +12,19 @@ import kotlinx.datetime.TimeZone
  * the first concrete piece of vibe-dangerous work that must follow the AGENTS.md test-as-spec
  * protocol:
  *
- *   1. The failing test (`SchedulePhaseRulesTest`) is already committed.
- *   2. A human reviewer must approve the test signature.
- *   3. Only then may an implementer fill out [computeScheduledDoses] and re-run the test.
+ *   1. The failing tests (`SchedulePhaseRulesTest`) are already committed.
+ *   2. A human reviewer has approved the test signatures (2026-05-15 review; see ADR-0004).
+ *   3. An implementer may now fill out [computeScheduledDoses] in a SEPARATE PR.
  *
- * Throwing [NotImplementedError] is a load-bearing signal: any attempt to call this in
+ * The implementation must:
+ *   - Honor all decisions in `ADR-0004` § Test-as-spec review (D1–D7, F5).
+ *   - Enforce the mechanical bounds from `ADR-0008` (window ≤ 30d, event-count ≤ 100,000).
+ *   - Throw the structured [MalformedScheduleException] subclasses for malformed input.
+ *   - Support [SchedulePhase.dayInterval] for skip-day dosing.
+ *   - Remain pure-functional and timezone-agnostic at the API surface (the caller chooses TZ
+ *     per ADR-0007).
+ *
+ * Throwing [NotImplementedError] is a load-bearing signal: any attempt to call this stub in
  * production WILL fail loudly. There is no silent fallback.
  */
 public class DefaultScheduleCalculator : ScheduleCalculator {
