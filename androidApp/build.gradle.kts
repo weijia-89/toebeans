@@ -84,14 +84,23 @@ dependencies {
     // AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material.icons.core)
+    // material-icons-extended is ~5 MB on disk but R8 drops unused icons in release builds.
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.work.runtime.ktx)
+    // kotlinx-datetime is `api`-exposed by :shared/commonMain but the KMP-to-Android
+    // metadata pipeline does not re-export it as compile classpath for :androidApp.
+    // Adding it directly mirrors what would happen anyway and avoids fragile transitive
+    // resolution. Same version pin as :shared per libs.versions.toml.
+    implementation(libs.kotlinx.datetime)
 
     // DI
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
+    implementation(libs.koin.androidx.compose)
 
     // Test
     testImplementation(libs.junit)
