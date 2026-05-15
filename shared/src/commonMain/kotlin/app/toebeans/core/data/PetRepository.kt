@@ -21,6 +21,13 @@ public interface PetRepository {
     /** One-shot fetch of a single pet, or `null` if not found. */
     public suspend fun getById(id: String): Pet?
 
+    /**
+     * Observe a single pet by id. Emits the current value (or `null` if not yet present)
+     * immediately, then on each change. Needed for screens that display one pet's state and
+     * must react when the user edits that pet in a sibling screen and returns via back-stack.
+     */
+    public fun observeById(id: String): Flow<Pet?>
+
     /** Insert or update. Idempotent on [Pet.id]. */
     public suspend fun upsert(pet: Pet)
 

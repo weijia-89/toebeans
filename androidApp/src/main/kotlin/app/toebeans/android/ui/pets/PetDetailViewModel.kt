@@ -32,8 +32,11 @@ public class PetDetailViewModel(
                 if (id == null) {
                     flowOf(PetDetailUiState(loading = false))
                 } else {
+                    // observeById emits on every change, so when the user edits the pet in
+                    // PetEditScreen and returns via back-stack, this view re-renders with
+                    // the fresh data. The previous one-shot getById left the screen stale.
                     combine(
-                        flowOf(id).flatMapLatest { flowOf(petRepository.getById(it)) },
+                        petRepository.observeById(id),
                         medicationRepository.observeForPet(id),
                     ) { pet, meds -> PetDetailUiState(pet = pet, medications = meds) }
                 }

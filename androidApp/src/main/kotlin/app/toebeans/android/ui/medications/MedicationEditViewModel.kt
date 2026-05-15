@@ -69,6 +69,10 @@ public class MedicationEditViewModel(
             valid = false
         }
         if (!valid) return false
+        // Preserve createdAt and (critically) discontinuedAt from the persisted record on
+        // edit. Without this, editing a discontinued medication silently un-discontinues it
+        // — which could resume dose reminders for a medication the caregiver had stopped.
+        val existing = s.medicationId?.let { medicationRepository.getById(it) }
         val med =
             Medication(
                 id = s.medicationId ?: "med-${Uuid.random()}",
@@ -76,8 +80,8 @@ public class MedicationEditViewModel(
                 name = s.name.trim(),
                 doseAmount = s.doseAmount.trim(),
                 notes = s.notes.trim().ifEmpty { null },
-                createdAt = Clock.System.now(),
-                discontinuedAt = null,
+                createdAt = existing?.createdAt ?: Clock.System.now(),
+                discontinuedAt = existing?.discontinuedAt,
             )
         medicationRepository.upsert(med)
         return true

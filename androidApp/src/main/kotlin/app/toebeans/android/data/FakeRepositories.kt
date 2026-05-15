@@ -38,6 +38,8 @@ public class FakePetRepository : PetRepository {
 
     override suspend fun getById(id: String): Pet? = pets.value[id]
 
+    override fun observeById(id: String): Flow<Pet?> = pets.asStateFlow().map { it[id] }
+
     override suspend fun upsert(pet: Pet) {
         pets.update { it + (pet.id to pet) }
     }

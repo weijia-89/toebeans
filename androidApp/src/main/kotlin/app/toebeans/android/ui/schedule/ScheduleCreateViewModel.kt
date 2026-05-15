@@ -77,11 +77,14 @@ public class ScheduleCreateViewModel(
         index: Int,
         transform: (PhaseDraft) -> PhaseDraft,
     ) {
+        // Clear the per-phase error on any field change so the red message disappears as
+        // soon as the user begins addressing what caused it. The error re-renders only if
+        // a subsequent save() attempt still fails.
         _state.update { state ->
             state.copy(
                 phases =
                     state.phases.mapIndexed { i, phase ->
-                        if (i == index) transform(phase) else phase
+                        if (i == index) transform(phase).copy(error = null) else phase
                     },
             )
         }

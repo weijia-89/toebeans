@@ -45,7 +45,9 @@ public class PetEditViewModel(
     }
 
     public fun onNameChange(value: String) {
-        _state.update { it.copy(name = value) }
+        // Clearing nameError on input gives the user immediate feedback that a previously
+        // surfaced validation error has been addressed.
+        _state.update { it.copy(name = value, nameError = null) }
     }
 
     public fun onSpeciesChange(value: Species) {
@@ -59,7 +61,7 @@ public class PetEditViewModel(
     public fun onWeightChange(value: String) {
         // Accept only digits and a single dot. Empty is allowed (weight is optional).
         if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-            _state.update { it.copy(weightKgText = value) }
+            _state.update { it.copy(weightKgText = value, weightError = null) }
         }
     }
 
@@ -79,6 +81,10 @@ public class PetEditViewModel(
             _state.update { it.copy(weightError = "Must be a positive number") }
             return false
         }
+        // For an existing pet, preserve createdAt and archivedAt from the persisted record.
+        // Without this, every edit resets the pet's "created" timestamp and silently
+        // un-archives a previously archived pet.
+        val existing = s.petId?.let { petRepository.getById(it) }
         val pet =
             Pet(
                 id = s.petId ?: "pet-${Uuid.random()}",
@@ -87,8 +93,8 @@ public class PetEditViewModel(
                 birthdate = s.birthdate,
                 weightKg = weightKg,
                 notes = s.notes.trim().ifEmpty { null },
-                createdAt = Clock.System.now(),
-                archivedAt = null,
+                createdAt = existing?.createdAt ?: Clock.System.now(),
+                archivedAt = existing?.archivedAt,
             )
         petRepository.upsert(pet)
         return true
