@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Thin wrapper around ./gradlew with three properties:
+#   1. Default --offline (no network resolution) UNLESS GW_ONLINE=1.
+#   2. Default --console=plain --no-watch-fs only if we detect we are NOT in a TTY
+#      (e.g. inside CI or a piped agent invocation). Local TTY use gets the rich console.
+#   3. Streams stderr+stdout through `awk` to flush each line as it arrives — eliminates
+#      the "frozen for 60s, then a wall of output" effect that makes agent runs look hung.
+#
+# Use anywhere ./gradlew would work:
+#   bash scripts/gw :shared:jvmTest
+#   GW_ONLINE=1 bash scripts/gw build   # forces fresh dependency resolution
+
+set -euo pipefail
+
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$REPO_ROOT"
+
+ARGS=("$@")
+
+# Online-by-default ONLY if explicitly opted in. Otherwise --offline.
+if [[ "${GW_ONLINE:-0}" != "1" ]]; then
+    ARGS=(--offline "${ARGS[@]}")
+fi
+
+# Agent / CI / non-TTY detection. tty -s returns 1 outside a TTY.
+if ! tty -s; then
+    ARGS=(--console=plain --no-watch-fs --quiet "${ARGS[@]}")
+fi
+
+# Line-buffer stdout so an agent watching the pipe sees progress in real time.
+# stdbuf is gnu coreutils; on macOS install via `brew install coreutils` (gstdbuf).
+# Fall back to unbuffered Python if neither is available.
+if command -v stdbuf >/dev/null 2>&1; then
+    exec stdbuf -oL -eL ./gradlew "${ARGS[@]}"
+elif command -v gstdbuf >/dev/null 2>&1; then
+    exec gstdbuf -oL -eL ./gradlew "${ARGS[@]}"
+elif command -v python3 >/dev/null 2>&1; then
+    exec python3 -u -c '
+import os, sys, subprocess
+p = subprocess.Popen(sys.argv[1:], stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
+sys.exit(p.wait())
+' ./gradlew "${ARGS[@]}"
+else
+    exec ./gradlew "${ARGS[@]}"
+fi
