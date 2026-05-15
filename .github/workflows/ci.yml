@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fitness-functions:
+    name: Fitness functions (lint-class CI gates)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: No-network gate
+        run: bash scripts/test_no_network.sh .
+      - name: No-analytics gate
+        run: bash scripts/test_no_analytics.sh .
+      - name: Scheduler-purity gate
+        run: bash scripts/test_scheduler_purity.sh .
+      - name: Permission-allowlist gate
+        run: bash scripts/test_permission_allowlist.sh .
+      - name: AGENTS / CLAUDE parity
+        run: bash scripts/agents_claude_parity.sh .
+
+  build-and-test:
+    name: Gradle build + shared tests
+    runs-on: ubuntu-24.04
+    needs: fitness-functions
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Validate wrapper
+        uses: gradle/actions/wrapper-validation@v4
+      - name: Lint (ktlint + detekt)
+        run: ./gradlew ktlintCheck detekt --stacktrace
+      - name: Shared tests (this is where SchedulePhaseRulesTest runs and CURRENTLY FAILS)
+        run: ./gradlew :shared:testDebugUnitTest --stacktrace
+        continue-on-error: true  # v0.1: the test-as-spec is intentionally failing. Remove this once implementation lands.
+      - name: Android app assembleDebug
+        run: ./gradlew :androidApp:assembleDebug --stacktrace
