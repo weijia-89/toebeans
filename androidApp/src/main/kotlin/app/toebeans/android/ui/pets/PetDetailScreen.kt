@@ -1,6 +1,5 @@
 package app.toebeans.android.ui.pets
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,10 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -33,15 +30,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
+import app.toebeans.android.ui.components.PetAvatar
+import app.toebeans.android.ui.components.PetAvatarSizeHero
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
-import app.toebeans.core.model.Species
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -158,7 +154,6 @@ private fun PetIdentityCard(
     // the user will re-open the screen long before a 1-day age boundary matters.
     val today = remember(pet.id) { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     val ageString = pet.birthdate?.let { PetAgeFormatter.format(it, today) }
-    val emoji = speciesEmoji(pet.species)
     val speciesLabel =
         pet.species.name
             .lowercase()
@@ -175,28 +170,7 @@ private fun PetIdentityCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Emoji avatar in a tinted circle. The circle gives the emoji a frame so it
-            // reads as "an avatar slot" rather than a floating glyph, and it absorbs any
-            // visual weirdness if a future custom drawable replaces the emoji.
-            Box(
-                modifier =
-                    Modifier
-                        .size(72.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = emoji,
-                    // 40sp keeps the emoji centered with some breathing room inside the
-                    // 72dp circle. Using sp (not dp) so the avatar scales with the
-                    // user's accessibility font-size setting.
-                    fontSize = 40.sp,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            PetAvatar(species = pet.species, size = PetAvatarSizeHero)
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -229,20 +203,6 @@ private fun PetIdentityCard(
         }
     }
 }
-
-/**
- * Species → emoji. Kept as a plain `when` rather than a property on the enum so the
- * enum stays UI-agnostic (the shared module compiles for iOS too, where the emoji
- * choice might differ — e.g. Apple-style cat vs Android-style cat). The pet enum
- * itself only owns the domain identity.
- */
-private fun speciesEmoji(species: Species): String =
-    when (species) {
-        // U+1F436 DOG FACE - friendlier than U+1F415 DOG (in profile).
-        Species.DOG -> "🐶"
-        // U+1F431 CAT FACE - matches the dog-face stylistic register.
-        Species.CAT -> "🐱"
-    }
 
 @Composable
 private fun MedicationRow(

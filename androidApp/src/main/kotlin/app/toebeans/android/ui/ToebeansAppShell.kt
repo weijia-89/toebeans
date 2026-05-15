@@ -85,6 +85,7 @@ public fun ToebeansAppShell() {
             composable(Destinations.HOME) {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
+                    onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     contentPadding = innerPadding,
                 )
             }

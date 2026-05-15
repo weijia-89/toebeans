@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,16 +21,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
+import app.toebeans.android.ui.components.PetAvatar
+import app.toebeans.android.ui.components.PetAvatarSizeList
 import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
+import app.toebeans.core.model.PetAgeFormatter
 import app.toebeans.core.model.Species
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -76,32 +85,71 @@ private fun PetsScreenContent(
                     PetRow(pet = pet, onClick = { onPetClick(pet.id) })
                 }
             }
+            // FAB uses the primary terracotta + onPrimary cream pairing so it sits
+            // confidently in the warm palette. Default FAB colors fall back to
+            // primaryContainer (the dusty rose) which read as off-brand against the
+            // cream surface — too washed-out for a primary CTA.
             ExtendedFloatingActionButton(
                 onClick = onAddPet,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Add pet") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             )
         }
     }
 }
 
+/**
+ * Compact pet row for the list. Layout mirrors the detail-screen header card but at
+ * smaller sizes:
+ *   [48dp avatar]   Name (titleMedium)
+ *                   Species · Weight  ·  Age
+ *
+ * The facts line uses a single `·`-joined string instead of two lines because the row
+ * is meant for scanning, not lingering — the user is here to find the right pet, not
+ * to read every detail. The detail screen does the two-line treatment.
+ *
+ * `today` is read inside the composable rather than passed in. For the list this is
+ * fine: a recomposition every time we re-enter the screen re-reads the clock, which
+ * is the correct frequency for a "how old is my pet" UI.
+ */
 @Composable
 private fun PetRow(
     pet: Pet,
     onClick: () -> Unit,
 ) {
+    val today: LocalDate =
+        remember(pet.id) { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    val species =
+        pet.species.name
+            .lowercase()
+            .replaceFirstChar(Char::titlecase)
+    val weight = pet.weightKg?.let { "%.1f kg".format(it) }
+    val age = pet.birthdate?.let { PetAgeFormatter.format(it, today) }
+    val facts = listOfNotNull(species, weight, age).joinToString(" · ")
+
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = pet.name, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = "${pet.species.name.lowercase().replaceFirstChar(Char::titlecase)} · ${"%.1f".format(pet.weightKg)} kg",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PetAvatar(species = pet.species, size = PetAvatarSizeList)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(text = pet.name, style = MaterialTheme.typography.titleMedium)
+                if (facts.isNotEmpty()) {
+                    Text(
+                        text = facts,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }
