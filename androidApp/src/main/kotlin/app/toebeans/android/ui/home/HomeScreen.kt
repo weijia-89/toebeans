@@ -65,7 +65,7 @@ private fun HomeScreenContent(
         Text(
             text = "Dose-list view lands in milestone 1 once SQLDelight + DoseEventRepository are wired.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

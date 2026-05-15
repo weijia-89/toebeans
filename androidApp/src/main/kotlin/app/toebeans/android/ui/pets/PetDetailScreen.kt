@@ -158,7 +158,7 @@ private fun MedicationRow(
             Text(
                 text = medication.doseAmount,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

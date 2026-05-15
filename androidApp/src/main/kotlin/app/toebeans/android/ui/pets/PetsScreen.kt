@@ -100,7 +100,7 @@ private fun PetRow(
             Text(
                 text = "${pet.species.name.lowercase().replaceFirstChar(Char::titlecase)} · ${"%.1f".format(pet.weightKg)} kg",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

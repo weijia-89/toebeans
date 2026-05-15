@@ -4,12 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,8 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,17 +64,39 @@ public fun PetEditScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    TextButton(
-                        enabled = state.name.isNotBlank(),
-                        onClick = {
-                            scope.launch {
-                                if (viewModel.save()) onSaved()
-                            }
-                        },
-                    ) { Text("Save") }
-                },
+                // Save moved out of the top bar — top-right is a thumb-stretch on most
+                // phones. New primary Save lives in bottomBar below.
             )
+        },
+        bottomBar = {
+            // Full-width primary Save button at the bottom, reachable with one thumb.
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+            ) {
+                Button(
+                    enabled = state.name.isNotBlank(),
+                    onClick = {
+                        scope.launch {
+                            if (viewModel.save()) onSaved()
+                        }
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Text(
+                        if (state.isNew) "Save pet" else "Save changes",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
         },
     ) { inner ->
         Column(
@@ -139,7 +164,8 @@ private fun SpeciesDropdown(
         Text(
             text = "Species",
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            // onSurfaceVariant: M3-correct secondary token, contrast-audited in Color.kt.
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Species.entries.forEach { species ->

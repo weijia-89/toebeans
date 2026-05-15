@@ -31,7 +31,7 @@ public fun SettingsScreen(
                 "Backup encryption, time-zone behavior, and notification channel customization land in " +
                     "milestone 1.5+. See docs/ROADMAP.md.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -46,7 +46,7 @@ private fun SettingsRow(
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

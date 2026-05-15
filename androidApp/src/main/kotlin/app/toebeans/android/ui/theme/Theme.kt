@@ -17,9 +17,9 @@ import androidx.core.view.WindowCompat
 
 private val LightColors =
     lightColorScheme(
-        primary = ToebeansOrange,
+        primary = ToebeansTerracotta,
         onPrimary = SurfaceLight,
-        primaryContainer = ToebeansOrangeContainer,
+        primaryContainer = ToebeansTerracottaContainer,
         onPrimaryContainer = ToebeansBrown,
         secondary = ToebeansBrown,
         onSecondary = SurfaceLight,
@@ -30,7 +30,12 @@ private val LightColors =
         tertiaryContainer = ToebeansSageContainer,
         onTertiaryContainer = ToebeansBrown,
         surface = SurfaceLight,
+        surfaceVariant = SurfaceVariantLight,
         onSurface = OnSurfaceLight,
+        // onSurfaceVariant is the M3-correct token for secondary/label text. Using this
+        // everywhere instead of onSurface.copy(alpha = 0.6f|0.7f) gives us a guaranteed
+        // contrast pairing audited in Color.kt.
+        onSurfaceVariant = OnSurfaceVariantLight,
         background = SurfaceLight,
         onBackground = OnSurfaceLight,
         error = ErrorLight,
@@ -41,9 +46,9 @@ private val LightColors =
 
 private val DarkColors =
     darkColorScheme(
-        primary = ToebeansOrangeContainer,
+        primary = ToebeansTerracottaContainer,
         onPrimary = ToebeansBrown,
-        primaryContainer = ToebeansOrange,
+        primaryContainer = ToebeansTerracotta,
         onPrimaryContainer = SurfaceLight,
         secondary = ToebeansBrownContainer,
         onSecondary = ToebeansBrown,
@@ -54,7 +59,9 @@ private val DarkColors =
         tertiaryContainer = ToebeansSage,
         onTertiaryContainer = SurfaceLight,
         surface = SurfaceDark,
+        surfaceVariant = SurfaceVariantDark,
         onSurface = OnSurfaceDark,
+        onSurfaceVariant = OnSurfaceVariantDark,
         background = SurfaceDark,
         onBackground = OnSurfaceDark,
         error = ErrorDark,
@@ -64,14 +71,18 @@ private val DarkColors =
     )
 
 /**
- * App theme. On Android 12+ devices, [dynamic] = true (default) lets the system extract a
- * Material You palette from the user's wallpaper. We always fall back to the hand-tuned
- * Toebeans palette on older devices and for previews.
+ * App theme.
+ *
+ * **Dynamic color disabled by default** (revision 2). Material You's dynamic palette pulls
+ * from the user's wallpaper, which on a green/blue wallpaper would override our hand-tuned
+ * warm terracotta look with something cool and "off-brand." For a record-keeping app opened
+ * in stressful moments, palette consistency matters more than wallpaper-matching. Caller
+ * can still opt in by passing dynamic = true on a settings toggle later.
  */
 @Composable
 public fun ToebeansTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamic: Boolean = true,
+    dynamic: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current

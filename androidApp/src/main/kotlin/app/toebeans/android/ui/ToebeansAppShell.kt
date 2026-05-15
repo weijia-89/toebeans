@@ -46,26 +46,34 @@ public fun ToebeansAppShell() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
 
+    // Bottom NavigationBar shows only on the three top-level tab destinations. Detail and
+    // edit screens hide it so their own bottomBar (e.g. Save button) sits at the true
+    // bottom of the viewport and isn't occluded by the tab strip. Standard Android pattern.
+    val currentRoute = backStack?.destination?.route
+    val showBottomNav = currentRoute in TOP_LEVEL_ROUTES
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                BottomNavItem.entries.forEach { item ->
-                    val selected =
-                        backStack?.destination?.hierarchy?.any { it.route == item.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            if (showBottomNav) {
+                NavigationBar {
+                    BottomNavItem.entries.forEach { item ->
+                        val selected =
+                            backStack?.destination?.hierarchy?.any { it.route == item.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(iconFor(item), contentDescription = null) },
-                        label = { Text(item.label) },
-                    )
+                            },
+                            icon = { Icon(iconFor(item), contentDescription = null) },
+                            label = { Text(item.label) },
+                        )
+                    }
                 }
             }
         },
@@ -174,6 +182,12 @@ public fun ToebeansAppShell() {
         }
     }
 }
+
+// Tab destinations where the bottom NavigationBar should be visible. Anything else
+// (detail/edit screens) hides the tab strip so the screen's own bottomBar reaches the
+// bottom of the viewport.
+private val TOP_LEVEL_ROUTES =
+    setOf(Destinations.HOME, Destinations.PETS, Destinations.SETTINGS)
 
 // Using Icons.Filled.* from material-icons-core (always shipped with material3). The
 // "Pets" icon (paw print) lives in material-icons-extended which would be a ~5 MB
