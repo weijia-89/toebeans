@@ -1,8 +1,10 @@
 # ADR-0004: Tapering schedule model — Schedule + ordered SchedulePhase rows
 
 Date: 2026-05-14
-Status: Accepted
+Status: Accepted (with 2026-05-15 test-as-spec review amendment — see § Test-as-spec review)
 Deciders: Wei Jia (with Cascade)
+
+> **Note for future readers:** this ADR was amended on 2026-05-15 after human review of the test-as-spec. The amendments are in § Test-as-spec review and § STRIDE threat model. The original 2026-05-14 decision (model shape) remains. If you are reading this to understand current behavior, read all sections in order.
 
 ## Context
 
@@ -20,7 +22,7 @@ The phase-row model maps naturally to the typical taper structure ("phase 1 dose
 
 `Schedule` is one row with `start_date`, optional `end_date`, and a foreign key to `Medication`. `SchedulePhase` rows hang off `Schedule` by `(schedule_id, phase_order)`, with `UNIQUE(schedule_id, phase_order)` enforced at the DB level.
 
-A non-tapering regimen has exactly one phase. A taper has two or more. Adding PRN or load-then-maintain semantics (deferred to slice 2+) will extend either `SchedulePhase` with a `kind` column or introduce a sibling table — both are additive migrations.
+A non-tapering regimen has exactly one phase. A taper has two or more. Adding PRN or load-then-maintain semantics (deferred to milestone 2+) will extend either `SchedulePhase` with a `kind` column or introduce a sibling table — both are additive migrations.
 
 `DoseEvent`s are materialized lazily by `ScheduleCalculator.computeScheduledTimes` at the 72-hour rescheduling horizon, not pre-generated at schedule creation time.
 
@@ -57,7 +59,7 @@ Human review of `SchedulePhaseRulesTest` per AGENTS.md § Test-as-spec rules loc
 | ID | Decision | Test |
 |---|---|---|
 | **D1** | `Schedule.endDate` is **INCLUSIVE.** "Give through Friday" means the pet gets doses on Friday. Asymmetric with `toExclusive` window param (which is mechanical). | Test 4 (`endDate caps the schedule before phase exhaustion`) |
-| **D2** | A phase with `doseTimesLocal[0] == 00:00` produces a dose at exactly `startDate @ 00:00 local`. No "skip to next morning" semantics. A UX-level warning when any dose time is in `[00:00, 06:00)` is tracked as a slice-1 follow-up. | Test 5 (`phase with midnight dose time anchors first dose at startDate 0000 local`) |
+| **D2** | A phase with `doseTimesLocal[0] == 00:00` produces a dose at exactly `startDate @ 00:00 local`. No "skip to next morning" semantics. A UX-level warning when any dose time is in `[00:00, 06:00)` is tracked as a milestone-1 follow-up. | Test 5 (`phase with midnight dose time anchors first dose at startDate 0000 local`) |
 | **D3** | Malformed `phaseOrder` input throws `IllegalArgumentException`. Specifically: duplicate `phaseOrder` and gaps (`[0, 2]`) are rejected. Silently producing wrong dose counts from malformed input is medication-critical. | Tests 6, 7 (`duplicate phaseOrder throws`, `phaseOrder gap throws`) |
 | **D4** | Empty `phases` list is a no-op: returns empty list. Not an error. | Test 8 (`empty phases returns empty result`) |
 | **D5** | Schedule whose `startDate` is on or after the window's `toExclusive` returns an empty list. The schedule simply has not started yet. | Test 9 (`schedule starting after toExclusive returns empty result`) |
@@ -75,5 +77,5 @@ Per AGENTS.md confidence-score component 9.
 | **T**ampering | Wrong dose count from malformed `phases` input (e.g., duplicate `phaseOrder`) silently producing a too-long schedule | D3: `IllegalArgumentException` on duplicates and gaps; fail-loud rather than fail-quiet |
 | **R**epudiation | Caller can claim "the calculator told me to give 11 doses" | Calculator is deterministic and pure; given the same `(schedule, phases, tz, window)` it returns the same list. Test-as-spec pins behavior. Calibration log `.codeit/calibration.jsonl` records every change to this surface. |
 | **I**nformation disclosure | N/A — no secrets in dose data | — |
-| **D**enial of service | A 30-year-long phase × 24-doses-per-day query could allocate ~262K events | Mitigated by the 72-hour materialization horizon; calculator is never called with a window > 168h in slice 1. Will be re-checked when slice 2 adds "show next 30 days." |
+| **D**enial of service | A 30-year-long phase × 24-doses-per-day query could allocate ~262K events | Mitigated by the 72-hour materialization horizon; calculator is never called with a window > 168h in milestone 1. Will be re-checked when milestone 2 adds "show next 30 days." |
 | **E**levation of privilege | N/A — calculator has no auth boundary | — |

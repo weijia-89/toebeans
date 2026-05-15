@@ -30,7 +30,7 @@
 |  file storage) |    |   - AlarmManager (exact) |
 |                |    |   - WorkManager (recur)  |
 |                |    |   - Notifications        |
-|                |    |   iOS (slice 5):         |
+|                |    |   iOS (milestone 5):         |
 |                |    |   - UNUserNotifications  |
 +----------------+    +--------------------------+
 ```
@@ -43,7 +43,7 @@ Each module hides a **design decision likely to change**, not a flow step.
 |---|---|---|
 | `core/scheduler/` | The algorithm that turns a `Schedule + Phases` into a list of `ScheduledDose` instants. Hides DST handling, phase-boundary rules, missed-dose detection. | Algorithm details are likely to change as we add PRN, load-then-maintain, snoozes. UI and persistence should not have to change. |
 | `core/backup/` | The serialization format and encryption details of the export file. | The format may rev for new fields; encryption parameters may rev for new key derivation. Consumers (Settings UI) only see "export()" / "import()". |
-| `core/repository/` | The query interface to SQLDelight. UI never sees SQL. | Allows us to swap the persistence layer (slice 5: iOS may use the same SQLDelight DB; slice 6: cloud sync layer may add a remote source-of-truth). |
+| `core/repository/` | The query interface to SQLDelight. UI never sees SQL. | Allows us to swap the persistence layer (milestone 5: iOS may use the same SQLDelight DB; milestone 6: cloud sync layer may add a remote source-of-truth). |
 | `androidApp/notifications/` | The mechanics of AlarmManager + WorkManager + NotificationChannel lifecycle. | OEM-specific battery workarounds will accumulate here. The rest of the app sees only `NotificationActuator.schedule(dose: ScheduledDose)`. |
 
 ## Why no ports-and-adapters at v1
@@ -107,11 +107,11 @@ There is no runtime configuration at v1. Every value that varies between environ
 
 Changing any of these requires an ADR.
 
-## Open questions (slice 2+)
+## Open questions (milestone 2+)
 
 These are **not** part of the v1 design. Listed here so contributors don't accidentally bake in answers.
 
 - How does caregiver sharing handle conflicts when two devices both log "Given"? (Likely: last-write-wins by `resolved_at`; explicit conflict UI deferred.)
 - Multi-device sync without cloud (peer-to-peer over local network)? Probably not worth it; cloud tier wins.
 - iOS adoption of AlarmManager-equivalent. UNUserNotifications is calendar-precise; no exact-alarm-permission UX overhead.
-- When does on-device OCR start to matter? See dossier §8.2 slice 4 decision gate.
+- When does on-device OCR start to matter? See dossier §8.2 milestone 4 decision gate.

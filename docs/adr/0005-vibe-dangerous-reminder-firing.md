@@ -47,4 +47,4 @@ For every change to any of these surfaces:
 
 - AGENTS.md and CLAUDE.md both encode this contract.
 - The CI workflow `scripts/agents_claude_parity.sh` ensures the two files do not drift.
-- A pre-commit hook (slice-1 work item) enforces that any commit touching a vibe-dangerous path must be accompanied by a `tests/` change or have a `Vibe-Override:` trailer signed by a human reviewer.
+- A pre-commit hook (milestone-1 work item) enforces that any commit touching a vibe-dangerous path must be accompanied by a `tests/` change or have a `Vibe-Override:` trailer signed by a human reviewer.

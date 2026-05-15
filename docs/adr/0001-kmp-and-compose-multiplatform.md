@@ -6,7 +6,7 @@ Deciders: Wei Jia (with Cascade)
 
 ## Context
 
-We need a mobile app that ships Android first and preserves an iOS path. The product plan envisions iOS arriving at slice 5 (roughly 16+ weeks after the MVP). The candidates are:
+We need a mobile app that ships Android first and preserves an iOS path. The product plan envisions iOS arriving at milestone 5 (roughly 16+ weeks after the MVP). The candidates are:
 
 - **Kotlin Multiplatform (KMP) + Compose Multiplatform** — single Kotlin codebase, native UI on both platforms.
 - **Kotlin Multiplatform with native UI** (Compose on Android, SwiftUI on iOS) — share business logic only.
@@ -24,7 +24,7 @@ Kotlin Multiplatform with Compose Multiplatform for UI.
 
 - `shared` module hosts the domain models, scheduler, SQLDelight schema, and backup codec.
 - `androidApp` module hosts the Android-specific application, AlarmManager and WorkManager glue, NotificationChannel, and the Compose UI host.
-- iOS source sets exist in `shared/src/iosMain/` but are gated off behind `gradle.properties: toebeans.enableIosTargets=false` until slice 5.
+- iOS source sets exist in `shared/src/iosMain/` but are gated off behind `gradle.properties: toebeans.enableIosTargets=false` until milestone 5.
 
 ## Consequences
 
@@ -37,16 +37,16 @@ Kotlin Multiplatform with Compose Multiplatform for UI.
 
 ### Negative
 
-- Compose-iOS is newer than Compose-Android. Edge cases will appear when slice 5 ships.
+- Compose-iOS is newer than Compose-Android. Edge cases will appear when milestone 5 ships.
 - Some Android-specific APIs (AlarmManager, RECEIVE_BOOT_COMPLETED) have no iOS equivalent and will need iOS-specific actuator code (UNUserNotifications calendar-style triggers).
 - KMP build times are slower than pure-Android builds (per Guarana Technologies' 2025 production report).
 
 ### Rejected alternatives
 
 - **Native-only Android.** Rejected: the iOS path would require a separate codebase and dilutes scarce engineering bandwidth. The product plan explicitly preserves iOS.
-- **Flutter.** Rejected: weaker access to Android-specific APIs (AlarmManager, on-device ML Kit) that we will need in slice 4. Dart is also a smaller hiring pool.
+- **Flutter.** Rejected: weaker access to Android-specific APIs (AlarmManager, on-device ML Kit) that we will need in milestone 4. Dart is also a smaller hiring pool.
 - **React Native + Expo.** Rejected: offline-first, document-heavy, notification-critical apps are not RN's sweet spot. Notification reliability on Android via RN has been a recurring complaint area.
-- **KMP with native UI on iOS.** Rejected as overkill at this stage; we can fall back to it if Compose-iOS shows real instability at slice 5.
+- **KMP with native UI on iOS.** Rejected as overkill at this stage; we can fall back to it if Compose-iOS shows real instability at milestone 5.
 
 ## Verification
 

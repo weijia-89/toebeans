@@ -54,7 +54,7 @@ Permission handling:
 
 - `MAX_PENDING_PER_PET = 64` cap is asserted in the rescheduler tests.
 - `AUTO_RESCHEDULE_HORIZON_HOURS = 72` is asserted in the rescheduler tests.
-- A 30-day soak test (success criterion 1) runs on a non-OEM-customized Pixel device before the slice 1 release tag.
+- A 30-day soak test (success criterion 1) runs on a non-OEM-customized Pixel device before the milestone 1 release tag.
 
 ## References
 

@@ -47,7 +47,7 @@ The passphrase is **never** persisted. The user must remember it to restore. Thi
 
 ### Rejected alternatives
 
-- **Cloud sync from day 1 (Firebase / Supabase).** Rejected: adds auth, a server cost center, GDPR/CCPA scope, and undermines the moat. Deferred to slice 6 (Plus tier).
+- **Cloud sync from day 1 (Firebase / Supabase).** Rejected: adds auth, a server cost center, GDPR/CCPA scope, and undermines the moat. Deferred to milestone 6 (Plus tier).
 - **Android Auto Backup default-on (silent).** Rejected: users do not realize their pet data is being uploaded to Google. We require explicit opt-in.
 - **Plaintext export.** Rejected: backup files often end up in cloud drives, on USB sticks, attached to emails. Encryption-at-rest for exports is non-negotiable.
 
@@ -55,7 +55,7 @@ The passphrase is **never** persisted. The user must remember it to restore. Thi
 
 - Fitness function `scripts/test_no_network.sh` fails if `okhttp3`, `ktor`, `URLConnection`, `URL(...)`, etc. appear in `commonMain/` or `androidMain/`.
 - Backup codec lives in `shared/.../backup/` (vibe-dangerous; requires human-written tests).
-- `android:allowBackup="false"` is the v0.1 manifest default; enabling it programmatically is a slice-1 work item with its own PR and ADR.
+- `android:allowBackup="false"` is the v0.1 manifest default; enabling it programmatically is a milestone-1 work item with its own PR and ADR.
 
 ## References
 

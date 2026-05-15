@@ -2,7 +2,7 @@
 
 > Your pet's admin layer. Medication reminders that don't lie to you.
 
-**Status:** v0.1.0-dev — pre-MVP scaffold. Reminders-first slice in active development.
+**Status:** v0.1.0-dev — pre-MVP scaffold. Reminders-first milestone in active development.
 
 **License:** [AGPL-3.0-or-later](LICENSE)
 
@@ -26,7 +26,7 @@ The design rationale, market evidence, and competitive analysis are documented i
 - Not a substitute for veterinary care.
 - Not a clinic-facing PMS.
 
-## Success criteria (slice 1)
+## Success criteria (milestone 1)
 
 1. **Reliability:** zero missed reminders in a 30-day soak test on a non-OEM-customized Android device with battery optimization disabled.
 2. **Latency:** reminders fire within ±60 seconds of scheduled time.
