@@ -1,0 +1,37 @@
+# detekt configuration — minimal v0.1 overlay on top of detekt's default config.
+# Rationale: keep static analysis useful, not noisy. Bump severity later if needed.
+
+build:
+  maxIssues: 0
+  weights:
+    complexity: 2
+    LongParameterList: 1
+    style: 1
+
+style:
+  active: true
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+  ReturnCount:
+    active: true
+    max: 4
+  WildcardImport:
+    active: true
+
+complexity:
+  TooManyFunctions:
+    active: false
+  LongMethod:
+    active: true
+    threshold: 60
+
+naming:
+  PackageNaming:
+    packagePattern: '^[a-z]+(\\.[a-z][a-z0-9]*)*$'
+
+empty-blocks:
+  EmptyFunctionBlock:
+    active: false  # Stubs in the v0.1 scaffold intentionally have empty bodies.

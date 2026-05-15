@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  toebeans AndroidManifest.
+  Permissions are restricted to the allowlist documented in AGENTS.md.
+  A CI fitness function (scripts/test_permission_allowlist.sh) fails the build
+  if any permission outside this list appears.
+
+  Allowlist (v1):
+    POST_NOTIFICATIONS
+    SCHEDULE_EXACT_ALARM
+    USE_EXACT_ALARM
+    RECEIVE_BOOT_COMPLETED
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- v0.1: no launcher icon resource yet; Android falls back to the system default.
+         A real ic_launcher (adaptive icon) is a slice-1 UI work item. -->
+    <application
+        android:name=".ToebeansApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Toebeans"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Toebeans">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- BroadcastReceiver fired by AlarmManager when a scheduled dose's instant arrives.
+             android:exported="false" because only our own AlarmManager wakes it.
+             android:enabled="true" so it survives package replace. -->
+        <receiver
+            android:name=".notifications.DoseAlarmReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="app.toebeans.action.DOSE_FIRE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

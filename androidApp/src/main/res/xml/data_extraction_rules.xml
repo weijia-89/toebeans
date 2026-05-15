@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ data-extraction rules.
+  At v0.1 we set android:allowBackup="false" in the manifest, so this file's
+  rules are effectively unused. It exists to satisfy the manifest attribute
+  and to make a future "opt-in Auto Backup" toggle explicit.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <!-- Slice-1 placeholder: explicitly excludes the SQLDelight database file. -->
+        <exclude domain="database" path="ToebeansDatabase.db" />
+        <exclude domain="database" path="ToebeansDatabase.db-shm" />
+        <exclude domain="database" path="ToebeansDatabase.db-wal" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="ToebeansDatabase.db" />
+        <exclude domain="database" path="ToebeansDatabase.db-shm" />
+        <exclude domain="database" path="ToebeansDatabase.db-wal" />
+    </device-transfer>
+</data-extraction-rules>
