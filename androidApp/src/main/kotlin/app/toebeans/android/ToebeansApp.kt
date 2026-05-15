@@ -1,22 +1,30 @@
 package app.toebeans.android
 
 import android.app.Application
+import app.toebeans.android.di.appModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
+import org.koin.core.logger.Level
 
 /**
- * Application entry point.
+ * Application entry point. Initializes the Koin DI container with the UI scaffold's
+ * fake-repository wiring.
  *
- * v0.1: intentionally minimal. Slice 1 will wire up:
- *   - Koin DI container
- *   - NotificationChannel registration for "medication-critical"
- *   - Boot-time scheduler rehydration
+ * Still pending (milestone 1 vibe-dangerous work):
+ *   - NotificationChannel("medication-critical") registration.
+ *   - Boot-time scheduler rehydration of pending DoseEvents within the 72h horizon.
+ *   - Replacement of FakePetRepository et al. with SQLDelight-backed implementations.
  *
- * Per AGENTS.md, the wiring of those is vibe-dangerous and requires its own test-as-spec PR.
+ * Each of those lands in its own test-as-spec PR per AGENTS.md.
  */
 class ToebeansApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        // TODO(slice-1): initialize Koin, NotificationChannel("medication-critical"), and
-        //                reschedule pending DoseEvents within the 72h horizon.
-        //                Implement only AFTER the failing scheduler tests pass.
+        startKoin {
+            androidLogger(Level.ERROR) // INFO would log every injection; chatty in adb logcat.
+            androidContext(this@ToebeansApp)
+            modules(appModule)
+        }
     }
 }
