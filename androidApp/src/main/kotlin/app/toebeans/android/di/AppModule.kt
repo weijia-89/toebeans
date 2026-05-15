@@ -4,7 +4,11 @@ import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
 import app.toebeans.android.data.FakeScheduleRepository
 import app.toebeans.android.ui.home.HomeViewModel
+import app.toebeans.android.ui.medications.MedicationEditViewModel
+import app.toebeans.android.ui.pets.PetDetailViewModel
+import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
+import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -22,6 +26,10 @@ public val appModule =
         single<PetRepository> { FakePetRepository() }
         single<MedicationRepository> { FakeMedicationRepository() }
         single<ScheduleRepository> { FakeScheduleRepository() }
+        viewModel { PetDetailViewModel(petRepository = get(), medicationRepository = get()) }
+        viewModel { PetEditViewModel(petRepository = get()) }
+        viewModel { MedicationEditViewModel(medicationRepository = get()) }
+        viewModel { ScheduleCreateViewModel(medicationRepository = get(), scheduleRepository = get()) }
 
         // ViewModels
         viewModel { HomeViewModel(petRepository = get()) }

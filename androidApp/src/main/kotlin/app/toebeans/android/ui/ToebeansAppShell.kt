@@ -14,14 +14,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import app.toebeans.android.ui.home.HomeScreen
+import app.toebeans.android.ui.medications.MedicationEditScreen
 import app.toebeans.android.ui.nav.BottomNavItem
 import app.toebeans.android.ui.nav.Destinations
+import app.toebeans.android.ui.pets.PetDetailScreen
+import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
+import app.toebeans.android.ui.schedule.ScheduleCreateScreen
 import app.toebeans.android.ui.settings.SettingsScreen
 
 /**
@@ -70,19 +76,100 @@ public fun ToebeansAppShell() {
         ) {
             composable(Destinations.HOME) {
                 HomeScreen(
-                    onAddPet = { navController.navigate(Destinations.PETS) },
+                    onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     contentPadding = innerPadding,
                 )
             }
             composable(Destinations.PETS) {
                 PetsScreen(
-                    onPetClick = { /* milestone 1: navigate to Destinations.petDetail(petId) */ },
-                    onAddPet = { /* milestone 1: navigate to a new-pet route */ },
+                    onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
+                    onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     contentPadding = innerPadding,
                 )
             }
             composable(Destinations.SETTINGS) {
                 SettingsScreen(contentPadding = innerPadding)
+            }
+            // ----- Stacked destinations. ContentPadding intentionally NOT forwarded; these
+            // screens host their own TopAppBar in a Scaffold and consume insets themselves.
+            composable(Destinations.PET_NEW_ROUTE) {
+                PetEditScreen(
+                    petId = null,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Destinations.PET_DETAIL_ROUTE,
+                arguments = listOf(navArgument(Destinations.Args.PET_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
+                PetDetailScreen(
+                    petId = petId,
+                    onBack = { navController.popBackStack() },
+                    onEditPet = { navController.navigate(Destinations.petEdit(petId)) },
+                    onAddMedication = { navController.navigate(Destinations.medicationNew(petId)) },
+                    onMedicationClick = { medId ->
+                        navController.navigate(Destinations.scheduleCreate(petId, medId))
+                    },
+                )
+            }
+            composable(
+                route = Destinations.PET_EDIT_ROUTE,
+                arguments = listOf(navArgument(Destinations.Args.PET_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
+                PetEditScreen(
+                    petId = petId,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Destinations.MEDICATION_NEW_ROUTE,
+                arguments = listOf(navArgument(Destinations.Args.PET_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
+                MedicationEditScreen(
+                    petId = petId,
+                    medicationId = null,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Destinations.MEDICATION_EDIT_ROUTE,
+                arguments =
+                    listOf(
+                        navArgument(Destinations.Args.PET_ID) { type = NavType.StringType },
+                        navArgument(Destinations.Args.MEDICATION_ID) { type = NavType.StringType },
+                    ),
+            ) { entry ->
+                val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
+                val medId = entry.arguments?.getString(Destinations.Args.MEDICATION_ID) ?: return@composable
+                MedicationEditScreen(
+                    petId = petId,
+                    medicationId = medId,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Destinations.SCHEDULE_CREATE_ROUTE,
+                arguments =
+                    listOf(
+                        navArgument(Destinations.Args.PET_ID) { type = NavType.StringType },
+                        navArgument(Destinations.Args.MEDICATION_ID) { type = NavType.StringType },
+                    ),
+            ) { entry ->
+                val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
+                val medId = entry.arguments?.getString(Destinations.Args.MEDICATION_ID) ?: return@composable
+                ScheduleCreateScreen(
+                    petId = petId,
+                    medicationId = medId,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
             }
         }
     }

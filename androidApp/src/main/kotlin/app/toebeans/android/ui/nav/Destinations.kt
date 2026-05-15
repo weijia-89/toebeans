@@ -13,19 +13,31 @@ public object Destinations {
     public const val PETS: String = "pets"
     public const val SETTINGS: String = "settings"
 
-    // Stacked destinations.
-    public const val PET_DETAIL_ROUTE: String = "pets/{petId}"
-    public const val PET_EDIT_ROUTE: String = "pets/{petId}/edit"
-    public const val SCHEDULE_CREATE_ROUTE: String = "pets/{petId}/medications/{medicationId}/schedule/new"
+    // Stacked destinations. Routes use literal path templates; helper functions below
+    // build the runtime URLs. `PET_NEW` is a literal segment so it doesn't collide with
+    // {petId} pattern matching — Compose Navigation matches longest-prefix.
+    public const val PET_NEW_ROUTE: String = "pets/new"
+    public const val PET_DETAIL_ROUTE: String = "pets/detail/{petId}"
+    public const val PET_EDIT_ROUTE: String = "pets/detail/{petId}/edit"
+    public const val MEDICATION_NEW_ROUTE: String = "pets/detail/{petId}/medications/new"
+    public const val MEDICATION_EDIT_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/edit"
+    public const val SCHEDULE_CREATE_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/schedule/new"
 
-    public fun petDetail(petId: String): String = "pets/$petId"
+    public fun petDetail(petId: String): String = "pets/detail/$petId"
 
-    public fun petEdit(petId: String): String = "pets/$petId/edit"
+    public fun petEdit(petId: String): String = "pets/detail/$petId/edit"
+
+    public fun medicationNew(petId: String): String = "pets/detail/$petId/medications/new"
+
+    public fun medicationEdit(
+        petId: String,
+        medicationId: String,
+    ): String = "pets/detail/$petId/medications/$medicationId/edit"
 
     public fun scheduleCreate(
         petId: String,
         medicationId: String,
-    ): String = "pets/$petId/medications/$medicationId/schedule/new"
+    ): String = "pets/detail/$petId/medications/$medicationId/schedule/new"
 
     /** Args for stacked destinations. Compose Navigation looks up by these exact strings. */
     public object Args {
