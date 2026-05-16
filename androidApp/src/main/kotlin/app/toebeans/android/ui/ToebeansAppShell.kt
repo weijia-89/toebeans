@@ -1,7 +1,6 @@
 package app.toebeans.android.ui
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -21,6 +20,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.toebeans.android.ui.home.HomeScreen
+import app.toebeans.android.ui.icons.PawIcon
 import app.toebeans.android.ui.medications.MedicationEditScreen
 import app.toebeans.android.ui.nav.BottomNavItem
 import app.toebeans.android.ui.nav.Destinations
@@ -190,13 +190,12 @@ public fun ToebeansAppShell() {
 private val TOP_LEVEL_ROUTES =
     setOf(Destinations.HOME, Destinations.PETS, Destinations.SETTINGS)
 
-// Using Icons.Filled.* from material-icons-core (always shipped with material3). The
-// "Pets" icon (paw print) lives in material-icons-extended which would be a ~5 MB
-// vibe-dangerous Gradle dep add. Favorite (heart) is a stand-in until we ship a custom
-// paw-print vector asset in milestone 2.
+// Pets tab uses a hand-authored paw vector (see PawIcon.kt) so we don't have to pull in
+// the ~5 MB material-icons-extended dep just for one glyph. Home and Settings stay on
+// material-icons-core which is bundled with material3.
 private fun iconFor(item: BottomNavItem): ImageVector =
     when (item) {
         BottomNavItem.HOME -> Icons.Filled.Home
-        BottomNavItem.PETS -> Icons.Filled.Favorite
+        BottomNavItem.PETS -> PawIcon
         BottomNavItem.SETTINGS -> Icons.Filled.Settings
     }
