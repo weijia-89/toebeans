@@ -1,117 +1,156 @@
-# toebeans — architecture
+# Architecture
 
-**Audience:** future contributors (human or agent) who need to understand the shape of the system before changing it.
+For future contributors who need to understand the shape of the system before
+changing it. The voice is descriptive, third person, present tense.
 
-**Voice:** descriptive, third-person, present tense (per [`codeit` Section 7](https://github.com/wei/codeit.skill)).
+## Module map
 
----
+The app splits cleanly into a Kotlin Multiplatform `shared` module and an
+Android-specific app module. The shared module is currently
+`commonMain`-only; an `iosMain` source set will appear when the iOS app lands.
 
-## Components
+```mermaid
+graph TD
+    UI["Compose UI<br/>(androidApp)"]
+    Pref["Theme preferences<br/>SharedPreferences"]
+    Core["Shared core<br/>(KMP commonMain)<br/>models · repos · scheduler"]
+    DB[("SQLDelight database<br/>app-private storage")]
+    Notif["Android actuators<br/>AlarmManager · WorkManager · Notifications"]
 
-```
-+--------------------------------------------------+
-|              Compose UI  (androidApp)            |
-|  Screens: Home / AddPet / AddMedication /        |
-|           Schedule / DoseHistory / Settings      |
-+----------------------+---------------------------+
-                       |
-                       v
-+--------------------------------------------------+
-|         Shared core  (KMP, commonMain)           |
-|  Repositories <-> Scheduler <-> Backup           |
-|  Domain models: Pet, Medication, Schedule,       |
-|                 SchedulePhase, DoseEvent         |
-+--------+---------------------+-------------------+
-         |                     |
-         v                     v
-+----------------+    +--------------------------+
-| SQLDelight DB  |    |   Platform actuators     |
-| (app-private   |    |   Android:               |
-|  file storage) |    |   - AlarmManager (exact) |
-|                |    |   - WorkManager (recur)  |
-|                |    |   - Notifications        |
-|                |    |   iOS (milestone 5):         |
-|                |    |   - UNUserNotifications  |
-+----------------+    +--------------------------+
+    UI --> Core
+    UI --> Pref
+    Core --> DB
+    Core --> Notif
 ```
 
-## Module boundaries (Parnas-aligned)
+## What each module hides
 
-Each module hides a **design decision likely to change**, not a flow step.
+The module split follows Parnas: each module hides a design decision that is
+likely to change, not a flow step.
 
-| Module | Hides | Justification |
+| Module | Hides | Rationale |
 |---|---|---|
-| `core/scheduler/` | The algorithm that turns a `Schedule + Phases` into a list of `ScheduledDose` instants. Hides DST handling, phase-boundary rules, missed-dose detection. | Algorithm details are likely to change as we add PRN, load-then-maintain, snoozes. UI and persistence should not have to change. |
-| `core/backup/` | The serialization format and encryption details of the export file. | The format may rev for new fields; encryption parameters may rev for new key derivation. Consumers (Settings UI) only see "export()" / "import()". |
-| `core/repository/` | The query interface to SQLDelight. UI never sees SQL. | Allows us to swap the persistence layer (milestone 5: iOS may use the same SQLDelight DB; milestone 6: cloud sync layer may add a remote source-of-truth). |
-| `androidApp/notifications/` | The mechanics of AlarmManager + WorkManager + NotificationChannel lifecycle. | OEM-specific battery workarounds will accumulate here. The rest of the app sees only `NotificationActuator.schedule(dose: ScheduledDose)`. |
+| `core/scheduler/` | The algorithm that turns a `Schedule + Phases` into a list of dose instants. Hides DST handling, phase-boundary arithmetic, and missed-dose detection. | Algorithm details will change as we add PRN dosing, load-then-maintain phases, and snooze handling. UI and persistence should not have to change. |
+| `core/backup/` | The serialization format of the export file and any future encryption details. | The format may rev for new fields. Encryption parameters may rev for stronger key derivation. Callers (Settings UI) only see `export()` and `import()`. |
+| `core/data/` | The query interface to the persistence layer. UI never sees SQL. | Lets us swap implementations: in-memory fakes today, SQLDelight tomorrow, possibly a `commonMain`-shared DB across Android and iOS later. |
+| `androidApp/notifications/` | The mechanics of AlarmManager, WorkManager, and notification-channel lifecycle. OEM-specific battery workarounds will accumulate here. | The rest of the app sees only `NotificationActuator.schedule(dose)`. |
 
 ## Why no ports-and-adapters at v1
 
-Cockburn's hexagonal architecture is justified **only when 2+ adapter implementations are planned** (per [`code-helper` §6.4](https://github.com/wei/code-helper.skill)).
+Cockburn's hexagonal architecture pays off when two or more adapter
+implementations are planned. At v1 we have one of each: a single persistence
+adapter (SQLDelight, used identically on both platforms once iOS lands),
+plus one notification adapter per platform, plus one Compose-Multiplatform
+UI adapter.
 
-At v1:
+Kotlin Multiplatform's `expect` and `actual` already enforce the port
+boundary for cross-platform code. We don't add a redundant interface layer in
+`commonMain` "just in case." A second adapter implementation in any layer
+triggers a refactor, with an ADR.
 
-- One persistence adapter (SQLDelight, used identically on Android and iOS).
-- One notification adapter per platform (Android + iOS), each compiled into its own platform target.
-- One UI adapter (Compose Multiplatform).
+## Dose-log path (working today)
 
-KMP's `expect`/`actual` already enforces the port boundary for cross-platform code. We do not add a redundant interface layer in `commonMain` "just in case." A second adapter implementation in any layer triggers a refactor with an ADR.
+The user has the in-memory dose-log surface working on the Pet Detail screen.
+Tapping `Log dose now` writes a synthetic GIVEN `DoseEvent` against the
+medication's most recent schedule. The repository's
+`observeLastGivenForMedication` flow re-emits and the row recomposes.
 
-## Data flow: a reminder firing
+```mermaid
+sequenceDiagram
+    actor Owner
+    participant UI as Compose UI
+    participant VM as PetDetailViewModel
+    participant Repo as DoseEventRepository
+    participant Store as In-memory store
 
+    Owner->>UI: tap "Log dose now"
+    UI->>VM: logDose(medicationId, activeScheduleId)
+    VM->>Repo: recordGivenNow(id, scheduleId, now)
+    Repo->>Store: insert DoseEvent (status=GIVEN)
+    Store-->>Repo: stored
+    Repo-->>VM: DoseEvent
+    Note over Repo,Store: observeLastGivenForMedication<br/>re-emits with the new event
+    Repo-->>UI: latestGiven flow update
+    UI->>Owner: "Last dose: just now"
 ```
-[boot or app open]
-  -> ReminderRescheduler.rescheduleNext72h()
-     -> reads Schedules from SQLDelight
-     -> calls ScheduleCalculator.computeScheduledTimes(schedule, phases, tz, now, now+72h)
-     -> writes pending DoseEvents to SQLDelight
-     -> registers AlarmManager.setExactAndAllowWhileIdle for each
-[alarm fires]
-  -> AndroidAlarmReceiver.onReceive()
-     -> updates DoseEvent.fired_at = now
-     -> NotificationActuator.show(doseEvent)
-        -> NotificationChannel "medication-critical"
-        -> two inline actions: Given / Skipped
-[user taps Given]
-  -> NotificationActionReceiver.onReceive(action=GIVEN)
-     -> updates DoseEvent.status = 'given', resolved_at = now
-     -> cancels notification
-     -> ReminderRescheduler.rescheduleNext72h() if the queue is shallow
+
+## Reminder-firing path (next milestone, not built)
+
+This is the path the v1 reliability target hangs off. AlarmManager handles
+exact firing for known doses. WorkManager runs the periodic sweep that
+re-projects the next 72 hours of pending events when the queue gets shallow.
+
+```mermaid
+sequenceDiagram
+    participant Trigger as Boot or app open
+    participant Resched as ReminderRescheduler
+    participant Sched as ScheduleCalculator<br/>(KMP, pure)
+    participant DB as SQLDelight
+    participant AM as AlarmManager
+    participant Recv as AlarmReceiver
+    participant Notif as NotificationActuator
+    actor Owner
+
+    Trigger->>Resched: rescheduleNext72h()
+    Resched->>DB: read active schedules and phases
+    Resched->>Sched: computeScheduledTimes(now, now+72h)
+    Sched-->>Resched: list of dose instants
+    Resched->>DB: write pending DoseEvents
+    Resched->>AM: setExactAndAllowWhileIdle(each)
+
+    AM->>Recv: alarm fires
+    Recv->>DB: update fired_at = now
+    Recv->>Notif: show(doseEvent)
+    Notif->>Owner: notification with Given / Skipped actions
+
+    Owner->>Notif: tap Given
+    Notif->>DB: status = given, resolved_at = now
+    Notif->>Resched: rescheduleNext72h() if queue is shallow
 ```
 
-## Threading and concurrency
+## Threading
 
-- All scheduler logic is pure-functional and runs on `Dispatchers.Default`.
-- DB access via SQLDelight's coroutine bindings, on `Dispatchers.IO`.
-- UI on `Dispatchers.Main` (Compose-managed).
-- AlarmManager callbacks run on the main thread; they immediately delegate to a coroutine on `Dispatchers.IO`.
+* All scheduler logic is pure-functional. It runs on `Dispatchers.Default`.
+* SQLDelight calls go through its coroutine bindings on `Dispatchers.IO`.
+* Compose UI runs on `Dispatchers.Main`, which Compose manages.
+* AlarmManager callbacks fire on the main thread, then immediately delegate
+  to a coroutine on `Dispatchers.IO`.
 
-## Persistence schema
+## Lazy materialization
 
-See [`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md` §5](superpowers/specs/2026-05-14-toebeans-mvp-design.md#5-data-model) for the canonical schema.
+`DoseEvent` rows are materialized lazily over a 72-hour horizon, not
+pre-generated for the entire phase. Pre-generating a 90-day twice-daily
+phase would write 180 rows up front. Tapering phases would mean those rows
+have to be rewritten on every edit.
 
-DoseEvents are materialized **lazily** at a 72-hour horizon. Rationale:
-
-- A 2× daily medication over a 90-day phase would otherwise pre-generate 180 rows.
-- Tapering phases mean dose schedules can change; pre-generation makes edits expensive.
-- 72h is long enough that AlarmManager has all near-term events scheduled even if the app is killed and not woken until boot.
+The 72-hour horizon is long enough that AlarmManager has every near-term
+event pinned even if the app is killed and not woken until the next reboot.
 
 ## Configuration
 
-There is no runtime configuration at v1. Every value that varies between environments is a Kotlin `const` or a `BuildConfig` constant.
+There is no runtime configuration at v1. Every value that varies between
+environments lives as a Kotlin `const` or a `BuildConfig` constant.
 
-`AUTO_RESCHEDULE_HORIZON_HOURS = 72`
-`MAX_PENDING_PER_PET = 64`
-`MISSED_DOSE_TIMEOUT_HOURS = 4`
+```kotlin
+const val AUTO_RESCHEDULE_HORIZON_HOURS = 72
+const val MAX_PENDING_PER_PET = 64
+const val MISSED_DOSE_TIMEOUT_HOURS = 4
+```
 
 Changing any of these requires an ADR.
 
-## Open questions (milestone 2+)
+## Open questions for milestone 2 and beyond
 
-These are **not** part of the v1 design. Listed here so contributors don't accidentally bake in answers.
+These are explicitly not part of the v1 design. Listed so contributors do not
+accidentally bake in answers.
 
-- How does caregiver sharing handle conflicts when two devices both log "Given"? (Likely: last-write-wins by `resolved_at`; explicit conflict UI deferred.)
-- Multi-device sync without cloud (peer-to-peer over local network)? Probably not worth it; cloud tier wins.
-- iOS adoption of AlarmManager-equivalent. UNUserNotifications is calendar-precise; no exact-alarm-permission UX overhead.
-- When does on-device OCR start to matter? See dossier §8.2 milestone 4 decision gate.
+* Caregiver sharing: how do we handle the case where two devices both log
+  Given for the same dose? Likely a last-write-wins by `resolved_at`, with
+  an explicit conflict UI deferred until we see whether the conflict is real.
+* Multi-device sync without a cloud backend (peer-to-peer over the local
+  network). Probably not worth it; the cloud tier will win on UX once we add
+  it.
+* iOS reminder backend. UNUserNotifications is calendar-precise, so iOS does
+  not need an AlarmManager equivalent or its exact-alarm permission UX.
+* On-device OCR for label parsing. Tracked under the milestone-4 decision
+  gate; feasibility depends on label-format variance in real prescriptions.

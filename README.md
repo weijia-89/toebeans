@@ -1,121 +1,90 @@
 # toebeans
 
-> Your pet's admin layer. Medication reminders that don't lie to you.
+Pet medication tracker for Android. Local-only. No cloud, no telemetry, no
+third-party services.
 
-**Status:** v0.1.0-dev — pre-MVP scaffold. Reminders-first milestone in active development.
+Status: `v0.1.0-dev`, pre-MVP scaffold. The dose-log surface works end-to-end.
+The reminder-firing path lands in the next milestone.
 
-**License:** [AGPL-3.0-or-later](LICENSE)
+## What it does today
 
----
+* Add pets with weight and birthdate, plus a free-text notes field.
+* Add medications underneath each pet.
+* Define a schedule: start date, dose times, doses per day.
+* Tap **Log dose now** on a medication to record a dose given.
+* See `Last dose: 2h ago` on each row, or `just now` / `yesterday` /
+  `on May 13` once enough time has passed.
+* Theme picker (Auto / Light / Dark). Optional Material You dynamic color on
+  Android 12 and up.
 
-## What this is
+## What it deliberately doesn't do
 
-toebeans is a local-first, Android-first pet admin app. v1 ships medication and dose reminders with adherence logging for multi-pet households. No cloud. No AI. No symptom checker. No diagnostic content.
+The app has no symptom checker. There are no drug-interaction warnings, no
+dose-safety checks, no diagnostic content of any kind. The app is not a vet
+and the design refuses to act like one.
 
-The design rationale, market evidence, and competitive analysis are documented in:
-
-- [`research/00-feasibility-dossier.md`](research/00-feasibility-dossier.md) — feasibility + M&A precedent + competitive density
-- [`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md`](docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md) — MVP design doc with falsifiable success criteria
-- [`docs/adr/`](docs/adr/) — architecture decisions
-
-## What this is NOT
-
-- Not a symptom checker.
-- Not a diagnostic tool.
-- Not an AI vet.
-- Not a substitute for veterinary care.
-- Not a clinic-facing PMS.
-
-## Success criteria (milestone 1)
-
-1. **Reliability:** zero missed reminders in a 30-day soak test on a non-OEM-customized Android device with battery optimization disabled.
-2. **Latency:** reminders fire within ±60 seconds of scheduled time.
-3. **Survivability:** all pet, schedule, and dose-event data survives app reinstall via at least one user-selected backup mechanism.
+It also doesn't talk to the network. No cloud sync. No analytics. No crash
+reporting either. A CI check fails the build if a network library shows up
+in the dependency graph at all.
 
 ## Stack
 
-Kotlin + Compose Multiplatform + SQLDelight + WorkManager + AlarmManager + Koin + kotlinx-datetime. See [`docs/adr/0001-kmp-and-compose-multiplatform.md`](docs/adr/0001-kmp-and-compose-multiplatform.md).
+Kotlin 2.0 with Compose Multiplatform UI. A KMP `shared` module holds the
+domain models and repository contracts. The schedule-calculator interface
+lives there too, behind a stub implementation for now. SQLDelight is wired
+in for the on-disk schema, but the current scaffold uses in-memory fakes for
+the repositories so the UI can be reviewed before the persistence layer
+ships. DI is via Koin. The reminder-firing path will use AlarmManager for
+exact firing and WorkManager for the recurring sweep.
 
-## Getting started (dev)
+The Android app targets API 24 (Android 7.0) and up.
 
-**Prerequisites:**
+## Build
 
-- **JDK 17** (NOT 21+). Kotlin 2.0.21 + AGP 8.7 do not support newer JVMs reliably. `brew install openjdk@17`.
-- **Android SDK 34+** (via Android Studio or `cmdline-tools` + `sdkmanager`). Required only for Android compile + tests.
-- Gradle is **not** required to be installed system-wide — the project ships a wrapper.
-
-**Set JAVA_HOME for this project:**
-
-The brew openjdk@17 install is keg-only (it does not register itself system-wide). For zsh:
-
-```bash
-# Add to ~/.zshrc, or run per-shell:
-export JAVA_HOME="/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-**Install the git hooks (one-time, per clone):**
+You need JDK 17 and an Android SDK at API 34 or later. JDK versions newer
+than 17 have rough edges with the Kotlin 2.0 + AGP 8.7 combination, so stay on
+17 until the toolchain catches up.
 
 ```bash
-bash scripts/install-git-hooks.sh
-# Points `core.hooksPath` at scripts/git-hooks/. The pre-commit hook enforces
-# the AGENTS.md vibe-dangerous review gate (see docs/issues/v0.1-followups.md #8).
+brew install openjdk@17
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+./gradlew :androidApp:installDebug
 ```
 
-**Verify the scaffold (no Android SDK required):**
+To run the shared-module tests without an Android SDK:
 
 ```bash
 ./gradlew :shared:jvmTest --console=plain
-# Expected: 9 failing tests in SchedulePhaseRulesTest.
-# That IS the v0.1 spec — DefaultScheduleCalculator is a stub. The failing tests
-# define what taper-correctness MUST mean before the next agent (or human) writes the impl.
-# Of the 9, 7 fail with kotlin.NotImplementedError (stub) and 2 fail because the
-# stub throws NotImplementedError instead of the expected IllegalArgumentException.
 ```
 
-**Verify the fitness functions (no Android SDK or JDK required):**
-
-```bash
-for s in scripts/*.sh; do bash "$s" .; done
-# Expected: all five gates report ✓.
-```
-
-**Build the Android app (requires Android SDK):**
-
-```bash
-./gradlew :androidApp:assembleDebug
-./gradlew :androidApp:installDebug   # to a connected device/emulator
-```
-
-**Build + run the full CI surface:**
-
-```bash
-./gradlew check    # ktlint + detekt + tests + fitness functions (once wired into CI)
-```
+The nine failing tests in `SchedulePhaseRulesTest` are intentional. They are
+written as a spec for the schedule-calculator implementation, which is still
+a stub.
 
 ## Repository layout
 
 ```
 toebeans/
-  shared/                         # KMP shared module (core models, scheduler, backup codec)
-  androidApp/                     # Android-specific app (Compose UI + platform actuators)
+  shared/      KMP shared module
+  androidApp/  Android app: Compose UI, fake repositories, theme prefs
   docs/
-    adr/                          # MADR-short architecture decisions
-    superpowers/specs/            # design specs (approved before scaffolding)
+    adr/       Short architecture decisions (MADR format)
     ARCHITECTURE.md
-  research/
-    00-feasibility-dossier.md
-  scripts/                        # fitness-function and dev scripts
-  .codeit/                        # codeit engagement state (idempotent re-runs)
-  .github/workflows/              # CI: lint + test + fitness functions
+    ROADMAP.md
+  scripts/     Build helpers and CI checks
 ```
 
 ## Contributing
 
-This repo follows [`AGENTS.md`](AGENTS.md) (the agent host contract). Read it before opening a PR or running an LLM-driven change.
+This is a personal project. If that changes, contribution guidelines will go
+here.
 
-The **reminder-firing path is vibe-dangerous** (medication-critical). Changes to `shared/.../scheduler/`, `shared/.../backup/`, `androidApp/.../notifications/`, SQLDelight schema migrations, or AndroidManifest permissions require human-written tests and human-read diffs per [`code-helper` §1](https://github.com/wei/code-helper.skill).
+## Security and privacy
 
-## Security
+Every record lives in app-private storage. Nothing leaves the device. There
+is no opt-in or opt-out for telemetry because there is none to opt into. The
+threat model is in [SECURITY.md](SECURITY.md).
 
-See [`SECURITY.md`](SECURITY.md). Report vulnerabilities privately.
+## License
+
+[AGPL-3.0-or-later](LICENSE).
