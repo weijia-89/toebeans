@@ -99,11 +99,14 @@ public class FakeScheduleRepository : ScheduleRepository {
     }
 }
 
-// Module-private seeded store. All three fakes read from / write to this.
-// Timestamps are arbitrary 2024 values; they only matter once a real history is recorded.
-private val seedCreatedAt = Instant.parse("2024-01-01T00:00:00Z")
+// Module-internal seeded store. All four fakes (Pet, Medication, Schedule, DoseEvent)
+// read from / write to this. `internal` (not `private`) so the sibling
+// FakeDoseEventRepository in the same package can join across the maps without
+// duplicating the storage. Timestamps are arbitrary 2024 values; they only matter
+// once a real history is recorded.
+internal val seedCreatedAt: Instant = Instant.parse("2024-01-01T00:00:00Z")
 
-private val pets =
+internal val pets =
     MutableStateFlow(
         mapOf(
             "pet-rufus" to
@@ -131,11 +134,65 @@ private val pets =
         ),
     )
 
-private val medications = MutableStateFlow<Map<String, Medication>>(emptyMap())
+// Seed one medication for Luna so the dose-log surface (Last dose / Log dose now) has
+// something to demo against on first launch. Real users will get an empty state by
+// default; the seed only exists because the scaffold has no persistence yet, and a
+// stressed pet owner reviewing the app needs to see what the populated state looks like.
+// Luna actually has hyperthyroidism in the fictional canon, hence Methimazole.
+internal val medications =
+    MutableStateFlow<Map<String, Medication>>(
+        mapOf(
+            "med-luna-methimazole" to
+                Medication(
+                    id = "med-luna-methimazole",
+                    petId = "pet-luna",
+                    name = "Methimazole",
+                    doseAmount = "2.5 mg",
+                    notes = "Crush and hide in churu — Luna spits out whole pills.",
+                    createdAt = seedCreatedAt,
+                    discontinuedAt = null,
+                ),
+        ),
+    )
 
-private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
+// Twice-daily schedule for Methimazole, starting on the seed date with no end. This
+// gives the Log Dose button something to record against — without an active schedule,
+// the button is gated to "Add a schedule first."
+internal val schedules =
+    MutableStateFlow<Map<String, Schedule>>(
+        mapOf(
+            "sched-luna-methimazole" to
+                Schedule(
+                    id = "sched-luna-methimazole",
+                    medicationId = "med-luna-methimazole",
+                    startDate = LocalDate(2024, 1, 1),
+                    endDate = null,
+                    createdAt = seedCreatedAt,
+                ),
+        ),
+    )
 
-private val phasesByScheduleId = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
+internal val phasesByScheduleId =
+    MutableStateFlow<Map<String, List<SchedulePhase>>>(
+        mapOf(
+            "sched-luna-methimazole" to
+                listOf(
+                    SchedulePhase(
+                        id = "phase-luna-methimazole-0",
+                        scheduleId = "sched-luna-methimazole",
+                        phaseOrder = 0,
+                        durationDays = SchedulePhase.MAX_DURATION_DAYS,
+                        dosesPerDay = 2,
+                        doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
+                        doseAmount = null,
+                        dayInterval = 1,
+                    ),
+                ),
+        ),
+    )
+
+// DoseEvent store — used by [FakeDoseEventRepository] in the same package.
+internal val doseEvents = MutableStateFlow<Map<String, app.toebeans.core.model.DoseEvent>>(emptyMap())
 
 /** Utility for forms that need to display "now" in the device's local zone. */
 public fun nowLocalTime(zone: TimeZone = TimeZone.currentSystemDefault()): LocalTime =

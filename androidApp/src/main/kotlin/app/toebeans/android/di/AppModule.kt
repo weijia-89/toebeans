@@ -1,5 +1,6 @@
 package app.toebeans.android.di
 
+import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
 import app.toebeans.android.data.FakeScheduleRepository
@@ -11,6 +12,7 @@ import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -25,20 +27,29 @@ import org.koin.dsl.module
  */
 public val appModule =
     module {
-        // Repositories
+        // Repositories — all in-memory fakes for the scaffold milestone. Each one will be
+        // swapped for an SQLDelight-backed impl in one edit when the persistence layer
+        // lands.
         single<PetRepository> { FakePetRepository() }
         single<MedicationRepository> { FakeMedicationRepository() }
         single<ScheduleRepository> { FakeScheduleRepository() }
+        single<DoseEventRepository> { FakeDoseEventRepository() }
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }
 
-        viewModel { PetDetailViewModel(petRepository = get(), medicationRepository = get()) }
+        // ViewModels
+        viewModel {
+            PetDetailViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                doseEventRepository = get(),
+            )
+        }
         viewModel { PetEditViewModel(petRepository = get()) }
         viewModel { MedicationEditViewModel(medicationRepository = get()) }
         viewModel { ScheduleCreateViewModel(medicationRepository = get(), scheduleRepository = get()) }
-
-        // ViewModels
         viewModel { HomeViewModel(petRepository = get()) }
         viewModel { PetsViewModel(petRepository = get()) }
         viewModel { SettingsViewModel(prefs = get()) }

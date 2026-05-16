@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,11 +39,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeHero
-import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 
@@ -125,8 +127,17 @@ public fun PetDetailScreen(
                             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(state.medications, key = { it.id }) { med ->
-                                MedicationRow(med, onClick = { onMedicationClick(med.id) })
+                            items(state.medications, key = { it.medication.id }) { withStatus ->
+                                MedicationRow(
+                                    withStatus = withStatus,
+                                    onClick = { onMedicationClick(withStatus.medication.id) },
+                                    onLogDose = {
+                                        viewModel.logDose(
+                                            medicationId = withStatus.medication.id,
+                                            activeScheduleId = withStatus.activeScheduleId,
+                                        )
+                                    },
+                                )
                             }
                         }
                     }
@@ -240,20 +251,96 @@ private fun PetIdentityCard(
 
 @Composable
 private fun MedicationRow(
-    medication: Medication,
+    withStatus: MedicationWithStatus,
     onClick: () -> Unit,
+    onLogDose: () -> Unit,
 ) {
+    val med = withStatus.medication
+    val now = remember(withStatus.lastDose?.id) { Clock.System.now() }
+    val lastDoseLabel =
+        withStatus.lastDose?.let { lastDose ->
+            "Last dose: " + formatTimeAgo(lastDose.scheduledAt, now)
+        }
+
+    // The row itself is clickable (tap → schedule editor); the inline "Log dose" Button
+    // captures its own click separately. Compose dispatches the deepest matching
+    // clickable, so tapping the button does NOT also trigger the row click.
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = medication.name, style = MaterialTheme.typography.titleMedium)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = med.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = medication.doseAmount,
+                text = med.doseAmount,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (lastDoseLabel != null) {
+                // "Last dose: 2h ago" subtitle. Only shown when a dose has been
+                // logged — for never-given meds we omit the line rather than
+                // showing "Last dose: never" which would feel clinical.
+                Text(
+                    text = lastDoseLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // Log Dose button gated on having an active schedule. Real owners need
+            // to set up at least one schedule (the "Methimazole, twice daily")
+            // before they can quick-log against it. The gate communicates that:
+            // if no schedule, the button is a TextButton hint instead of a Button.
+            if (withStatus.activeScheduleId != null) {
+                FilledTonalButton(
+                    onClick = onLogDose,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Log dose now")
+                }
+            } else {
+                Text(
+                    text = "Add a schedule first to log doses.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
+}
+
+/**
+ * Human-readable relative-time string for "X ago" indicators on the dose-log surface.
+ * Examples: "just now", "8m ago", "2h ago", "yesterday", "3d ago".
+ *
+ * Boundaries are chosen so each tier reads naturally: minutes for first hour, hours for
+ * the rest of the day, "yesterday" for the 24-48h band (more humane than "1d ago"),
+ * day count for the 2-7d band, and a full date for anything older.
+ *
+ * Pure function — no platform clock access (the "now" is passed in by caller). Safe to
+ * unit-test without mocking Clock. Lives on the screen file for now because it has only
+ * one caller; promote to a shared util if a second use case appears.
+ */
+internal fun formatTimeAgo(
+    instant: Instant,
+    now: Instant,
+): String {
+    val deltaMs = (now - instant).inWholeMilliseconds
+    if (deltaMs < 60_000) return "just now"
+    val minutes = deltaMs / 60_000
+    if (minutes < 60) return "${minutes}m ago"
+    val hours = minutes / 60
+    if (hours < 24) return "${hours}h ago"
+    val days = hours / 24
+    if (days == 1L) return "yesterday"
+    if (days < 7) return "${days}d ago"
+    // For anything older, fall back to the calendar date the dose was given. We don't
+    // include time-of-day for >1w because the date alone is enough context — the owner
+    // is looking for "did I give this last Wednesday or the Wednesday before?", not
+    // "did I give this at 9:15 vs 9:30".
+    val date =
+        instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return "on ${date.month.name.lowercase().replaceFirstChar(Char::titlecase)} ${date.dayOfMonth}"
 }
