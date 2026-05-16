@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,7 +27,11 @@ import app.toebeans.android.ui.components.PetAvatarSizeCompact
 import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -84,11 +89,27 @@ private fun HomeScreenContent(
         )
         return
     }
+    // Compute date string once per parent composition. The day-rollover-at-midnight
+    // edge case is fine — the user will close and reopen the app long before the date
+    // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
+    // rather than pulling in a heavier formatter dependency; English-only for v1
+    // (i18n lives in a future milestone alongside Plurals).
+    val today: LocalDate =
+        remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    val dateString = formatTodayHeader(today)
+
     Column(
         modifier = modifier.fillMaxSize().padding(contentPadding).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = "Today", style = MaterialTheme.typography.titleLarge)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = "Today", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = dateString,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         // Pet quick-tap row. Each chip is a Card with avatar + name; tapping routes to
         // pet detail. LazyRow gives us horizontal scrolling for users with many pets
@@ -127,6 +148,27 @@ private fun HomeScreenContent(
             }
         }
     }
+}
+
+/**
+ * Renders a [LocalDate] as "Wednesday, May 15" for the Today-screen header. Pure
+ * function — no Composable scope needed — so unit-testable without a UI test runner.
+ *
+ * Hand-rolled to avoid pulling in java.time formatters (which would force us to deal
+ * with Locale plumbing) or kotlinx-datetime's Format builders (which would still need
+ * locale-aware DayOfWeekNames). v1 is English-only; the i18n milestone will replace
+ * this with strings.xml + Plurals.
+ */
+internal fun formatTodayHeader(date: LocalDate): String {
+    val weekday =
+        date.dayOfWeek.name
+            .lowercase()
+            .replaceFirstChar(Char::titlecase)
+    val month =
+        date.month.name
+            .lowercase()
+            .replaceFirstChar(Char::titlecase)
+    return "$weekday, $month ${date.dayOfMonth}"
 }
 
 /**
