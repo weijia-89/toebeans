@@ -55,6 +55,11 @@ public class FakeMedicationRepository : MedicationRepository {
             snap.values.filter { it.petId == petId }.sortedBy(Medication::name)
         }
 
+    override fun observeAll(): Flow<List<Medication>> =
+        medications.asStateFlow().map { snap ->
+            snap.values.sortedBy(Medication::name)
+        }
+
     override suspend fun getById(id: String): Medication? = medications.value[id]
 
     override suspend fun upsert(medication: Medication) {

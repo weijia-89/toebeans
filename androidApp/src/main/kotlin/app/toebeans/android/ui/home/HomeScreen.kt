@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeCompact
+import app.toebeans.android.ui.pets.formatTimeAgo
 import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
@@ -138,30 +140,106 @@ private fun HomeScreenContent(
             contentPadding = PaddingValues(vertical = 4.dp),
         ) {
             items(items = state.pets, key = { it.id }) { pet ->
-                PetChip(pet = pet, onClick = { onPetClick(pet.id) })
+                PetChip(
+                    pet = pet,
+                    medCount = state.medCountByPetId[pet.id] ?: 0,
+                    onClick = { onPetClick(pet.id) },
+                )
             }
         }
 
-        Text(text = "Today's doses", style = MaterialTheme.typography.titleMedium)
-        // Placeholder until the dose-event store is wired. Friendlier than the previous
-        // copy which name-dropped "milestone 1", "SQLDelight", and "DoseEventRepository"
-        // — internal implementation jargon that meant nothing to a stressed pet owner.
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Logged today",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
+        LoggedTodayCard(recentDoses = state.recentDoses)
+    }
+}
+
+/**
+ * Retrospective "what care has been completed today" card. If empty, shows a quiet
+ * one-liner pointing the user at the active surface (Pet Detail's Log Dose button).
+ * If populated, renders one row per dose with pet name, medication, and "Nm ago".
+ *
+ * The card stays at the bottom of the screen — the user opens Today first thing in the
+ * morning to see what's coming, not what's already done. Putting completed-doses at the
+ * top would make the "fresh slate" of a new morning feel cluttered. End-of-day, the
+ * card grows; the visual weight at the bottom matches the cognitive weight of "look
+ * how much I got done."
+ */
+@Composable
+private fun LoggedTodayCard(recentDoses: List<RecentDoseUi>) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        if (recentDoses.isEmpty()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
-                    text = "No doses scheduled yet",
+                    text = "Nothing logged yet today",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text =
-                        "Once you set up a schedule for a medication, upcoming doses will appear here.",
+                    text = "Open a pet to record a dose. Doses you log appear here so you can see the day at a glance.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            return@Card
         }
+        // `now` is captured once per recomposition. Time-ago strings will only refresh
+        // on the next composition pass (tab switch, log new dose, etc.) — fine for a
+        // surface where the difference between "5m ago" and "6m ago" doesn't matter.
+        val now = remember(recentDoses.firstOrNull()?.id) { Clock.System.now() }
+        // Padding-only separation between rows. A Divider would feel heavy on a
+        // surfaceVariant card; the extra vertical breathing room reads cleaner and
+        // avoids the M3 1.0→1.2 divider-API rename.
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            recentDoses.forEach { dose ->
+                LoggedDoseRow(dose = dose, now = now)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoggedDoseRow(
+    dose: RecentDoseUi,
+    now: Instant,
+) {
+    val timeAgo = formatTimeAgo(dose.givenAt, now)
+    // Merged semantics so TalkBack announces the whole row as one node
+    // ("Luna, Methimazole, 2 hours ago") instead of three sequential text reads.
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "${dose.petName}, ${dose.medicationName}, $timeAgo"
+                },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.padding(end = 12.dp)) {
+            Text(
+                text = "${dose.petName} · ${dose.medicationName}",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = dose.petSpecies,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = timeAgo,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -188,27 +266,51 @@ internal fun formatTodayHeader(date: LocalDate): String {
 
 /**
  * Compact, tappable pet card for the Today screen's pet row. Horizontal layout —
- * 40dp avatar + name — gives roughly two chips visible at once on a typical phone width
- * with a third peeking, signaling horizontal scrollability.
+ * 40dp avatar + (name / "N meds" subtitle) — gives roughly two chips visible at once on
+ * a typical phone width with a third peeking, signaling horizontal scrollability.
+ *
+ * The med-count subtitle is the density payoff: a glance at the chip tells you whether
+ * this pet has any active meds to attend to, without drilling into the detail screen.
+ * The subtitle is omitted when count == 0 to avoid clutter on pets with no meds yet
+ * (the chip is then just avatar + name, mirroring the original v0.1 layout).
  */
 @Composable
 private fun PetChip(
     pet: Pet,
+    medCount: Int,
     onClick: () -> Unit,
 ) {
     val speciesLabel =
         pet.species.name
             .lowercase()
             .replaceFirstChar(Char::titlecase)
+    // Plural-correct subtitle. Hand-formatted because v0.1 is English-only and pulling
+    // in Android Plurals.xml resource lookup for a single string is premature.
+    val medCountLabel =
+        when (medCount) {
+            0 -> null
+            1 -> "1 med"
+            else -> "$medCount meds"
+        }
     // Merge descendant semantics so TalkBack announces this chip as one node
-    // ("Luna, cat") instead of two ("Luna" then "cat"). The decorative avatar is
+    // ("Luna, cat, 1 med") instead of three separate reads. The decorative avatar is
     // already excluded via clearAndSetSemantics inside PetAvatar.
+    val accessibleLabel =
+        buildString {
+            append(pet.name)
+            append(", ")
+            append(speciesLabel)
+            if (medCountLabel != null) {
+                append(", ")
+                append(medCountLabel)
+            }
+        }
     Card(
         modifier =
             Modifier
                 .clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "${pet.name}, $speciesLabel"
+                    contentDescription = accessibleLabel
                 },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
@@ -218,11 +320,25 @@ private fun PetChip(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PetAvatar(species = pet.species, size = PetAvatarSizeCompact)
-            Text(
-                text = pet.name,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
+            Column {
+                Text(
+                    text = pet.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                if (medCountLabel != null) {
+                    Text(
+                        text = medCountLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        // onSecondaryContainer at 75% effective via the bodySmall +
+                        // muted-pair convention used elsewhere. We use
+                        // onSecondaryContainer (not onSurfaceVariant) because the chip
+                        // background IS the secondaryContainer, so contrast pairing
+                        // stays in-family.
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
         }
     }
 }
@@ -242,6 +358,7 @@ private fun HomeScreenEmptyPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPopulatedPreview() {
+    val previewNow = Instant.parse("2026-05-16T20:00:00Z")
     ToebeansTheme(dynamic = false) {
         HomeScreenContent(
             state =
@@ -267,6 +384,17 @@ private fun HomeScreenPopulatedPreview() {
                                 notes = null,
                                 createdAt = Instant.parse("2024-01-01T00:00:00Z"),
                                 archivedAt = null,
+                            ),
+                        ),
+                    medCountByPetId = mapOf("pet-2" to 1),
+                    recentDoses =
+                        listOf(
+                            RecentDoseUi(
+                                id = "dose-1",
+                                petName = "Luna",
+                                petSpecies = "Cat",
+                                medicationName = "Methimazole",
+                                givenAt = previewNow,
                             ),
                         ),
                 ),

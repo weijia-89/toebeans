@@ -5,6 +5,7 @@ import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
 
 /**
@@ -58,6 +59,19 @@ public class FakeDoseEventRepository : DoseEventRepository {
                 .asSequence()
                 .filter { it.scheduleId in medSchedIds && it.status == DoseStatus.GIVEN }
                 .maxByOrNull { it.scheduledAt }
+        }
+
+    override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
+        // Single-flow observation — no join is needed for filtering, the UI does the
+        // pet/med name lookup separately via its own MedicationRepository flow. This
+        // keeps the query cheap and avoids triggering recompositions on med/sched
+        // edits that don't actually change which doses fall in the window.
+        doseEvents.map { events ->
+            events.values
+                .asSequence()
+                .filter { it.status == DoseStatus.GIVEN && it.scheduledAt >= sinceInclusive }
+                .sortedByDescending { it.scheduledAt }
+                .toList()
         }
 
     override suspend fun recordGivenNow(

@@ -50,7 +50,18 @@ public val appModule =
         viewModel { PetEditViewModel(petRepository = get()) }
         viewModel { MedicationEditViewModel(medicationRepository = get()) }
         viewModel { ScheduleCreateViewModel(medicationRepository = get(), scheduleRepository = get()) }
-        viewModel { HomeViewModel(petRepository = get()) }
-        viewModel { PetsViewModel(petRepository = get()) }
+        viewModel {
+            HomeViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+                doseEventRepository = get(),
+            )
+        }
+        viewModel {
+            PetsViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+            )
+        }
         viewModel { SettingsViewModel(prefs = get()) }
     }

@@ -85,7 +85,11 @@ private fun PetsScreenContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items = state.pets, key = { it.id }) { pet ->
-                    PetRow(pet = pet, onClick = { onPetClick(pet.id) })
+                    PetRow(
+                        pet = pet,
+                        medCount = state.medCountByPetId[pet.id] ?: 0,
+                        onClick = { onPetClick(pet.id) },
+                    )
                 }
             }
             // FAB uses the primary terracotta + onPrimary cream pairing so it sits
@@ -121,6 +125,7 @@ private fun PetsScreenContent(
 @Composable
 private fun PetRow(
     pet: Pet,
+    medCount: Int,
     onClick: () -> Unit,
 ) {
     val today: LocalDate =
@@ -131,7 +136,16 @@ private fun PetRow(
             .replaceFirstChar(Char::titlecase)
     val weight = pet.weightKg?.let { "%.1f kg".format(it) }
     val age = pet.birthdate?.let { PetAgeFormatter.format(it, today) }
-    val facts = listOfNotNull(species, weight, age).joinToString(" · ")
+    // Med-count fact appears only when > 0 — a pet with no meds yet shouldn't have
+    // a hollow "0 meds" string crowding the facts row. Hand-formatted plural because
+    // v0.1 is English-only and the Plurals.xml plumbing isn't worth it yet.
+    val medCountLabel =
+        when (medCount) {
+            0 -> null
+            1 -> "1 med"
+            else -> "$medCount meds"
+        }
+    val facts = listOfNotNull(species, weight, age, medCountLabel).joinToString(" · ")
 
     // Merged semantics: TalkBack announces the row as one node ("Luna, cat, 4.1
     // kilograms, 3 years old") instead of three separate text nodes plus a decorative
@@ -206,6 +220,7 @@ private fun PetsScreenPreview() {
                                 archivedAt = null,
                             ),
                         ),
+                    medCountByPetId = mapOf("pet-2" to 1),
                     loading = false,
                 ),
             onPetClick = {},

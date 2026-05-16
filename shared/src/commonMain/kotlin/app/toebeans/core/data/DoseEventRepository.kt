@@ -46,6 +46,21 @@ public interface DoseEventRepository {
     public fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?>
 
     /**
+     * Observe all GIVEN dose events across every pet since [sinceInclusive], newest
+     * first. Skipped and missed events are excluded — the Home "Logged today" surface
+     * is a record of completed care, not a worklist.
+     *
+     * Powers the Today-screen "Logged today" card. Callers typically pass
+     * `today at 00:00 local`, but the API accepts any window so future surfaces
+     * ("last 7 days") can share the same query.
+     *
+     * Implementations should bound the returned list to a reasonable size if the
+     * underlying store could be very large. For v0.1 the in-memory store is small;
+     * the SQLDelight impl will add a `LIMIT 50` and matching ORDER BY index.
+     */
+    public fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>>
+
+    /**
      * Record an ad-hoc GIVEN dose against [scheduleId] at [at]. Caller supplies the
      * unique [doseEventId] (UUID). status=GIVEN, scheduledAt=resolvedAt=at.
      *
