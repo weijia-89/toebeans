@@ -24,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -130,8 +132,27 @@ private fun PetRow(
     val age = pet.birthdate?.let { PetAgeFormatter.format(it, today) }
     val facts = listOfNotNull(species, weight, age).joinToString(" · ")
 
+    // Merged semantics: TalkBack announces the row as one node ("Luna, cat, 4.1
+    // kilograms, 3 years old") instead of three separate text nodes plus a decorative
+    // avatar. The facts string already contains the readable concat; we replace " · "
+    // with ", " for natural prosody and "kg" with "kilograms" because TalkBack's
+    // built-in dictionary doesn't always expand the abbreviation.
+    val accessibleLabel =
+        buildString {
+            append(pet.name)
+            if (facts.isNotEmpty()) {
+                append(", ")
+                append(facts.replace(" · ", ", ").replace(" kg", " kilograms"))
+            }
+        }
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = accessibleLabel
+                },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(

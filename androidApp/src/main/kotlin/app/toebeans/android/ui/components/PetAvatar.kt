@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -52,7 +53,13 @@ public fun PetAvatar(
         modifier =
             modifier
                 .size(size)
-                .background(color = containerColor, shape = CircleShape),
+                .background(color = containerColor, shape = CircleShape)
+                // Mark the entire avatar decorative for screen readers. Without this,
+                // TalkBack announces "dog face" / "cat face" (the emoji's Unicode name)
+                // which adds noise and confuses identity — the parent row already names
+                // the pet, which is the actual content. clearAndSetSemantics with an
+                // empty block drops this node entirely from the a11y tree.
+                .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
         Text(

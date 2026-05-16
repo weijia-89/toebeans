@@ -18,6 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -103,7 +106,14 @@ private fun HomeScreenContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = "Today", style = MaterialTheme.typography.titleLarge)
+            // heading() semantic lets TalkBack's heading-rotor jump between top-level
+            // sections on this screen. Without it, screen-reader users have to swipe
+            // through every interactive element to navigate.
+            Text(
+                text = "Today",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() },
+            )
             Text(
                 text = dateString,
                 style = MaterialTheme.typography.bodyMedium,
@@ -115,7 +125,11 @@ private fun HomeScreenContent(
         // pet detail. LazyRow gives us horizontal scrolling for users with many pets
         // (the 4-pet household exists) without breaking the vertical scroll model of
         // the parent Column.
-        Text(text = "Your pets", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Your pets",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             // 4dp vertical contentPadding leaves room for the Card's elevation shadow
@@ -181,8 +195,20 @@ private fun PetChip(
     pet: Pet,
     onClick: () -> Unit,
 ) {
+    val speciesLabel =
+        pet.species.name
+            .lowercase()
+            .replaceFirstChar(Char::titlecase)
+    // Merge descendant semantics so TalkBack announces this chip as one node
+    // ("Luna, cat") instead of two ("Luna" then "cat"). The decorative avatar is
+    // already excluded via clearAndSetSemantics inside PetAvatar.
     Card(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "${pet.name}, $speciesLabel"
+                },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Row(

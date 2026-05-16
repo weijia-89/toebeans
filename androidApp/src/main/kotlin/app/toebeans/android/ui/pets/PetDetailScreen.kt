@@ -30,6 +30,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
@@ -103,7 +106,10 @@ public fun PetDetailScreen(
                     Text(
                         text = "Medications",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 16.dp)
+                                .semantics { heading() },
                     )
                     if (state.medications.isEmpty()) {
                         // Single primary CTA. FAB is suppressed (see above).
@@ -161,8 +167,35 @@ private fun PetIdentityCard(
     val weightLabel = pet.weightKg?.let { "%.1f kg".format(it) }
     val factsLine1 = listOfNotNull(speciesLabel, weightLabel).joinToString(" · ")
 
+    // Build the merged accessibility label outside the Composable structure. TalkBack
+    // reads this as one prosodic unit instead of the 4 separate Text nodes inside the
+    // card (name + facts + age + notes). "kg" expanded to "kilograms" because
+    // TalkBack's abbreviation dictionary doesn't always do it.
+    val accessibleLabel =
+        buildString {
+            append(pet.name)
+            append(", ")
+            append(speciesLabel)
+            weightLabel?.let {
+                append(", ")
+                append(it.replace(" kg", " kilograms"))
+            }
+            ageString?.let {
+                append(", ")
+                append(it)
+            }
+            if (!pet.notes.isNullOrBlank()) {
+                append(". Notes: ")
+                append(pet.notes)
+            }
+        }
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = accessibleLabel
+                },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Row(

@@ -15,6 +15,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.toebeans.android.ui.theme.ToebeansTheme
@@ -51,7 +54,11 @@ public fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = "Settings", style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = "Settings",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
 
         SettingsCard(title = "About") {
             SettingsRow(label = "App version", value = "0.1.0")
@@ -86,7 +93,11 @@ private fun SettingsCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             content()
         }
     }
@@ -120,7 +131,16 @@ private fun SettingsRow(
  */
 @Composable
 private fun ComingSoonItem(text: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Merge descendants so TalkBack reads only the item text — the "·" glyph is
+    // decorative and would otherwise be announced as "interpunct" or "middle dot"
+    // on most engines, prefixing every item with noise.
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier =
+            Modifier.semantics(mergeDescendants = true) {
+                contentDescription = text
+            },
+    ) {
         Text(
             text = "·",
             style = MaterialTheme.typography.bodyMedium,
