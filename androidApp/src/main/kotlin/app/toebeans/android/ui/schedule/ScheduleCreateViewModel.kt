@@ -69,7 +69,11 @@ public class ScheduleCreateViewModel(
 
     public fun removePhase(index: Int) {
         _state.update { state ->
-            if (state.phases.size <= 1) state else state.copy(phases = state.phases.filterIndexed { i, _ -> i != index })
+            if (state.phases.size <= 1) {
+                state
+            } else {
+                state.copy(phases = state.phases.filterIndexed { i, _ -> i != index })
+            }
         }
     }
 

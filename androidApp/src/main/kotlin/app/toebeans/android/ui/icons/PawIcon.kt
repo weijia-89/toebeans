@@ -3,6 +3,7 @@ package app.toebeans.android.ui.icons
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
@@ -107,7 +108,7 @@ private fun ImageVector.Builder.addEllipse(
     }
 }
 
-private fun ImageVector.Builder.addPath(block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector.Builder =
-    // Black-fill convention matches Material Icons. The actual rendered color comes from
-    // Icon's `tint` ColorFilter at the callsite (which replaces, not blends, the fill).
+// Black-fill convention matches Material Icons. The actual rendered color comes from
+// Icon's `tint` ColorFilter at the callsite (which replaces, not blends, the fill).
+private fun ImageVector.Builder.addPath(block: PathBuilder.() -> Unit): ImageVector.Builder =
     path(fill = SolidColor(Color.Black)) { block() }

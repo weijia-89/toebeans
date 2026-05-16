@@ -58,4 +58,3 @@ public object PetAgeFormatter {
         unit: String,
     ): String = if (n == 1) "1 $unit old" else "$n ${unit}s old"
 }
-

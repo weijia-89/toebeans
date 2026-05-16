@@ -139,7 +139,12 @@ public fun MedicationEditScreen(
                     supportingText =
                         state.doseAmountError?.let {
                             { Text(it) }
-                        } ?: { Text("Confirm with your vet. We will use this on every reminder unless a phase overrides it.") },
+                        } ?: {
+                            Text(
+                                "Confirm with your vet. We will use this on every reminder " +
+                                    "unless a phase overrides it.",
+                            )
+                        },
                     modifier = Modifier.fillMaxWidth(),
                 )
 

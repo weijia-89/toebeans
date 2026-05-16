@@ -38,7 +38,13 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun ScheduleCreateScreen(
-    petId: String,
+    // petId is part of the nav-graph route. The screen receives it for routing
+    // identity and consistency with sibling screens; the current schedule-
+    // creation flow keys off medicationId alone. When pet-scoped validation
+    // lands (verifying the medication actually belongs to this pet before
+    // saving), petId will be read here. Until then, suppress the warning
+    // rather than drop it from the signature.
+    @Suppress("UnusedParameter") petId: String,
     medicationId: String,
     onBack: () -> Unit,
     onSaved: (scheduleId: String) -> Unit,

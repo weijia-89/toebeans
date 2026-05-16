@@ -103,7 +103,14 @@ public class PetDetailViewModel(
      * (the UI gates the Log Dose button on that condition). If [activeScheduleId] is
      * null, this is a no-op rather than throwing — the schedule may have been deleted
      * between the UI rendering and the user tapping the button.
+     *
+     * [medicationId] is taken at the call site for read-clarity (the row has it
+     * in hand and passes it through), but the dose-event itself is keyed off the
+     * schedule, so the value is not read inside this function today. Suppressed
+     * at function level rather than dropped from the signature so the call site
+     * does not have to rebuild the row's identity model.
      */
+    @Suppress("UnusedParameter")
     public fun logDose(
         medicationId: String,
         activeScheduleId: String?,
