@@ -114,6 +114,7 @@ public fun PetDetailScreen(
                     if (state.medications.isEmpty()) {
                         // Single primary CTA. FAB is suppressed (see above).
                         EmptyState(
+                            emoji = "💊",
                             title = "No medications yet",
                             body = "Add a medication to start scheduling doses.",
                             primaryActionLabel = "Add medication",

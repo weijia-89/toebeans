@@ -72,6 +72,7 @@ private fun PetsScreenContent(
     Box(modifier = modifier.fillMaxSize().padding(contentPadding)) {
         if (state.pets.isEmpty() && !state.loading) {
             EmptyState(
+                emoji = "🐾",
                 title = "No pets yet",
                 body = "Add Rufus, Luna, or whoever you share toe beans with to get started.",
                 primaryActionLabel = "Add pet",

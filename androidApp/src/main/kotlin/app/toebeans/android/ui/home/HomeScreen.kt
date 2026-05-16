@@ -80,6 +80,7 @@ private fun HomeScreenContent(
 ) {
     if (state.pets.isEmpty() && !state.loading) {
         EmptyState(
+            emoji = "🐾",
             title = "No pets yet",
             // The original "No doses scheduled" framing was confusing when the user
             // had no pets at all — it implied dose-scheduling was the missing step
