@@ -25,6 +25,22 @@ fi
 BASE_SHA=$1
 HEAD_SHA=$2
 
+# GitHub Actions reports `github.event.before` as the all-zeros SHA when the
+# pushed branch did not previously exist on the remote (the canonical case is
+# the very first push to a new repo). `git diff <zeros>` cannot resolve to a
+# real object, so the script blew up with "fatal: bad object 000...". Treat
+# this as a diff against the empty tree, which surfaces every committed file
+# as "newly added." On the initial scaffold push, that means every
+# vibe-dangerous path is "touched"; the calibration-entry check below then
+# validates that the scaffold itself shipped with calibration entries — which
+# is exactly the invariant the rule is meant to defend.
+ZERO_SHA="0000000000000000000000000000000000000000"
+EMPTY_TREE_SHA="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+if [[ "$BASE_SHA" == "$ZERO_SHA" ]]; then
+    echo "ci-vibe-dangerous-check: first push detected (before=zeros) — using empty-tree as base"
+    BASE_SHA="$EMPTY_TREE_SHA"
+fi
+
 # Same patterns as scripts/git-hooks/pre-commit. KEEP IN SYNC.
 PATTERNS=(
     '^shared/src/commonMain/kotlin/app/toebeans/core/scheduler/'
