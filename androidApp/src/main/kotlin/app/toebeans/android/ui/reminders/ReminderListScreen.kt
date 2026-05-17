@@ -128,7 +128,9 @@ private fun EmptyState(contentPadding: PaddingValues) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Add a medication to one of your pets, then set up a dose schedule. The schedule will appear here as a reminder.",
+            text =
+                "Add a medication to one of your pets, then set up a dose schedule. " +
+                    "The schedule will appear here as a reminder.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -151,8 +153,7 @@ private fun ReminderRow(
                 .clip(MaterialTheme.shapes.medium)
                 .pointerInput(row.scheduleId) {
                     detectTapGestures(onTap = { onClick() })
-                }
-                .semantics {
+                }.semantics {
                     contentDescription =
                         buildString {
                             append(row.petName)

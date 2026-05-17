@@ -60,7 +60,11 @@ public class RequestCodeAllocator(
         val next = nextCounter()
         // commit() because we need the read-after-write to be visible synchronously to the
         // next caller; apply() would re-open the race condition.
-        prefs.edit().putInt(key, next).putInt(KEY_NEXT_COUNTER, next + 1).commit()
+        prefs
+            .edit()
+            .putInt(key, next)
+            .putInt(KEY_NEXT_COUNTER, next + 1)
+            .commit()
         return next
     }
 

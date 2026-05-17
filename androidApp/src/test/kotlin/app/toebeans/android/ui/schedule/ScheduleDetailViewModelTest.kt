@@ -128,6 +128,12 @@ private const val PET_ID = "pet-luna"
 private const val MED_ID = "med-amox"
 private const val SCHED_ID = "sched-amox-1"
 
+// Test-rig builder: constructs 4 domain objects (pet, medication, schedule, phases) plus 3
+// in-memory repos and bundles them. Detekt's LongMethod default threshold is 60 lines; this
+// function is exactly at the boundary because each domain constructor needs its own multi-line
+// formatted block per ktlint. Splitting would add indirection for no readability benefit; the
+// function is linear with no branching.
+@Suppress("LongMethod")
 private fun rig(): Rig {
     val now = Clock.System.now()
     val pet =
@@ -195,7 +201,9 @@ private data class Rig(
     val sched: InMemoryScheduleRepo,
 )
 
-private class InMemoryPetRepo(initial: Pet) : PetRepository {
+private class InMemoryPetRepo(
+    initial: Pet,
+) : PetRepository {
     private val store = MutableStateFlow(mapOf(initial.id to initial))
 
     override fun observeAll(): Flow<List<Pet>> = store.asStateFlow().map { it.values.toList() }
@@ -213,7 +221,9 @@ private class InMemoryPetRepo(initial: Pet) : PetRepository {
     }
 }
 
-private class InMemoryMedRepo(initial: Medication) : MedicationRepository {
+private class InMemoryMedRepo(
+    initial: Medication,
+) : MedicationRepository {
     private val store = MutableStateFlow(mapOf(initial.id to initial))
 
     override fun observeAll(): Flow<List<Medication>> = store.asStateFlow().map { it.values.toList() }
@@ -249,7 +259,10 @@ private class InMemoryScheduleRepo(
     override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
-        phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
+        phases.asStateFlow().map {
+            it[scheduleId]
+                ?: emptyList()
+        }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         combine(schedules.asStateFlow(), phases.asStateFlow()) { scheds, phaseMap ->

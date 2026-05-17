@@ -269,12 +269,16 @@ public class ScheduleCreateViewModel(
             "Two phases share the same position (${e.phaseOrder}). Each phase needs its own slot."
         } catch (e: MalformedScheduleException.PhaseOrderGap) {
             "Phases are out of order (${e.phaseOrders}). Remove the gaps and try again."
-        } catch (e: MalformedScheduleException.WindowNotPositive) {
+        } catch (_: MalformedScheduleException.WindowNotPositive) {
             // Should be impossible: we construct a 30-day window. Surfaces as a generic
             // failure if it ever does fire, so the user isn't stuck staring at a silent
-            // form.
+            // form. The exception is intentionally not threaded into the user message
+            // because window arithmetic isn't actionable; the `_` binding tells detekt
+            // we're aware of SwallowedException and the swallow is by design.
             "Couldn't validate this schedule — the preview window was invalid. Please retry."
-        } catch (e: MalformedScheduleException.WindowTooLarge) {
+        } catch (_: MalformedScheduleException.WindowTooLarge) {
+            // Same swallow rationale as WindowNotPositive above: window construction is
+            // not user-controllable, so the exception detail isn't useful to surface.
             "Couldn't validate this schedule — the preview window was too large. Please retry."
         } catch (e: MalformedScheduleException) {
             // Catch-all for future MalformedScheduleException subclasses so we don't leak

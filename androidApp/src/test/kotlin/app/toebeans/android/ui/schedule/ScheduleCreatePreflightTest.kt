@@ -307,7 +307,9 @@ private class FakeCalculator(
     }
 }
 
-private class InMemMedRepo(initial: Medication) : MedicationRepository {
+private class InMemMedRepo(
+    initial: Medication,
+) : MedicationRepository {
     private val store = MutableStateFlow(mapOf(initial.id to initial))
 
     override fun observeAll(): Flow<List<Medication>> = store.asStateFlow().map { it.values.toList() }
@@ -336,7 +338,10 @@ private class InMemSchedRepo : ScheduleRepository {
     override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
-        phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
+        phases.asStateFlow().map {
+            it[scheduleId]
+                ?: emptyList()
+        }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         schedules.asStateFlow().map { snap ->

@@ -24,7 +24,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -90,7 +89,8 @@ class ScheduleCreateNightDoseTest {
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(6, 0))) }
             assertFalse(
                 "06:00 is outside [00:00, 06:00); no warning expected",
-                vm.state.value.phases[0].nightDoseWarning,
+                vm.state.value.phases[0]
+                    .nightDoseWarning,
             )
         }
 
@@ -101,7 +101,8 @@ class ScheduleCreateNightDoseTest {
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(0, 0))) }
             assertTrue(
                 "00:00 is inside [00:00, 06:00); warning expected per D2's worked example",
-                vm.state.value.phases[0].nightDoseWarning,
+                vm.state.value.phases[0]
+                    .nightDoseWarning,
             )
         }
 
@@ -110,7 +111,10 @@ class ScheduleCreateNightDoseTest {
         runTest {
             val vm = newVm()
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(3, 0))) }
-            assertTrue(vm.state.value.phases[0].nightDoseWarning)
+            assertTrue(
+                vm.state.value.phases[0]
+                    .nightDoseWarning,
+            )
 
             vm.affirmNightDose(0)
 
@@ -126,7 +130,11 @@ class ScheduleCreateNightDoseTest {
             // Step 1: set a night dose, user affirms.
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(3, 0))) }
             vm.affirmNightDose(0)
-            assertTrue("precondition: affirmation set", vm.state.value.phases[0].nightDoseAffirmed)
+            assertTrue(
+                "precondition: affirmation set",
+                vm.state.value.phases[0]
+                    .nightDoseAffirmed,
+            )
 
             // Step 2: user edits dose times — adds a SECOND night dose (e.g. by mistake,
             // or intentionally). Per "Reset on edit" policy, the affirmation must be
@@ -182,7 +190,9 @@ private object NoopCalculator : ScheduleCalculator {
     ): List<ScheduledDose> = emptyList()
 }
 
-private class InMemMedRepoB9(initial: Medication) : MedicationRepository {
+private class InMemMedRepoB9(
+    initial: Medication,
+) : MedicationRepository {
     private val store = MutableStateFlow(mapOf(initial.id to initial))
 
     override fun observeAll(): Flow<List<Medication>> = store.asStateFlow().map { it.values.toList() }
@@ -211,7 +221,10 @@ private class InMemSchedRepoB9 : ScheduleRepository {
     override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
-        phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
+        phases.asStateFlow().map {
+            it[scheduleId]
+                ?: emptyList()
+        }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         schedules.asStateFlow().map { snap ->

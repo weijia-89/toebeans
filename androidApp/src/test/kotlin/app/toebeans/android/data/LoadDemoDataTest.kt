@@ -80,19 +80,19 @@ class LoadDemoDataTest {
         // flow but defensive — we never want demo seeding to clobber real data).
         pets.value =
             pets.value +
-                (
-                    "pet-user-cat" to
-                        app.toebeans.core.model.Pet(
-                            id = "pet-user-cat",
-                            name = "Tabby",
-                            species = app.toebeans.core.model.Species.CAT,
-                            birthdate = kotlinx.datetime.LocalDate(2021, 5, 1),
-                            weightKg = 3.5,
-                            notes = null,
-                            createdAt = seedCreatedAt,
-                            archivedAt = null,
-                        )
-                )
+            (
+                "pet-user-cat" to
+                    app.toebeans.core.model.Pet(
+                        id = "pet-user-cat",
+                        name = "Tabby",
+                        species = app.toebeans.core.model.Species.CAT,
+                        birthdate = kotlinx.datetime.LocalDate(2021, 5, 1),
+                        weightKg = 3.5,
+                        notes = null,
+                        createdAt = seedCreatedAt,
+                        archivedAt = null,
+                    )
+            )
         loadDemoData()
         assertEquals("user-created pet must still be there", 3, pets.value.size)
         assertNotNull(

@@ -71,11 +71,20 @@ SHORT=$(git rev-parse --short "$REF" 2>/dev/null || echo "$REF")
 
 # ---- Helpers -------------------------------------------------------------
 fetch_runs() {
-    # gh run list scoped to the current branch returns most-recent first; we
-    # filter by head_sha to get only runs for the specified ref.
+    # gh run list scoped to the current branch returns most-recent first.
+    # Pipe through `jq -c` (NOT `gh --jq`, which pretty-prints with one field
+    # per line and breaks `while read -r` iteration downstream — found 2026-05-17
+    # debugging this very script). We filter by head_sha to get only runs for
+    # the specified ref.
+    # jq precedence note: `.headSha | startswith($ref) or .headSha == $ref`
+    # parses as `.headSha | (startswith($ref) or .headSha == $ref)` because
+    # `|` binds looser than `or`. That pipes a STRING into a sub-filter that
+    # tries `.headSha`, which errors with "Cannot index string with string".
+    # Parenthesize the pipe explicitly:
     gh run list --limit 20 --json \
         databaseId,name,status,conclusion,headSha,event,createdAt,url \
-        --jq ".[] | select(.headSha | startswith(\"$REF\") or .headSha == \"$REF\")"
+        | jq -c --arg ref "$REF" \
+            '.[] | select((.headSha | startswith($ref)) or .headSha == $ref)'
 }
 
 format_run() {

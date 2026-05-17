@@ -18,6 +18,14 @@ insert_final_newline = true
 # default function-naming rule disagrees; this exception aligns ktlint with the Compose convention.
 ktlint_function_naming_ignore_when_annotated_with = Composable
 
+# Align ktlint's max_line_length with detekt's MaxLineLength rule (default 120). Without this
+# alignment, ktlintFormat will happily combine multi-line function-expression bodies onto a
+# single line up to ktlint's default of 140 chars, after which detekt fails the build (worked
+# example: 2026-05-17, post-ktlintFormat run combined 3 observePhases overrides at 138 chars,
+# which then failed detekt's MaxLineLength gate). Pinning ktlint to 120 here forces both
+# linters to agree on what "too long" means.
+max_line_length = 120
+
 # Generated SQLDelight code lives at `<module>/build/generated/sqldelight/`. It is fully
 # machine-formatted to SQLDelight's own conventions and must not be touched by ktlint.
 [**/build/generated/**.{kt,kts}]

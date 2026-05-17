@@ -107,8 +107,7 @@ public class ScheduleDetailViewModel(
                             }
                         }
                     }
-                }
-                .collect { snapshot -> _state.value = snapshot }
+                }.collect { snapshot -> _state.value = snapshot }
         }
     }
 
