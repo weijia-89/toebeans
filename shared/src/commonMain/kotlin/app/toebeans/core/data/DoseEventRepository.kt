@@ -64,6 +64,13 @@ public interface DoseEventRepository {
      * Record an ad-hoc GIVEN dose against [scheduleId] at [at]. Caller supplies the
      * unique [doseEventId] (UUID). status=GIVEN, scheduledAt=resolvedAt=at.
      *
+     * The conflation of `scheduledAt` and `resolvedAt` is intentional for the Pet
+     * Detail "Log dose now" surface, which has no slot context — the user is just
+     * recording "I gave Luna her pill, more or less now." For mark-taken on a known
+     * schedule slot (Today screen worklist) use [recordGivenForSlot] instead, so the
+     * stored `scheduledAt` reflects the intended slot and `resolvedAt` reflects the
+     * actual wall-clock tap.
+     *
      * v0.1 caveat: the caller is responsible for ensuring [scheduleId] exists. We
      * don't validate FK here — that's the SQLDelight backing's job and will fail
      * loudly via [IllegalArgumentException] in the real impl. The fake impl is
@@ -73,6 +80,30 @@ public interface DoseEventRepository {
         doseEventId: String,
         scheduleId: String,
         at: Instant,
+        note: String? = null,
+    ): DoseEvent
+
+    /**
+     * Record a GIVEN dose against a specific scheduled slot. [scheduledAt] is the
+     * slot's intended time as computed by [app.toebeans.core.scheduler.ScheduleCalculator];
+     * [resolvedAt] is the wall-clock tap time (typically `Clock.System.now()`). status=GIVEN.
+     *
+     * Used by the Today-screen worklist to fulfill a specific calculator-projected dose
+     * row. Keeping the slot time on `scheduledAt` is what lets the worklist match a
+     * pending [app.toebeans.core.scheduler.ScheduledDose] against a recorded
+     * [DoseEvent] for the same slot.
+     *
+     * If a GIVEN event already exists for this `(scheduleId, scheduledAt)` pair the
+     * implementation should treat the call as idempotent — replace the existing event
+     * with the new [resolvedAt]. This is more useful than throwing: a user double-tap
+     * shouldn't crash, and there's no reason to support multiple GIVEN events for the
+     * same slot.
+     */
+    public suspend fun recordGivenForSlot(
+        doseEventId: String,
+        scheduleId: String,
+        scheduledAt: Instant,
+        resolvedAt: Instant,
         note: String? = null,
     ): DoseEvent
 

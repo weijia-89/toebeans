@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-15.
+Last updated: 2026-05-16.
 
 ---
 
@@ -18,8 +18,8 @@ Last updated: 2026-05-15.
 | ✓ | KMP + Compose-Multiplatform Gradle scaffold (JDK 17, Kotlin 2.0.21, AGP 8.7) |
 | ✓ | Domain models (`Pet`, `Medication`, `Schedule`, `SchedulePhase`, `DoseEvent`) with validation |
 | ✓ | SQLDelight schema for the same |
-| ✓ | `ScheduleCalculator` interface + `DefaultScheduleCalculator` stub (throws) |
-| ✓ | `SchedulePhaseRulesTest` test-as-spec, 9 tests, all fail-as-designed |
+| ✓ | `ScheduleCalculator` interface + `DefaultScheduleCalculator` full impl |
+| ✓ | `SchedulePhaseRulesTest` test-as-spec, 9 tests, all green |
 | ✓ | Backup codec (`BackupCipher` PBKDF2 + AES-256-GCM, expect/actual JVM+Android) + 15 tests |
 | ✓ | Notification actuator (`AndroidNotificationActuator` + boot receiver) + 9 Robolectric tests |
 | ✓ | 5 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, AGENTS/CLAUDE parity) |
@@ -35,7 +35,6 @@ Last updated: 2026-05-15.
 
 | Pending | What | Source |
 |---|---|---|
-| | Implement `DefaultScheduleCalculator` — make all 9+ test-as-spec tests pass | Test-as-spec gate; vibe-dangerous |
 | | Remove `ignoreFailures = true` in `shared/build.gradle.kts` | Hand-back item 3 |
 | | Raise `koverVerify` line-coverage threshold 0 → 85 | Hand-back item 4 |
 | | SQLDelight repositories (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`) | Persistence layer |

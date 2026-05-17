@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 
@@ -67,6 +69,7 @@ public fun HomeScreen(
         state = state,
         onAddPet = onAddPet,
         onPetClick = onPetClick,
+        onMarkGiven = viewModel::markGiven,
         modifier = modifier,
         contentPadding = contentPadding,
     )
@@ -77,6 +80,7 @@ private fun HomeScreenContent(
     state: HomeUiState,
     onAddPet: () -> Unit,
     onPetClick: (petId: String) -> Unit,
+    onMarkGiven: (scheduleId: String, scheduledAt: Instant) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -149,12 +153,142 @@ private fun HomeScreenContent(
         }
 
         Text(
+            text = "Today's doses",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
+        DueTodayCard(dueDoses = state.dueDoses, onMarkGiven = onMarkGiven)
+
+        Text(
             text = "Logged today",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
         LoggedTodayCard(recentDoses = state.recentDoses)
     }
+}
+
+/**
+ * Forward-looking "what's due today" worklist. The user's primary action surface on
+ * the Home screen: glance, tap Log to mark a dose given, watch the row gray out. Per
+ * the AGENTS.md vibe-dangerous policy, the button writes a real DoseEvent with the
+ * slot's intended `scheduledAt` — that's what lets the row flip from pending to given
+ * on the next flow tick.
+ *
+ * Empty state happens when no active schedule yields a dose for today. We don't try
+ * to differentiate "no schedules" vs "all caught up" vs "no doses today" — for v0.1
+ * those all collapse to the same friendly nudge.
+ */
+@Composable
+private fun DueTodayCard(
+    dueDoses: List<DueDoseUi>,
+    onMarkGiven: (scheduleId: String, scheduledAt: Instant) -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        if (dueDoses.isEmpty()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "No doses scheduled for today",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text =
+                        "Add a schedule for one of your pets to see today's doses here. " +
+                            "You can still log an ad-hoc dose from a pet's detail screen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            return@Card
+        }
+        // `now` captured per-recomposition for the time label. Same staleness story as
+        // LoggedTodayCard — a minute drift on a "12:00" label is fine.
+        val tz = remember { TimeZone.currentSystemDefault() }
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            dueDoses.forEach { dose ->
+                DueDoseRow(
+                    dose = dose,
+                    timeZone = tz,
+                    onMarkGiven = { onMarkGiven(dose.scheduleId, dose.scheduledAt) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DueDoseRow(
+    dose: DueDoseUi,
+    timeZone: TimeZone,
+    onMarkGiven: () -> Unit,
+) {
+    val slotLabel = remember(dose.scheduledAt, timeZone) { formatLocalTime(dose.scheduledAt, timeZone) }
+    val a11y =
+        if (dose.isGiven) {
+            "${dose.petName}, ${dose.medicationName}, ${dose.doseAmount}, $slotLabel, given"
+        } else {
+            "${dose.petName}, ${dose.medicationName}, ${dose.doseAmount}, $slotLabel, pending"
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = a11y
+                },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.padding(end = 12.dp)) {
+            Text(
+                text = "${dose.petName} · ${dose.medicationName}",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = "${dose.doseAmount} · $slotLabel",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (dose.isGiven) {
+            // Given rows show a quiet text confirmation instead of a button. The
+            // visible affordance change ("Log dose" → "Given ✓") is the primary signal
+            // that the tap landed. No icon dependency needed — the checkmark is a
+            // free-rendering unicode character that matches the body text style.
+            Text(
+                text = "Given ✓",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FilledTonalButton(onClick = onMarkGiven) {
+                Text("Log dose")
+            }
+        }
+    }
+}
+
+/**
+ * Render an [Instant] as a local "8:00 AM" / "8:00 PM" time label. Hand-rolled because
+ * v0.1 is English-only and pulling in a Locale-aware formatter is premature. The
+ * format mirrors the Pet Detail dose-times UI for visual consistency.
+ */
+private fun formatLocalTime(
+    instant: Instant,
+    timeZone: TimeZone,
+): String {
+    val ldt = instant.toLocalDateTime(timeZone)
+    val hour24 = ldt.hour
+    val hour12 = ((hour24 + 11) % 12) + 1
+    val minute = ldt.minute.toString().padStart(2, '0')
+    val suffix = if (hour24 < 12) "AM" else "PM"
+    return "$hour12:$minute $suffix"
 }
 
 /**
@@ -351,6 +485,7 @@ private fun HomeScreenEmptyPreview() {
             state = HomeUiState(pets = emptyList()),
             onAddPet = {},
             onPetClick = {},
+            onMarkGiven = { _, _ -> },
         )
     }
 }
@@ -400,6 +535,7 @@ private fun HomeScreenPopulatedPreview() {
                 ),
             onAddPet = {},
             onPetClick = {},
+            onMarkGiven = { _, _ -> },
         )
     }
 }

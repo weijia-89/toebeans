@@ -6,6 +6,7 @@ import app.toebeans.core.model.DoseStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Instant
 
 /**
@@ -73,6 +74,37 @@ public class FakeDoseEventRepository : DoseEventRepository {
                 .sortedByDescending { it.scheduledAt }
                 .toList()
         }
+
+    override suspend fun recordGivenForSlot(
+        doseEventId: String,
+        scheduleId: String,
+        scheduledAt: Instant,
+        resolvedAt: Instant,
+        note: String?,
+    ): DoseEvent {
+        // Idempotent on (scheduleId, scheduledAt) per the contract. If a GIVEN event
+        // already exists for this slot, replace it with the new resolvedAt. This makes
+        // a double-tap on "Log dose" a no-op rather than a crash — important because the
+        // Today worklist's Log button is finger-sized and stress-tap-prone.
+        val existing =
+            doseEvents.value.values.firstOrNull { existing ->
+                existing.scheduleId == scheduleId &&
+                    existing.scheduledAt == scheduledAt &&
+                    existing.status == DoseStatus.GIVEN
+            }
+        val event =
+            DoseEvent(
+                id = existing?.id ?: doseEventId,
+                scheduleId = scheduleId,
+                scheduledAt = scheduledAt,
+                firedAt = existing?.firedAt,
+                resolvedAt = resolvedAt,
+                status = DoseStatus.GIVEN,
+                note = note ?: existing?.note,
+            )
+        doseEvents.update { it + (event.id to event) }
+        return event
+    }
 
     override suspend fun recordGivenNow(
         doseEventId: String,

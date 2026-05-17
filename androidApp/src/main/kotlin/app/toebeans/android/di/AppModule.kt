@@ -54,7 +54,9 @@ public val appModule =
             HomeViewModel(
                 petRepository = get(),
                 medicationRepository = get(),
+                scheduleRepository = get(),
                 doseEventRepository = get(),
+                scheduleCalculator = get(),
             )
         }
         viewModel {

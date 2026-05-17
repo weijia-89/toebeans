@@ -3,6 +3,7 @@ package app.toebeans.android.data
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -11,6 +12,7 @@ import app.toebeans.core.model.Species
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
@@ -80,6 +82,28 @@ public class FakeScheduleRepository : ScheduleRepository {
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
         phasesByScheduleId.asStateFlow().map { snap ->
             (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
+        }
+
+    override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
+        // Two-source combine: re-emit when either schedules OR phases change. Filtering
+        // and joining are pure, so this is just a fanout. SQLDelight will replace with
+        // a single LEFT JOIN query.
+        combine(schedules.asStateFlow(), phasesByScheduleId.asStateFlow()) { scheds, phaseMap ->
+            scheds.values
+                .asSequence()
+                .filter { sched ->
+                    // Cross-module smart-cast won't propagate, so bind locally.
+                    val end = sched.endDate
+                    end == null || end >= onOrAfter
+                }.sortedBy { it.createdAt }
+                .map { sched ->
+                    ScheduleWithPhases(
+                        schedule = sched,
+                        phases =
+                            (phaseMap[sched.id] ?: emptyList())
+                                .sortedBy(SchedulePhase::phaseOrder),
+                    )
+                }.toList()
         }
 
     override suspend fun upsert(
