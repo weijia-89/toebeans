@@ -208,6 +208,19 @@ Per `AGENTS.md`:
 
 ---
 
+## Watch items (track but don't act yet)
+
+These are scheduled chores that don't fit a milestone but must not get lost. Each carries an explicit "act when" trigger.
+
+| Item | Act when | Source |
+|---|---|---|
+| **Calibration tier recalibration.** AGENTS.md § Confidence-score rule mandates recalibration of tier thresholds based on score-vs-incident correlation. | Calibration log reaches ~50 entries (currently 34 as of 2026-05-17). At that point: review the 8 sub-floor vibe-dangerous entries to date, correlate against any field/CI incidents, decide whether tier floors should be adjusted up or down. | `AGENTS.md` § Confidence-score rule |
+| **ADR-0014 hook-tightening decision.** Whether to mechanical-block sub-floor commits at the pre-commit hook. | M1.2 day-14 retention gate. Use 30-day soak signal to decide. | `docs/adr/0014-pre-commit-hook-score-floor-enforcement.md` |
+| **ADR-0015 KGP/AGP suppression revisit.** Re-check whether the Kotlin/AGP advisory warning suppression is still safe. | (a) AGP advances to 9.x, OR (b) KGP version-matrix catches up to AGP 8.7+, OR (c) any KMP/CMP-specific CI failure surfaces. | `docs/adr/0015-kotlin-agp-compatibility-warning-suppression.md` |
+| **ADR-0013 Compose UI test deps.** Currently Proposed pending human review of 4 AndroidX deps. | When first Compose-surface regression is shipped (or when v0.1-followups #1 night-dose-banner snapshot test is needed). | `docs/adr/0013-compose-ui-test-adoption.md`, v0.1-followups #1 |
+
+---
+
 ## Cross-reference
 
 - ADRs: `docs/adr/`
