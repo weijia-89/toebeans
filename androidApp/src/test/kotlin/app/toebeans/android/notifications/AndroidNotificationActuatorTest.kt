@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Robolectric tests for [AndroidNotificationActuator]. Runs on a JVM via Robolectric's emulated
- * Android runtime — no device or emulator required.
+ * Android runtime, no device or emulator required.
  *
  * Test-as-spec for the medication-critical fire path. Per AGENTS.md:
  *  - These tests MUST be reviewed by a human before any change to AndroidNotificationActuator.
@@ -95,7 +95,7 @@ class AndroidNotificationActuatorTest {
     }
 
     @Test
-    fun `schedule is idempotent — same id twice yields one alarm at the new time`() {
+    fun `schedule is idempotent, same id twice yields one alarm at the new time`() {
         val first = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1_000_000L))
         val second = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(2_000_000L))
 
@@ -143,16 +143,23 @@ class AndroidNotificationActuatorTest {
     }
 
     @Test
-    fun `show posts a notification when notifications are enabled`() {
+    fun `show posts a notification with a collision-free id from the allocator`() {
+        // Notification id must be the allocator-issued code, NOT reminder.id.hashCode().
+        // The hashCode path could silently overwrite a notification when two distinct
+        // reminder ids happen to hash equally. Routing through the same allocator the
+        // PendingIntent path uses keeps the two surfaces consistent. See the regression
+        // test below for the canonical "Aa"/"BB" collision pair.
         val reminder = ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L))
         actuator.show(reminder)
 
         val active = shadowOf(systemNotificationManager).activeNotifications
         assertEquals(1, active.size)
         val n = active[0]
+        val allocatorCode = allocator.peek("evt-show")
+        assertNotNull("show must allocate a code for the reminder", allocatorCode)
         assertEquals(
-            "notification id must be reminder id hash for cancellability",
-            reminder.id.hashCode(),
+            "notification id must equal the allocator code for collision-freedom",
+            allocatorCode!!.toInt(),
             n.id,
         )
         assertEquals(
@@ -163,12 +170,51 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `show with the same id replaces the prior notification`() {
+        // The allocator is idempotent for repeat calls with the same id, so two show() calls
+        // for the same reminder produce the same notification id and NotificationManager
+        // replaces in place. This invariant survives the move from hashCode to allocator.
         val r1 = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L))
         actuator.show(r1)
         actuator.show(r1)
 
         val active = shadowOf(systemNotificationManager).activeNotifications
         assertEquals("re-showing same id must not stack", 1, active.size)
+    }
+
+    /**
+     * Regression at the notification.id surface for the same hashCode-collision class the
+     * PendingIntent path was hardened against. Before the allocator routing landed, two
+     * distinct reminder ids with colliding hashCodes (Aa, BB, both hash to 2112) would
+     * silently overwrite each other's notification. The medication-critical hazard:
+     * Luna's 8 AM methimazole notification gets replaced by Rufus's 8 AM gabapentin
+     * notification because the two reminder ids happen to collide.
+     */
+    @Test
+    fun `regression, show with hashCode-colliding reminder ids posts two notifications`() {
+        // Sanity-check the pre-condition this test depends on.
+        assertEquals(
+            "test depends on Aa and BB having equal hashCodes (Java spec)",
+            "Aa".hashCode(),
+            "BB".hashCode(),
+        )
+
+        actuator.show(ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1L)))
+        actuator.show(ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2L)))
+
+        val active = shadowOf(systemNotificationManager).activeNotifications
+        assertEquals(
+            "both colliding-hash reminders must produce independent notifications",
+            2,
+            active.size,
+        )
+        val codeAa = allocator.peek("Aa")
+        val codeBB = allocator.peek("BB")
+        assertNotNull("Aa must be allocated", codeAa)
+        assertNotNull("BB must be allocated", codeBB)
+        assertTrue(
+            "colliding-hash reminder ids must receive distinct notification ids",
+            codeAa != codeBB,
+        )
     }
 
     @Test
@@ -190,7 +236,7 @@ class AndroidNotificationActuatorTest {
      * first. The allocator must give them distinct request codes so both alarms survive.
      */
     @Test
-    fun `regression — reminders with colliding hashCodes both schedule successfully`() {
+    fun `regression, reminders with colliding hashCodes both schedule successfully`() {
         // Sanity check: pre-condition this regression test depends on. If Kotlin's String
         // hashing ever diverges from Java's, this test should fail loudly so we re-pick the
         // collision pair.
@@ -212,7 +258,7 @@ class AndroidNotificationActuatorTest {
             triggers,
         )
 
-        // And the allocator must have given them distinct codes — defends against a future
+        // And the allocator must have given them distinct codes, defends against a future
         // refactor that "helpfully" falls back to hashing.
         val codeA = allocator.peek("Aa")
         val codeB = allocator.peek("BB")
