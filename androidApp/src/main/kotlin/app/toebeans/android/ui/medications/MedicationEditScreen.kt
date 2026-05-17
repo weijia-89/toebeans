@@ -31,10 +31,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.PillBackground
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +54,7 @@ public fun MedicationEditScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDiscontinueDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId, medicationId) {
         viewModel.setPetId(petId)
@@ -65,6 +71,21 @@ public fun MedicationEditScreen(
                 }
             },
             onDismiss = { showDeleteDialog = false },
+        )
+    }
+
+    if (showDiscontinueDialog) {
+        DiscontinueMedicationDialog(
+            medicationName = state.name.ifBlank { "this medication" },
+            onConfirm = {
+                showDiscontinueDialog = false
+                scope.launch {
+                    // Stay on the form after discontinue so the user can still edit notes
+                    // or reactivate. The banner will appear on the next state emission.
+                    viewModel.discontinue()
+                }
+            },
+            onDismiss = { showDiscontinueDialog = false },
         )
     }
 
@@ -90,22 +111,21 @@ public fun MedicationEditScreen(
                         }
                     },
                     actions = {
-                        // Delete only when editing an existing medication. A new-med form has
-                        // nothing to delete; Back is the analogous cancel affordance.
-                        if (!state.isNew) {
-                            TextButton(
-                                onClick = { showDeleteDialog = true },
-                                colors =
-                                    ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error,
-                                    ),
-                            ) {
-                                Text("Delete")
-                            }
-                        }
+                        // Extracted to keep MedicationEditScreen's cyclomatic complexity below
+                        // the detekt threshold. The Discontinue/Reactivate/Delete branching
+                        // adds ~3-4 conditional edges that, combined with the dialog visibility
+                        // checks and the form's other branches, push the function over the
+                        // 15-edge cap.
+                        MedicationEditTopBarActions(
+                            isNew = state.isNew,
+                            isDiscontinued = state.isDiscontinued,
+                            onReactivateClick = { scope.launch { viewModel.reactivate() } },
+                            onDiscontinueClick = { showDiscontinueDialog = true },
+                            onDeleteClick = { showDeleteDialog = true },
+                        )
                     },
-                    // Save moved out of the top bar — top-right is a thumb-stretch on most
-                    // phones. New primary Save lives in bottomBar below.
+                    // Save moved out of the top bar. Top-right is a thumb-stretch on most
+                    // phones. The new primary Save lives in bottomBar below.
                 )
             },
             bottomBar = {
@@ -150,6 +170,15 @@ public fun MedicationEditScreen(
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // When this medication is discontinued, surface a status banner above the
+                // form fields so it is the first thing the user sees on opening the screen.
+                // Wrapped in clearAndSetSemantics + LiveRegion equivalent via contentDescription
+                // so TalkBack announces the discontinue state immediately, matching the
+                // ScheduleCreate formError + night-dose banner accessibility pattern.
+                state.discontinuedAt?.let { discontinuedAt ->
+                    DiscontinuedBanner(discontinuedAt = discontinuedAt)
+                }
+
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
@@ -206,6 +235,66 @@ public fun MedicationEditScreen(
 }
 
 /**
+ * The Edit-mode topBar actions, extracted from [MedicationEditScreen] so the screen
+ * function's cyclomatic complexity stays under the detekt cap. Visual hierarchy:
+ *
+ * - **Discontinue** (tertiary color, shown when the medication is active): soft, reversible
+ *   action. Opens a confirmation dialog before stamping `discontinuedAt`.
+ *
+ * - **Reactivate** (primary color, shown when the medication is discontinued): positive
+ *   action. Clears `discontinuedAt` immediately without a dialog, because there's nothing
+ *   destructive to confirm and an extra confirmation step would feel like punishment for
+ *   undoing.
+ *
+ * - **Delete** (error color, always shown in edit mode): destructive, irreversible. Opens
+ *   the [DeleteMedicationDialog] for confirmation. Placed second so the user reaches the
+ *   less-destructive action first.
+ *
+ * In new-medication mode this composable renders nothing, since there is no medication to
+ * discontinue or delete; Back is the analogous cancel affordance.
+ */
+@Composable
+private fun MedicationEditTopBarActions(
+    isNew: Boolean,
+    isDiscontinued: Boolean,
+    onReactivateClick: () -> Unit,
+    onDiscontinueClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
+    if (isNew) return
+    if (isDiscontinued) {
+        TextButton(
+            onClick = onReactivateClick,
+            colors =
+                ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+        ) {
+            Text("Reactivate")
+        }
+    } else {
+        TextButton(
+            onClick = onDiscontinueClick,
+            colors =
+                ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.tertiary,
+                ),
+        ) {
+            Text("Discontinue")
+        }
+    }
+    TextButton(
+        onClick = onDeleteClick,
+        colors =
+            ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+    ) {
+        Text("Delete")
+    }
+}
+
+/**
  * Confirmation dialog for medication deletion. Sibling of `PetEditScreen.DeleteConfirmDialog`;
  * the copy is medication-specific so the user knows exactly what's about to disappear.
  *
@@ -236,6 +325,91 @@ private fun DeleteMedicationDialog(
                     ),
             ) {
                 Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+/**
+ * Status banner shown at the top of the form when a medication is discontinued.
+ *
+ * Uses M3 `tertiaryContainer` background, semantically a "soft warning / informational"
+ * tone, distinct from error (which is for blocking validation problems) and primary (which
+ * is for positive actions). The container/onContainer color pair is contrast-audited by
+ * Material 3 so we don't need to manually verify ratios.
+ *
+ * Accessibility: the inner `Column` wraps its children in `clearAndSetSemantics` with a
+ * single TalkBack announcement, so screen readers don't read the date as a separate node
+ * disconnected from the "discontinued" label. The discontinuedAt instant is formatted as
+ * YYYY-MM-DD in the user's current TimeZone for sighted users; the announcement uses the
+ * same wording so there's no skew between visual and spoken content.
+ */
+@Composable
+private fun DiscontinuedBanner(discontinuedAt: Instant) {
+    val date = discontinuedAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val displayText = "Discontinued on $date"
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics {
+                    contentDescription =
+                        "$displayText. Reminders are off. Tap Reactivate in the top bar to resume."
+                },
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                text = displayText,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = "Reminders are off. Tap Reactivate to resume.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/**
+ * Confirmation dialog for marking a medication as discontinued.
+ *
+ * Distinct from [DeleteMedicationDialog]: discontinue is a soft-delete (reversible, keeps
+ * dose history). Delete is hard (irreversible). The copy makes the reversibility explicit
+ * so users who want to "stop reminders without losing the dose log" don't accidentally
+ * pick Delete.
+ */
+@Composable
+private fun DiscontinueMedicationDialog(
+    medicationName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Discontinue $medicationName?") },
+        text = {
+            Text(
+                "Reminders for $medicationName will stop and the medication will be hidden " +
+                    "from Home and Pets. Its dose history is preserved. You can reactivate " +
+                    "anytime from the medication's edit screen.",
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.tertiary,
+                    ),
+            ) {
+                Text("Discontinue")
             }
         },
         dismissButton = {

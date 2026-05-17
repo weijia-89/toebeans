@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -39,9 +40,58 @@ public class MedicationEditViewModel(
                     name = med.name,
                     doseAmount = med.doseAmount,
                     notes = med.notes.orEmpty(),
+                    discontinuedAt = med.discontinuedAt,
                 )
             }
         }
+    }
+
+    /**
+     * Mark this medication as discontinued. Soft-delete: preserves the medication row and
+     * any dose history that references it, but the medication stops appearing in active
+     * surfaces (Home's "due today" filter at `HomeViewModel.kt:195` already excludes
+     * discontinued meds via `Medication.isActive`; the active-pet medications list in
+     * `PetsViewModel.kt:24` does the same). Reversible via [reactivate].
+     *
+     * **What this does NOT do:** the Schedule rows that reference this medication remain in
+     * the repository, and their existing AlarmManager registrations are NOT cancelled. v0.1
+     * relies on Home's discontinuedAt filter to keep reminders out of view; if a phase is
+     * still actively materializing, its alarms would still fire and the resulting
+     * `DoseAlarmReceiver` invocation would look up the medication (currently a placeholder
+     * lookup per v0.1-followups #3, M1 SQLDelight lookup post-M1 Tier C) and could either
+     * silently drop the fire (if the lookup filters by isActive) or render a reminder for
+     * a discontinued med (if it doesn't). This is a known v0.1 gap tracked alongside
+     * v0.1-followups #3; the M1 SQLDelight + receiver implementation will route through
+     * `Medication.isActive` to drop discontinued-med firings.
+     *
+     * @param now Instant to record as discontinuedAt. Injectable so tests can pin time.
+     *     Default `Clock.System.now()` for production callers.
+     * @return true if discontinue persisted; false in new-medication mode (nothing to
+     *     discontinue) or if the medication has been deleted from the repository between
+     *     load() and this call.
+     */
+    public suspend fun discontinue(now: Instant = Clock.System.now()): Boolean {
+        val id = _state.value.medicationId ?: return false
+        val existing = medicationRepository.getById(id) ?: return false
+        medicationRepository.upsert(existing.copy(discontinuedAt = now))
+        _state.update { it.copy(discontinuedAt = now) }
+        return true
+    }
+
+    /**
+     * Reverse a previous [discontinue]. Clears `discontinuedAt` back to `null` so the
+     * medication reappears in active surfaces. Idempotent on an already-active medication
+     * (the upsert is a no-op but still returns true because the call ran).
+     *
+     * @return true if reactivate persisted; false only in new-medication mode or if the
+     *     medication has been deleted between load() and this call.
+     */
+    public suspend fun reactivate(): Boolean {
+        val id = _state.value.medicationId ?: return false
+        val existing = medicationRepository.getById(id) ?: return false
+        medicationRepository.upsert(existing.copy(discontinuedAt = null))
+        _state.update { it.copy(discontinuedAt = null) }
+        return true
     }
 
     public fun onNameChange(value: String) {
@@ -64,7 +114,7 @@ public class MedicationEditViewModel(
      * by setting [Medication.discontinuedAt] (schema column already present) so historical
      * dose-events keep a name to display. Until then, the in-memory fake leaves orphans;
      * Home's `computeDueToday` already filters out viable bundles where the med is missing,
-     * so the worst-case visible effect is a row dropping from "Logged today" — which is
+     * so the worst-case visible effect is a row dropping from "Logged today", which is
      * acceptable v0.1 behavior given the absence of persistence.
      */
     public suspend fun delete(): Boolean {
@@ -87,8 +137,8 @@ public class MedicationEditViewModel(
         }
         if (!valid) return false
         // Preserve createdAt and (critically) discontinuedAt from the persisted record on
-        // edit. Without this, editing a discontinued medication silently un-discontinues it
-        // — which could resume dose reminders for a medication the caregiver had stopped.
+        // edit. Without this, editing a discontinued medication silently un-discontinues it,
+        // which could resume dose reminders for a medication the caregiver had stopped.
         val existing = s.medicationId?.let { medicationRepository.getById(it) }
         val med =
             Medication(
@@ -113,6 +163,17 @@ public data class MedicationEditUiState(
     public val notes: String = "",
     public val nameError: String? = null,
     public val doseAmountError: String? = null,
+    /**
+     * `null` for active medications. Non-null timestamp for discontinued medications.
+     * Set by [MedicationEditViewModel.discontinue] / [MedicationEditViewModel.reactivate]
+     * and seeded from the persisted record on [MedicationEditViewModel.load]. The UI
+     * surfaces this as a "Discontinued on ..." banner and flips the topBar action
+     * between Discontinue and Reactivate.
+     */
+    public val discontinuedAt: Instant? = null,
 ) {
     public val isNew: Boolean get() = medicationId == null
+
+    /** True if this medication has been soft-deleted via discontinue. */
+    public val isDiscontinued: Boolean get() = discontinuedAt != null
 }
