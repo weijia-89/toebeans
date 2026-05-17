@@ -2,6 +2,7 @@ package app.toebeans.android.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -27,6 +28,7 @@ import app.toebeans.android.ui.nav.Destinations
 import app.toebeans.android.ui.pets.PetDetailScreen
 import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
+import app.toebeans.android.ui.reminders.ReminderListScreen
 import app.toebeans.android.ui.schedule.ScheduleCreateScreen
 import app.toebeans.android.ui.settings.SettingsScreen
 
@@ -86,6 +88,15 @@ public fun ToebeansAppShell() {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
+                    contentPadding = innerPadding,
+                )
+            }
+            composable(Destinations.REMINDERS) {
+                ReminderListScreen(
+                    // Stub navigation: tap target is Schedule Detail (B7). Until that
+                    // screen ships, taps are intentionally no-ops so the row stays
+                    // visually tappable and the future wiring is a one-line change.
+                    onScheduleClick = { /* no-op; B7 wires this through */ },
                     contentPadding = innerPadding,
                 )
             }
@@ -188,7 +199,7 @@ public fun ToebeansAppShell() {
 // (detail/edit screens) hides the tab strip so the screen's own bottomBar reaches the
 // bottom of the viewport.
 private val TOP_LEVEL_ROUTES =
-    setOf(Destinations.HOME, Destinations.PETS, Destinations.SETTINGS)
+    setOf(Destinations.HOME, Destinations.REMINDERS, Destinations.PETS, Destinations.SETTINGS)
 
 // Pets tab uses a hand-authored paw vector (see PawIcon.kt) so we don't have to pull in
 // the ~5 MB material-icons-extended dep just for one glyph. Home and Settings stay on
@@ -196,6 +207,7 @@ private val TOP_LEVEL_ROUTES =
 private fun iconFor(item: BottomNavItem): ImageVector =
     when (item) {
         BottomNavItem.HOME -> Icons.Filled.Home
+        BottomNavItem.REMINDERS -> Icons.Filled.Notifications
         BottomNavItem.PETS -> PawIcon
         BottomNavItem.SETTINGS -> Icons.Filled.Settings
     }

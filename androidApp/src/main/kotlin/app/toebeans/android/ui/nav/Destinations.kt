@@ -10,6 +10,7 @@ package app.toebeans.android.ui.nav
 public object Destinations {
     // Bottom-nav root destinations.
     public const val HOME: String = "home"
+    public const val REMINDERS: String = "reminders"
     public const val PETS: String = "pets"
     public const val SETTINGS: String = "settings"
 
@@ -52,6 +53,7 @@ public enum class BottomNavItem(
     public val label: String,
 ) {
     HOME(Destinations.HOME, "Today"),
+    REMINDERS(Destinations.REMINDERS, "Reminders"),
     PETS(Destinations.PETS, "Pets"),
     SETTINGS(Destinations.SETTINGS, "Settings"),
 }

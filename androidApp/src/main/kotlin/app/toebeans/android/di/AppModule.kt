@@ -11,6 +11,7 @@ import app.toebeans.android.ui.medications.MedicationEditViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
 import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
+import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
 import app.toebeans.core.data.DoseEventRepository
@@ -77,6 +78,13 @@ public val appModule =
             PetsViewModel(
                 petRepository = get(),
                 medicationRepository = get(),
+            )
+        }
+        viewModel {
+            ReminderListViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
             )
         }
         viewModel { SettingsViewModel(prefs = get()) }
