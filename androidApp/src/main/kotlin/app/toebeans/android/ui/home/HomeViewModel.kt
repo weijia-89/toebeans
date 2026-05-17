@@ -2,6 +2,7 @@ package app.toebeans.android.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.android.util.StaleEventGuard
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
@@ -198,8 +199,22 @@ public class HomeViewModel(
             val medById = medList.associateBy { it.id }
             val recentDoseUis =
                 doses.mapNotNull { event ->
-                    val med = medById[event.medicationId] ?: return@mapNotNull null
-                    val pet = petById[med.petId] ?: return@mapNotNull null
+                    val med =
+                        medById[event.medicationId]
+                            ?: return@mapNotNull StaleEventGuard.reportMissing(
+                                site = "HomeViewModel.joinToUiState",
+                                eventId = event.id,
+                                missingFieldName = "medicationId",
+                                missingValue = event.medicationId,
+                            )
+                    val pet =
+                        petById[med.petId]
+                            ?: return@mapNotNull StaleEventGuard.reportMissing(
+                                site = "HomeViewModel.joinToUiState",
+                                eventId = event.id,
+                                missingFieldName = "petId",
+                                missingValue = med.petId,
+                            )
                     val speciesLabel =
                         pet.species.name
                             .lowercase()
@@ -227,8 +242,9 @@ public class HomeViewModel(
          * have `givenEventId == null`; given rows carry the event id and resolvedAt.
          *
          * Result is globally ascending by `scheduledAt`. Schedules whose medication or
-         * pet has been deleted (orphan rows) are skipped silently — the user shouldn't
-         * see half-broken rows for soft-deleted records.
+         * pet cannot be resolved are reported via [StaleEventGuard]: debug builds throw
+         * to surface join bugs in CI; release builds log + skip so transient inter-Flow
+         * races during deletion don't crash a tester mid-medication-log.
          *
          * Match key: `(scheduleId, scheduledAt)`. The worklist flips a row to "given"
          * when a GIVEN event exists for that exact slot.
@@ -268,8 +284,22 @@ public class HomeViewModel(
             )
             val viable =
                 schedulesWithPhases.mapNotNull { swp ->
-                    val med = medById[swp.schedule.medicationId] ?: return@mapNotNull null
-                    val pet = petById[med.petId] ?: return@mapNotNull null
+                    val med =
+                        medById[swp.schedule.medicationId]
+                            ?: return@mapNotNull StaleEventGuard.reportMissing(
+                                site = "HomeViewModel.computeDueToday",
+                                eventId = swp.schedule.id,
+                                missingFieldName = "medicationId",
+                                missingValue = swp.schedule.medicationId,
+                            )
+                    val pet =
+                        petById[med.petId]
+                            ?: return@mapNotNull StaleEventGuard.reportMissing(
+                                site = "HomeViewModel.computeDueToday",
+                                eventId = swp.schedule.id,
+                                missingFieldName = "petId",
+                                missingValue = med.petId,
+                            )
                     ViableBundle(swp, med, pet)
                 }
             val rows =

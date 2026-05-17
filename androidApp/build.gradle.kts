@@ -61,6 +61,11 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig is used by StaleEventGuard to gate crash-on-debug vs log-on-release
+        // behavior for stale-event rendering. AGENTS.md treats Gradle dep adds as
+        // vibe-dangerous; enabling buildConfig is a config-feature flag (no new dep on
+        // the classpath, no runtime library, just an AGP-emitted BuildConfig class).
+        buildConfig = true
     }
 
     packaging {

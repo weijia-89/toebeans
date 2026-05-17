@@ -9,6 +9,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,22 +103,28 @@ class HomeViewModelJoinTest {
     }
 
     @Test
-    fun `dose whose medicationId does not match any known medication is skipped`() {
-        // Defensive: a dose whose medication has been deleted (orphan-survival case, M1)
-        // should drop from the retrospective list rather than render a half-broken row.
-        // Other doses on the same flow tick still come through.
+    fun `dose whose medicationId does not match any known medication triggers StaleEventGuard in debug`() {
+        // Contract change (Tier A #4, crash-on-render-of-stale-event safety net): a dose
+        // referencing a missing medication is treated as a bug surface. In debug builds
+        // (which is what unit tests always run under) StaleEventGuard throws to surface
+        // join-bug regressions in CI. In release builds it would log + skip; that path is
+        // tested at the guard level in StaleEventGuardTest.
+        //
+        // Previously this test asserted silent-skip behavior. That silent filter is what
+        // hid the replaceFirst("sched-","med-") bug for the entire scaffold milestone;
+        // the regression test below this one is the long-form proof. We pin the new
+        // contract here.
         val pet = pet(id = "p-1")
         val med = med(id = "med-x", petId = "p-1")
-        val goodDose = givenDose(id = "d-good", scheduleId = "sched-x", medicationId = "med-x")
         val orphanDose = givenDose(id = "d-orphan", scheduleId = "sched-y", medicationId = "med-deleted")
 
-        val state = HomeViewModel.joinToUiState(listOf(pet), listOf(med), listOf(goodDose, orphanDose))
-
-        assertEquals("orphan dose dropped, good dose kept", 1, state.recentDoses.size)
-        assertEquals("d-good", state.recentDoses.single().id)
-        assertNull(
-            "orphan dose must not appear in the projected list",
-            state.recentDoses.firstOrNull { it.id == "d-orphan" },
+        val ex =
+            assertThrows(IllegalStateException::class.java) {
+                HomeViewModel.joinToUiState(listOf(pet), listOf(med), listOf(orphanDose))
+            }
+        assertTrue(
+            "the exception must name the stale row + missing field for actionable debugging",
+            ex.message?.contains("d-orphan") == true && ex.message?.contains("med-deleted") == true,
         )
     }
 

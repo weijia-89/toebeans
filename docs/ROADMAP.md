@@ -51,7 +51,7 @@ Last updated: 2026-05-16.
 | | Inline error UI when calculator throws `MalformedScheduleException` | from D3 decision |
 | | Backup export UI (with passphrase entry) + import flow. Until this lands, the Settings → Export-data button is disabled with a "coming soon" affordance — DO NOT re-enable the toast version. | Cold review, P2 |
 | | First macrobenchmark module (cold-start, list scroll, calculator perf) | ADR-0008 |
-| | Crash-on-render-of-stale-event safety net (defensive against bug-leak) |
+| ✓ | Crash-on-render-of-stale-event safety net — `StaleEventGuard` wired into `HomeViewModel.joinToUiState` + `computeDueToday`. Debug builds throw `IllegalStateException` with a diagnostic message naming the site + event + missing field, surfacing future join bugs in CI. Release builds log via `Log.w` and skip the row so inter-Flow races during deletion don't crash a tester. Three legacy "skipped silently" tests rewritten to assert the new contract; one new `StaleEventGuardTest` (3 cases) pins the message format + throw behavior. AGP `buildConfig = true` enabled to access `BuildConfig.DEBUG` — feature flag, no new dep. |
 | ✓ | `scripts/test_no_pii_in_crash_log.sh` fitness function: greps the crash-handler source for any reference to repository / dao / model / persistence symbols so the local-crash-log handler (ADR-0009) cannot drift toward leaking domain data into the log. Wired into CI as the 5th gate; self-test verified it catches an injected `Pet` reference. | Cold review |
 
 ### Recommended M1 sequencing

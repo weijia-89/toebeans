@@ -15,6 +15,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,8 +29,9 @@ import org.junit.Test
  *
  * Test cases cover:
  *  - The slot-identity match rule `(scheduleId, scheduledAt)` for pending↔given flips.
- *  - Defense against soft-deleted medication or pet orphans (skipped silently — the
- *    user shouldn't see half-broken rows after a delete).
+ *  - Stale-row guard behavior in debug builds — a schedule referencing a missing
+ *    medication or pet throws via `StaleEventGuard` to surface join bugs in CI. Release
+ *    mode's log+skip path is tested at the guard's own test surface.
  *  - The doseAmount fallback to the Medication when a phase doesn't override.
  *  - The cross-schedule global sort by `scheduledAt`.
  *  - The status filter — only GIVEN events match (SKIPPED/MISSED don't flip a row).
@@ -171,49 +173,53 @@ class HomeViewModelComputeDueTodayTest {
     }
 
     @Test
-    fun `schedule whose medication is missing is skipped silently`() {
-        // schedule references medicationId="med-ghost" which doesn't exist in the
-        // medications list. The row should be skipped, not crash, not render half-broken.
+    fun `schedule whose medication is missing triggers StaleEventGuard in debug`() {
+        // Tier A #4 contract change: a schedule that references a nonexistent medication
+        // is treated as a bug surface, not a silent skip. Debug builds (which is what
+        // unit tests run under) throw to surface join-bug regressions in CI. Release
+        // builds log + skip; that path is exercised at the guard level.
         val ghost = scheduleBundle("sched-ghost", medId = "med-ghost")
-        val real = scheduleBundle("sched-real", medId = "med-real")
-        val rows =
-            HomeViewModel.computeDueToday(
-                schedulesWithPhases = listOf(ghost, real),
-                medications = listOf(med("med-real", "p-1")),
-                pets = listOf(pet("p-1")),
-                recentDoses = emptyList(),
-                calculator =
-                    FakeCalculator(
-                        mapOf(
-                            "sched-ghost" to listOf(SLOT_8AM),
-                            "sched-real" to listOf(SLOT_8PM),
-                        ),
-                    ),
-                timeZone = ZONE,
-                todayStart = TODAY_START,
-                todayEnd = TODAY_END,
-            )
-        assertEquals(1, rows.size)
-        assertEquals(SLOT_8PM, rows.single().scheduledAt)
+        val ex =
+            assertThrows(IllegalStateException::class.java) {
+                HomeViewModel.computeDueToday(
+                    schedulesWithPhases = listOf(ghost),
+                    medications = emptyList(),
+                    pets = emptyList(),
+                    recentDoses = emptyList(),
+                    calculator = FakeCalculator(mapOf("sched-ghost" to listOf(SLOT_8AM))),
+                    timeZone = ZONE,
+                    todayStart = TODAY_START,
+                    todayEnd = TODAY_END,
+                )
+            }
+        assertTrue(
+            "the exception must name the stale schedule + missing medicationId",
+            ex.message?.contains("sched-ghost") == true && ex.message?.contains("med-ghost") == true,
+        )
     }
 
     @Test
-    fun `schedule whose medication-pet is missing is skipped silently`() {
-        // medication exists but its pet doesn't (orphan after a hard delete in a future
-        // surface). Same skip-silently rule applies.
+    fun `schedule whose medication-pet is missing triggers StaleEventGuard in debug`() {
+        // Symmetric to the above: medication exists but its pet does not. Same
+        // contract — surface it, don't swallow it.
         val swp = scheduleBundle("s-1", "m-1")
-        val rows =
-            HomeViewModel.computeDueToday(
-                schedulesWithPhases = listOf(swp),
-                medications = listOf(med("m-1", petId = "p-ghost")),
-                pets = emptyList(),
-                recentDoses = emptyList(),
-                calculator = FakeCalculator(mapOf("s-1" to listOf(SLOT_8AM))),
-                timeZone = ZONE,
-                todayStart = TODAY_START,
-                todayEnd = TODAY_END,
-            )
-        assertTrue("orphan pet → row skipped", rows.isEmpty())
+        val ex =
+            assertThrows(IllegalStateException::class.java) {
+                HomeViewModel.computeDueToday(
+                    schedulesWithPhases = listOf(swp),
+                    medications = listOf(med("m-1", petId = "p-ghost")),
+                    pets = emptyList(),
+                    recentDoses = emptyList(),
+                    calculator = FakeCalculator(mapOf("s-1" to listOf(SLOT_8AM))),
+                    timeZone = ZONE,
+                    todayStart = TODAY_START,
+                    todayEnd = TODAY_END,
+                )
+            }
+        assertTrue(
+            "the exception must name the stale schedule + missing petId",
+            ex.message?.contains("s-1") == true && ex.message?.contains("p-ghost") == true,
+        )
     }
 
     @Test
