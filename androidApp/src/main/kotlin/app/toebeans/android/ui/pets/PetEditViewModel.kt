@@ -69,6 +69,28 @@ public class PetEditViewModel(
         _state.update { it.copy(notes = value) }
     }
 
+    /**
+     * Delete the loaded pet. Returns true if a delete was issued, false if the form is in
+     * new-pet mode (nothing to delete).
+     *
+     * v0.1: the fake repo hard-removes from its in-memory map. M1: the SQLDelight repo
+     * will soft-delete via `Pet.archivedAt` (schema column already present) so historical
+     * dose-events keep referential integrity. The UI doesn't change — the repo is the
+     * seam.
+     *
+     * Cascade considerations (M1, not here): a pet has medications, which have schedules,
+     * which have dose-events. The M1 SQLDelight migration must decide whether deleting a
+     * pet cascades to its children or just orphans them with a "deleted pet" placeholder.
+     * Until then, the in-memory fake leaves orphans, which is fine because nothing reads
+     * a med without joining through its pet first (the Home worklist filters viable
+     * bundles in `HomeViewModel.computeDueToday`).
+     */
+    public suspend fun delete(): Boolean {
+        val id = _state.value.petId ?: return false
+        petRepository.delete(id)
+        return true
+    }
+
     /** Persist. Returns true on success; false on validation failure. */
     public suspend fun save(): Boolean {
         val s = _state.value

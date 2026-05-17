@@ -11,6 +11,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,10 +23,13 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -50,9 +54,26 @@ public fun PetEditScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId) {
         if (petId != null) viewModel.load(petId)
+    }
+
+    if (showDeleteDialog) {
+        DeleteConfirmDialog(
+            // Use the loaded name; falls back to "this pet" if the load coroutine is
+            // still resolving (defensive — the dialog can't open until the edit screen
+            // has been on for a frame).
+            petName = state.name.ifBlank { "this pet" },
+            onConfirm = {
+                showDeleteDialog = false
+                scope.launch {
+                    if (viewModel.delete()) onSaved()
+                }
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
     }
 
     Scaffold(
@@ -62,6 +83,21 @@ public fun PetEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Delete only when editing an existing pet. A new-pet form has nothing
+                    // to delete; the Back button is the analogous cancel affordance.
+                    if (!state.isNew) {
+                        TextButton(
+                            onClick = { showDeleteDialog = true },
+                            colors =
+                                ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error,
+                                ),
+                        ) {
+                            Text("Delete")
+                        }
                     }
                 },
                 // Save moved out of the top bar — top-right is a thumb-stretch on most
@@ -147,6 +183,49 @@ public fun PetEditScreen(
             )
         }
     }
+}
+
+/**
+ * Confirmation dialog for pet deletion. M3 [AlertDialog] with destructive-styled confirm
+ * button (error-color text) and a neutral cancel.
+ *
+ * Why a confirmation dialog and not an undo snackbar: a pet carries medications, schedules,
+ * and dose-event history; an accidental delete is destructive enough to warrant explicit
+ * confirmation. Undo-snackbar UX is the right pattern for low-stakes (e.g. archive a logged
+ * dose); high-stakes deletes get a modal.
+ */
+@Composable
+private fun DeleteConfirmDialog(
+    petName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete $petName?") },
+        text = {
+            Text(
+                "This removes $petName and any medications, schedules, and dose history " +
+                    "attached to them. This can't be undone.",
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 /**

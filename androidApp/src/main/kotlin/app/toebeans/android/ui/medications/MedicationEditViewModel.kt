@@ -56,6 +56,23 @@ public class MedicationEditViewModel(
         _state.update { it.copy(notes = value) }
     }
 
+    /**
+     * Delete the loaded medication. Returns true if a delete was issued, false in new-med
+     * mode (nothing to delete).
+     *
+     * v0.1: fake repo hard-removes from its in-memory map. M1: SQLDelight will soft-delete
+     * by setting [Medication.discontinuedAt] (schema column already present) so historical
+     * dose-events keep a name to display. Until then, the in-memory fake leaves orphans;
+     * Home's `computeDueToday` already filters out viable bundles where the med is missing,
+     * so the worst-case visible effect is a row dropping from "Logged today" — which is
+     * acceptable v0.1 behavior given the absence of persistence.
+     */
+    public suspend fun delete(): Boolean {
+        val id = _state.value.medicationId ?: return false
+        medicationRepository.delete(id)
+        return true
+    }
+
     public suspend fun save(): Boolean {
         val s = _state.value
         check(s.petId != null) { "petId must be set before save()" }

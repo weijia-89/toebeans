@@ -40,7 +40,7 @@ Last updated: 2026-05-16.
 | | Remove `ignoreFailures = true` in `shared/build.gradle.kts` | Hand-back item 3 |
 | | SQLDelight repositories (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`) | Persistence layer |
 | | `DoseEvent.medicationId` schema column + repo contract change. Drops the `replaceFirst("sched-", "med-")` string-munge join in `HomeViewModel.joinToUiState`, which currently only resolves for the seeded Luna pair and silently drops every user-created medication's dose from the Logged Today card. | Cold review, P1 |
-| | **Delete affordances** for pet, medication, and schedule. Repositories already expose `delete()`; no ViewModel calls them today, so a user cannot remove the seeded Rufus/Luna demo pets or any pet they create by mistake. Soft-delete via `Pet.archivedAt` (column exists) + confirmation dialog. | Cold review, P2 |
+| | **Schedule delete affordance.** Pet + medication delete shipped with confirmation dialogs (top-bar action on the edit screens, hard-delete via fake repo today, soft-delete via `archivedAt`/`discontinuedAt` once SQLDelight lands). Schedule delete requires a schedule detail/edit screen that does not yet exist; building it is its own work item. | Cold review, P2 (partial: pet + med done) |
 | | Real `DoseAlarmReceiver` DB lookup (replaces `ScheduledReminder(scheduleId = "", ...)` placeholder) | v0.1-followups #3 |
 | | `BootReceiver` declared in manifest + rehydrate 72h-horizon alarms in `ToebeansApp` boot path. Until this lands, the `RECEIVE_BOOT_COMPLETED` permission is consumer-less. | v0.1-followups #4 |
 | | PendingIntent collision mitigation (monotonic int counter) | v0.1-followups #5 |

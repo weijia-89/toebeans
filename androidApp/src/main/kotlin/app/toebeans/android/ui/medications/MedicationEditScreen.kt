@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,11 +21,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,10 +48,24 @@ public fun MedicationEditScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId, medicationId) {
         viewModel.setPetId(petId)
         if (medicationId != null) viewModel.load(medicationId)
+    }
+
+    if (showDeleteDialog) {
+        DeleteMedicationDialog(
+            medicationName = state.name.ifBlank { "this medication" },
+            onConfirm = {
+                showDeleteDialog = false
+                scope.launch {
+                    if (viewModel.delete()) onSaved()
+                }
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -68,6 +87,21 @@ public fun MedicationEditScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        // Delete only when editing an existing medication. A new-med form has
+                        // nothing to delete; Back is the analogous cancel affordance.
+                        if (!state.isNew) {
+                            TextButton(
+                                onClick = { showDeleteDialog = true },
+                                colors =
+                                    ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                    ),
+                            ) {
+                                Text("Delete")
+                            }
                         }
                     },
                     // Save moved out of the top bar — top-right is a thumb-stretch on most
@@ -169,4 +203,45 @@ public fun MedicationEditScreen(
             }
         }
     }
+}
+
+/**
+ * Confirmation dialog for medication deletion. Sibling of `PetEditScreen.DeleteConfirmDialog`;
+ * the copy is medication-specific so the user knows exactly what's about to disappear.
+ *
+ * v0.1 hard-deletes via the fake repo. M1 will soft-delete by setting `discontinuedAt` in
+ * the SQLDelight repo, preserving dose-history rows; the UI does not change.
+ */
+@Composable
+private fun DeleteMedicationDialog(
+    medicationName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete $medicationName?") },
+        text = {
+            Text(
+                "This removes $medicationName along with its schedule and any dose history. " +
+                    "This can't be undone.",
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
