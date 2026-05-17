@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Empty manifest for the :macrobench module. The `com.android.test` AGP plugin needs
+  this file to exist but does not require any declarations — the test runner is
+  configured via the build.gradle.kts `testInstrumentationRunner` setting.
+-->
+<manifest />

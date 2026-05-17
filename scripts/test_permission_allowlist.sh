@@ -18,7 +18,9 @@ violations=0
 
 while IFS= read -r manifest; do
     # Each line: extract the permission name from <uses-permission android:name="...">
-    perms=$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' "$manifest" | sed -E 's/^android:name="//;s/"$//')
+    # `|| true` tolerates manifests with zero permissions (e.g. macrobench's empty
+    # placeholder). Without it, grep's exit 1 trips pipefail.
+    perms=$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' "$manifest" 2>/dev/null | sed -E 's/^android:name="//;s/"$//' || true)
     while IFS= read -r perm; do
         if [ -z "$perm" ]; then continue; fi
         ok=0

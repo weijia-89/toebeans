@@ -42,6 +42,13 @@ robolectric = "4.13"
 junit = "4.13.2"
 androidx-test-ext-junit = "1.2.1"
 espresso-core = "3.6.1"
+# Macrobenchmark — ADR-0008 perf-budget enforcement. Lives in the :macrobench module so
+# the AGP `com.android.test` plugin and its benchmark-only deps do not contaminate the
+# main app's classpath. Versions pinned per the same policy as the rest of the catalog
+# (bumps require a human-reviewed PR per AGENTS.md).
+androidx-benchmark = "1.3.3"
+androidx-test-runner = "1.6.2"
+androidx-uiautomator = "2.3.0"
 
 [libraries]
 # kotlinx
@@ -81,12 +88,19 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
 
+# Macrobenchmark (only consumed by :macrobench)
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "androidx-benchmark" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidx-test-runner" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "androidx-uiautomator" }
+
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-benchmark = { id = "androidx.benchmark", version.ref = "androidx-benchmark" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

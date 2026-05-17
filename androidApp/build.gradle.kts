@@ -48,6 +48,27 @@ android {
         debug {
             isDebuggable = true
         }
+        // `benchmark` build type for the :macrobench module (ADR-0008 perf budgets).
+        // Inherits release's R8/proguard config so we measure realistic perf, signs with
+        // the debug key so the macrobench tooling can install it on the test device.
+        // `profileable` is supplied via a buildType-scoped manifest at
+        // src/benchmark/AndroidManifest.xml — keeps the production manifest clean.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            // Skip aggressive shrinking for benchmark builds so the macrobench harness
+            // can find the launchable Activity reliably. Minify stays on to keep the
+            // measurement honest (release is also minified); resource shrinking off
+            // because Compose's R class is too noisy to tune cheaply in this scope.
+            isMinifyEnabled = true
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
     }
 
     compileOptions {

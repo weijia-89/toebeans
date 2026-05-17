@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Benchmark-variant manifest overlay. AGP merges this into the main manifest only when
+  the `benchmark` build type is selected, so the production app does not advertise
+  itself as profileable to the shell.
+
+  `<profileable android:shell="true"/>` (API 29+) tells Android the app is willing to
+  be sampled by Macrobenchmark's shell-attached profiler. The Macrobenchmark library
+  refuses to run against an app that doesn't declare this — by design — so this overlay
+  is required, not optional.
+
+  tools:targetApi suppresses the manifest-merger warning that the attribute is unused
+  below API 29. We expose the attribute unconditionally because the benchmark variant
+  will only ever install on API 29+ devices in practice.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <profileable
+            android:shell="true"
+            tools:targetApi="29" />
+    </application>
+</manifest>
