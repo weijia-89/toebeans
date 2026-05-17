@@ -61,8 +61,8 @@ public interface DoseEventRepository {
     public fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>>
 
     /**
-     * Record an ad-hoc GIVEN dose against [scheduleId] at [at]. Caller supplies the
-     * unique [doseEventId] (UUID). status=GIVEN, scheduledAt=resolvedAt=at.
+     * Record an ad-hoc GIVEN dose against [scheduleId] / [medicationId] at [at]. Caller
+     * supplies the unique [doseEventId] (UUID). status=GIVEN, scheduledAt=resolvedAt=at.
      *
      * The conflation of `scheduledAt` and `resolvedAt` is intentional for the Pet
      * Detail "Log dose now" surface, which has no slot context — the user is just
@@ -71,14 +71,22 @@ public interface DoseEventRepository {
      * stored `scheduledAt` reflects the intended slot and `resolvedAt` reflects the
      * actual wall-clock tap.
      *
-     * v0.1 caveat: the caller is responsible for ensuring [scheduleId] exists. We
-     * don't validate FK here — that's the SQLDelight backing's job and will fail
-     * loudly via [IllegalArgumentException] in the real impl. The fake impl is
-     * permissive.
+     * [medicationId] is denormalized onto the event row (see [DoseEvent] KDoc for the
+     * full reasoning) so the retrospective surfaces can render correctly even after
+     * the parent Schedule is deleted, and to eliminate the historical
+     * `replaceFirst("sched-", "med-")` string-munge join that only worked for the
+     * seeded demo IDs.
+     *
+     * v0.1 caveat: the caller is responsible for ensuring [scheduleId] and
+     * [medicationId] exist and refer to a consistent pair (`Schedule.medicationId ==
+     * medicationId`). We don't validate FK here — that's the SQLDelight backing's job
+     * and will fail loudly via [IllegalArgumentException] in the real impl. The fake
+     * impl is permissive but cross-checks consistency in debug-build assertions.
      */
     public suspend fun recordGivenNow(
         doseEventId: String,
         scheduleId: String,
+        medicationId: String,
         at: Instant,
         note: String? = null,
     ): DoseEvent
@@ -91,7 +99,8 @@ public interface DoseEventRepository {
      * Used by the Today-screen worklist to fulfill a specific calculator-projected dose
      * row. Keeping the slot time on `scheduledAt` is what lets the worklist match a
      * pending [app.toebeans.core.scheduler.ScheduledDose] against a recorded
-     * [DoseEvent] for the same slot.
+     * [DoseEvent] for the same slot. [medicationId] is denormalized onto the event row
+     * (see [DoseEvent] KDoc).
      *
      * If a GIVEN event already exists for this `(scheduleId, scheduledAt)` pair the
      * implementation should treat the call as idempotent — replace the existing event
@@ -102,6 +111,7 @@ public interface DoseEventRepository {
     public suspend fun recordGivenForSlot(
         doseEventId: String,
         scheduleId: String,
+        medicationId: String,
         scheduledAt: Instant,
         resolvedAt: Instant,
         note: String? = null,

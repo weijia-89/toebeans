@@ -65,18 +65,27 @@ CREATE INDEX SchedulePhase_schedule_id_idx ON SchedulePhase(schedule_id);
 -- Pre-generating an entire phase's events is a vibe-impossible anti-pattern
 -- (AGENTS.md). After resolution (given/skipped/missed), rows are retained for
 -- the 30-day history view.
+-- medication_id is denormalized from Schedule.medication_id so retrospective surfaces
+-- (Home "Logged today", Pet detail history) can resolve the medication name even if the
+-- parent Schedule is deleted, and so the queries that drive those surfaces don't have to
+-- join DoseEvent -> Schedule -> Medication on every read. The DoseEvent model KDoc
+-- spells out the rationale; the ON DELETE policy is SET NULL there too (M1 work), but
+-- v0.1 the column is NOT NULL because no in-memory fake exercises the orphan path yet.
 CREATE TABLE DoseEvent (
-    id           TEXT NOT NULL PRIMARY KEY,
-    schedule_id  TEXT NOT NULL,
-    scheduled_at INTEGER NOT NULL,                           -- epoch ms UTC
-    fired_at     INTEGER,                                    -- when the notification actually fired
-    resolved_at  INTEGER,                                    -- when user tapped 'Given' or 'Skipped'
-    status       TEXT NOT NULL CHECK (status IN ('pending', 'given', 'skipped', 'missed')),
-    note         TEXT,
-    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE
+    id            TEXT NOT NULL PRIMARY KEY,
+    schedule_id   TEXT NOT NULL,
+    medication_id TEXT NOT NULL,
+    scheduled_at  INTEGER NOT NULL,                           -- epoch ms UTC
+    fired_at      INTEGER,                                    -- when the notification actually fired
+    resolved_at   INTEGER,                                    -- when user tapped 'Given' or 'Skipped'
+    status        TEXT NOT NULL CHECK (status IN ('pending', 'given', 'skipped', 'missed')),
+    note          TEXT,
+    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE,
+    FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
 );
 
 CREATE INDEX DoseEvent_schedule_id_idx ON DoseEvent(schedule_id);
+CREATE INDEX DoseEvent_medication_id_idx ON DoseEvent(medication_id);
 CREATE INDEX DoseEvent_scheduled_at_idx ON DoseEvent(scheduled_at);
 CREATE INDEX DoseEvent_status_idx ON DoseEvent(status);
 
@@ -145,8 +154,8 @@ SELECT COUNT(*) FROM DoseEvent
 WHERE schedule_id = ? AND scheduled_at >= ? AND scheduled_at < ?;
 
 insertDoseEvent:
-INSERT INTO DoseEvent(id, schedule_id, scheduled_at, fired_at, resolved_at, status, note)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO DoseEvent(id, schedule_id, medication_id, scheduled_at, fired_at, resolved_at, status, note)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 markDoseEventFired:
 UPDATE DoseEvent SET fired_at = ? WHERE id = ?;

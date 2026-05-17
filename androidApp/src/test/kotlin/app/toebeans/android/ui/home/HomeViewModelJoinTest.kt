@@ -78,13 +78,17 @@ class HomeViewModelJoinTest {
     }
 
     @Test
-    fun `dose with matching schedule-to-med-id is projected as a RecentDoseUi`() {
-        // Seed-data convention: "sched-luna-methimazole" maps to "med-luna-methimazole"
-        // by replacing the "sched-" prefix with "med-". The join exploits this until
-        // SQLDelight provides a real schedules-table join.
+    fun `dose with a medicationId pointing at a known medication is projected as a RecentDoseUi`() {
+        // The medicationId is denormalized onto DoseEvent (see model KDoc) so the
+        // lookup is direct rather than going through the schedule. This test covers
+        // the structural fix that replaced a `replaceFirst("sched-", "med-")` hack
+        // that only worked for the seeded demo IDs.
         val pet = pet(id = "p-luna", name = "Luna", species = Species.CAT)
-        val med = med(id = "med-luna-methimazole", petId = "p-luna", name = "Methimazole")
-        val dose = givenDose(id = "d-1", scheduleId = "sched-luna-methimazole", at = T2)
+        // Schedule and medication IDs intentionally unrelated — a real user creating a
+        // new medication and schedule today gets UUIDs that share no prefix. The hack
+        // would silently drop this row; this implementation must keep it.
+        val med = med(id = "med-abc123", petId = "p-luna", name = "Methimazole")
+        val dose = givenDose(id = "d-1", scheduleId = "sched-xyz789", medicationId = "med-abc123", at = T2)
 
         val state = HomeViewModel.joinToUiState(listOf(pet), listOf(med), listOf(dose))
 
@@ -98,15 +102,14 @@ class HomeViewModelJoinTest {
     }
 
     @Test
-    fun `dose whose schedule-id does not map to a known med is skipped`() {
-        // Defensive: if the seed-data naming convention is violated (a real SQLDelight
-        // join would always succeed here, but during v0.1 a hand-crafted dose row could
-        // miss), we drop the row rather than render half-broken UI. The other doses on
-        // the same flow tick still come through.
+    fun `dose whose medicationId does not match any known medication is skipped`() {
+        // Defensive: a dose whose medication has been deleted (orphan-survival case, M1)
+        // should drop from the retrospective list rather than render a half-broken row.
+        // Other doses on the same flow tick still come through.
         val pet = pet(id = "p-1")
         val med = med(id = "med-x", petId = "p-1")
-        val goodDose = givenDose(id = "d-good", scheduleId = "sched-x")
-        val orphanDose = givenDose(id = "d-orphan", scheduleId = "sched-nonexistent")
+        val goodDose = givenDose(id = "d-good", scheduleId = "sched-x", medicationId = "med-x")
+        val orphanDose = givenDose(id = "d-orphan", scheduleId = "sched-y", medicationId = "med-deleted")
 
         val state = HomeViewModel.joinToUiState(listOf(pet), listOf(med), listOf(goodDose, orphanDose))
 
@@ -116,6 +119,33 @@ class HomeViewModelJoinTest {
             "orphan dose must not appear in the projected list",
             state.recentDoses.firstOrNull { it.id == "d-orphan" },
         )
+    }
+
+    @Test
+    fun `regression - schedule and medication with unrelated UUIDs still join correctly`() {
+        // This is the regression test for the bug the cold review surfaced: user-created
+        // schedules are `sched-<UUID>` and medications are `med-<DIFFERENT-UUID>`, so the
+        // old `replaceFirst("sched-", "med-")` produced `med-<schedule-UUID>` which never
+        // matched any real medication. With the medicationId column on DoseEvent, the
+        // lookup is structural and works regardless of ID format.
+        val pet = pet(id = "p-1", name = "Rufus")
+        val med = med(id = "med-${"a".repeat(32)}", petId = "p-1", name = "Apoquel")
+        val dose =
+            givenDose(
+                id = "d-1",
+                scheduleId = "sched-${"b".repeat(32)}", // unrelated UUID
+                medicationId = med.id,
+                at = T2,
+            )
+
+        val state = HomeViewModel.joinToUiState(listOf(pet), listOf(med), listOf(dose))
+
+        assertEquals(
+            "user-created med + schedule with unrelated UUIDs must still produce a row",
+            1,
+            state.recentDoses.size,
+        )
+        assertEquals("Apoquel", state.recentDoses.single().medicationName)
     }
 
     // ---------- builders ----------
@@ -155,11 +185,13 @@ class HomeViewModelJoinTest {
     private fun givenDose(
         id: String,
         scheduleId: String,
+        medicationId: String,
         at: Instant = T1,
     ): DoseEvent =
         DoseEvent(
             id = id,
             scheduleId = scheduleId,
+            medicationId = medicationId,
             scheduledAt = at,
             firedAt = at,
             resolvedAt = at,

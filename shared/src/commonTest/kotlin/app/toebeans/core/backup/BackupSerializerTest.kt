@@ -165,6 +165,7 @@ class BackupSerializerTest {
             DoseEvent(
                 id = "evt-1",
                 scheduleId = schedule.id,
+                medicationId = med.id,
                 scheduledAt = now,
                 firedAt = now,
                 resolvedAt = now,

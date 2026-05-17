@@ -81,6 +81,7 @@ public class HomeViewModel(
      */
     public fun markGiven(
         scheduleId: String,
+        medicationId: String,
         scheduledAt: Instant,
     ) {
         viewModelScope.launch {
@@ -89,6 +90,7 @@ public class HomeViewModel(
                 // (ScheduleCreateViewModel, MedicationEditViewModel, PetEditViewModel).
                 doseEventId = Uuid.random().toString(),
                 scheduleId = scheduleId,
+                medicationId = medicationId,
                 scheduledAt = scheduledAt,
                 resolvedAt = Clock.System.now(),
             )
@@ -175,11 +177,12 @@ public class HomeViewModel(
          * Lives on the companion (not inside the VM) so it's directly unit-testable
          * without a viewModelScope.
          *
-         * Schedule → medication lookup: for v0.1 the dose-event row carries scheduleId,
-         * not medicationId. To avoid a fourth flow, the seed schedule ID format encodes
-         * the medication ID ("sched-luna-methimazole" → "med-luna-methimazole"). The
-         * real impl will join through schedules in SQLDelight once the materializer
-         * lands; we skip the row if the lookup misses.
+         * The Logged-Today row resolves through `event.medicationId` directly, then
+         * through the medication's `petId`. Prior to the dose-event schema change
+         * this code computed `event.scheduleId.replaceFirst("sched-", "med-")` to
+         * find the medication — that only worked for the seeded demo IDs and silently
+         * dropped every user-created medication's dose from the retrospective view.
+         * The medicationId is now denormalized onto the event row; see [DoseEvent] KDoc.
          */
         internal fun joinToUiState(
             petList: List<Pet>,
@@ -195,8 +198,7 @@ public class HomeViewModel(
             val medById = medList.associateBy { it.id }
             val recentDoseUis =
                 doses.mapNotNull { event ->
-                    val medId = event.scheduleId.replaceFirst("sched-", "med-")
-                    val med = medById[medId] ?: return@mapNotNull null
+                    val med = medById[event.medicationId] ?: return@mapNotNull null
                     val pet = petById[med.petId] ?: return@mapNotNull null
                     val speciesLabel =
                         pet.species.name
@@ -283,6 +285,7 @@ public class HomeViewModel(
                             val given = givenBySlot[swp.schedule.id to dose.scheduledAt]
                             DueDoseUi(
                                 scheduleId = swp.schedule.id,
+                                medicationId = med.id,
                                 scheduledAt = dose.scheduledAt,
                                 petName = pet.name,
                                 medicationName = med.name,
@@ -319,6 +322,7 @@ public data class RecentDoseUi(
  */
 public data class DueDoseUi(
     public val scheduleId: String,
+    public val medicationId: String,
     public val scheduledAt: Instant,
     public val petName: String,
     public val medicationName: String,

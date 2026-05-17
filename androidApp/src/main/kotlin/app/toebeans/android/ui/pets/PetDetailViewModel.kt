@@ -104,13 +104,11 @@ public class PetDetailViewModel(
      * null, this is a no-op rather than throwing — the schedule may have been deleted
      * between the UI rendering and the user tapping the button.
      *
-     * [medicationId] is taken at the call site for read-clarity (the row has it
-     * in hand and passes it through), but the dose-event itself is keyed off the
-     * schedule, so the value is not read inside this function today. Suppressed
-     * at function level rather than dropped from the signature so the call site
-     * does not have to rebuild the row's identity model.
+     * [medicationId] is now read at the repo seam (denormalized onto the DoseEvent row
+     * per the [DoseEvent] KDoc) so the Home "Logged today" surface can resolve the
+     * medication name back from `event.medicationId` directly, instead of the
+     * sched-/med- string-munge hack we used during the seed-only era.
      */
-    @Suppress("UnusedParameter")
     public fun logDose(
         medicationId: String,
         activeScheduleId: String?,
@@ -120,6 +118,7 @@ public class PetDetailViewModel(
             doseEventRepository.recordGivenNow(
                 doseEventId = randomDoseEventId(),
                 scheduleId = activeScheduleId,
+                medicationId = medicationId,
                 at = Clock.System.now(),
             )
         }

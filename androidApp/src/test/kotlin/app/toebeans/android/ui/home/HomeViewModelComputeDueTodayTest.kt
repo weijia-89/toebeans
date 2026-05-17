@@ -329,16 +329,19 @@ class HomeViewModelComputeDueTodayTest {
             discontinuedAt = null,
         )
 
+    @Suppress("LongParameterList") // Test builder; explicit args are clearer than wrapping in a config object.
     private fun doseEvent(
         id: String,
         scheduleId: String,
         scheduledAt: Instant,
         resolvedAt: Instant?,
         status: DoseStatus,
+        medicationId: String = "m-1",
     ): DoseEvent =
         DoseEvent(
             id = id,
             scheduleId = scheduleId,
+            medicationId = medicationId,
             scheduledAt = scheduledAt,
             firedAt = null,
             resolvedAt = resolvedAt,

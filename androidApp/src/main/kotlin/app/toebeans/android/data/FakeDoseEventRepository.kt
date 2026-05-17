@@ -78,10 +78,12 @@ public class FakeDoseEventRepository : DoseEventRepository {
     override suspend fun recordGivenForSlot(
         doseEventId: String,
         scheduleId: String,
+        medicationId: String,
         scheduledAt: Instant,
         resolvedAt: Instant,
         note: String?,
     ): DoseEvent {
+        assertScheduleMedicationConsistent(scheduleId, medicationId)
         // Idempotent on (scheduleId, scheduledAt) per the contract. If a GIVEN event
         // already exists for this slot, replace it with the new resolvedAt. This makes
         // a double-tap on "Log dose" a no-op rather than a crash — important because the
@@ -96,6 +98,7 @@ public class FakeDoseEventRepository : DoseEventRepository {
             DoseEvent(
                 id = existing?.id ?: doseEventId,
                 scheduleId = scheduleId,
+                medicationId = medicationId,
                 scheduledAt = scheduledAt,
                 firedAt = existing?.firedAt,
                 resolvedAt = resolvedAt,
@@ -109,13 +112,16 @@ public class FakeDoseEventRepository : DoseEventRepository {
     override suspend fun recordGivenNow(
         doseEventId: String,
         scheduleId: String,
+        medicationId: String,
         at: Instant,
         note: String?,
     ): DoseEvent {
+        assertScheduleMedicationConsistent(scheduleId, medicationId)
         val event =
             DoseEvent(
                 id = doseEventId,
                 scheduleId = scheduleId,
+                medicationId = medicationId,
                 scheduledAt = at,
                 firedAt = null,
                 resolvedAt = at,
@@ -124,6 +130,25 @@ public class FakeDoseEventRepository : DoseEventRepository {
             )
         doseEvents.value = doseEvents.value + (doseEventId to event)
         return event
+    }
+
+    /**
+     * Debug-time cross-check that [medicationId] matches the schedule's actual medication.
+     * In v0.1 with the in-memory fake this is essentially free; in M1 with SQLDelight the
+     * FK constraint enforces it at write time. This `require` exists so a caller bug
+     * (passing the wrong medicationId) fails loud here rather than producing a silently
+     * orphan-looking dose event.
+     */
+    private fun assertScheduleMedicationConsistent(
+        scheduleId: String,
+        medicationId: String,
+    ) {
+        // Unknown schedule — caller's problem; SQLDelight FK will catch it in M1.
+        val schedule = schedules.value[scheduleId] ?: return
+        require(schedule.medicationId == medicationId) {
+            "recordGiven* called with medicationId=$medicationId but schedule $scheduleId belongs to " +
+                "medication ${schedule.medicationId}. Caller passed the wrong medicationId."
+        }
     }
 
     override suspend fun delete(doseEventId: String) {

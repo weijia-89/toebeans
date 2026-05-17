@@ -80,7 +80,7 @@ private fun HomeScreenContent(
     state: HomeUiState,
     onAddPet: () -> Unit,
     onPetClick: (petId: String) -> Unit,
-    onMarkGiven: (scheduleId: String, scheduledAt: Instant) -> Unit,
+    onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -182,7 +182,7 @@ private fun HomeScreenContent(
 @Composable
 private fun DueTodayCard(
     dueDoses: List<DueDoseUi>,
-    onMarkGiven: (scheduleId: String, scheduledAt: Instant) -> Unit,
+    onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -214,7 +214,7 @@ private fun DueTodayCard(
                 DueDoseRow(
                     dose = dose,
                     timeZone = tz,
-                    onMarkGiven = { onMarkGiven(dose.scheduleId, dose.scheduledAt) },
+                    onMarkGiven = { onMarkGiven(dose.scheduleId, dose.medicationId, dose.scheduledAt) },
                 )
             }
         }
@@ -485,7 +485,7 @@ private fun HomeScreenEmptyPreview() {
             state = HomeUiState(pets = emptyList()),
             onAddPet = {},
             onPetClick = {},
-            onMarkGiven = { _, _ -> },
+            onMarkGiven = { _, _, _ -> },
         )
     }
 }
@@ -535,7 +535,7 @@ private fun HomeScreenPopulatedPreview() {
                 ),
             onAddPet = {},
             onPetClick = {},
-            onMarkGiven = { _, _ -> },
+            onMarkGiven = { _, _, _ -> },
         )
     }
 }
