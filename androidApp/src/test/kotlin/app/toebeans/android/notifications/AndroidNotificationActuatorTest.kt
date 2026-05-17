@@ -27,7 +27,12 @@ import org.robolectric.annotation.Config
  *
  * SDK 33 chosen because POST_NOTIFICATIONS gained runtime-grant semantics there, which is the
  * trickiest fork in [AndroidNotificationActuator.show].
+ *
+ * Note: Robolectric exposes alarm trigger time + type via deprecated Java-side fields on
+ * ScheduledAlarm. Migrating away requires Robolectric to publish a non-deprecated accessor;
+ * for now we silence the warning at the file level. Tracked with the API-35 deprecation sweep.
  */
+@Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class AndroidNotificationActuatorTest {

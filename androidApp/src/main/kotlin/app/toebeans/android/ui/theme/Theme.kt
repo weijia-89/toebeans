@@ -98,6 +98,10 @@ public fun ToebeansTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            // statusBarColor is deprecated in API 35+ in favor of edge-to-edge insets,
+            // but we still target API 24+. Edge-to-edge migration is tracked separately
+            // (requires Compose inset handling in every screen). Suppress until then.
+            @Suppress("DEPRECATION")
             window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
