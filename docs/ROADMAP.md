@@ -19,13 +19,15 @@ Last updated: 2026-05-16.
 | ✓ | Domain models (`Pet`, `Medication`, `Schedule`, `SchedulePhase`, `DoseEvent`) with validation |
 | ✓ | SQLDelight schema for the same |
 | ✓ | `ScheduleCalculator` interface + `DefaultScheduleCalculator` full impl |
-| ✓ | `SchedulePhaseRulesTest` test-as-spec, 9 tests, all green |
+| ✓ | `SchedulePhaseRulesTest` test-as-spec, **15 cases**, all green |
 | ✓ | Backup codec (`BackupCipher` PBKDF2 + AES-256-GCM, expect/actual JVM+Android) + 15 tests |
-| ✓ | Notification actuator (`AndroidNotificationActuator` + boot receiver) + 9 Robolectric tests |
+| ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. **Boot receiver not yet wired — see M1.** |
 | ✓ | 5 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, AGENTS/CLAUDE parity) |
 | ✓ | GitHub Actions CI (fitness + lint + tests + Android assemble) |
-| ✓ | 6 ADRs (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest) + 2 new (ADR-0007 timezone, ADR-0008 perf-class) |
+| ✓ | **8 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class) |
 | ✓ | Vibe-dangerous pre-commit hook + `.codeit/calibration.jsonl` audit log |
+| ✓ | Kover line-coverage gate at 85% on `scheduler/` + `backup/` (was 0 at scaffold time) |
+| ✓ | DI smoke test (`AppModuleSmokeTest`) resolves every ViewModel through Koin — catches missing-binding bugs that compile cleanly but crash at app launch |
 
 ---
 
@@ -36,23 +38,25 @@ Last updated: 2026-05-16.
 | Pending | What | Source |
 |---|---|---|
 | | Remove `ignoreFailures = true` in `shared/build.gradle.kts` | Hand-back item 3 |
-| | Raise `koverVerify` line-coverage threshold 0 → 85 | Hand-back item 4 |
 | | SQLDelight repositories (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`) | Persistence layer |
-| | Real `DoseAlarmReceiver` DB lookup (replaces placeholder) | v0.1-followups #3 |
-| | Boot-time scheduler rehydration in `ToebeansApp` | v0.1-followups #4 |
+| | `DoseEvent.medicationId` schema column + repo contract change. Drops the `replaceFirst("sched-", "med-")` string-munge join in `HomeViewModel.joinToUiState`, which currently only resolves for the seeded Luna pair and silently drops every user-created medication's dose from the Logged Today card. | Cold review, P1 |
+| | **Delete affordances** for pet, medication, and schedule. Repositories already expose `delete()`; no ViewModel calls them today, so a user cannot remove the seeded Rufus/Luna demo pets or any pet they create by mistake. Soft-delete via `Pet.archivedAt` (column exists) + confirmation dialog. | Cold review, P2 |
+| | Real `DoseAlarmReceiver` DB lookup (replaces `ScheduledReminder(scheduleId = "", ...)` placeholder) | v0.1-followups #3 |
+| | `BootReceiver` declared in manifest + rehydrate 72h-horizon alarms in `ToebeansApp` boot path. Until this lands, the `RECEIVE_BOOT_COMPLETED` permission is consumer-less. | v0.1-followups #4 |
 | | PendingIntent collision mitigation (monotonic int counter) | v0.1-followups #5 |
-| | Compose UI: Pet list, Add Pet, Add Medication (with anchor-mode prompt per ADR-0007), Add Phase, Reminder List, Schedule Detail |
+| | Compose UI: Add Medication (with anchor-mode prompt per ADR-0007), Reminder List, Schedule Detail |
 | | Midnight-mode UX warning during phase creation | v0.1-followups #1 |
 | | Inline error UI when calculator throws `MalformedScheduleException` | from D3 decision |
-| | Backup export UI (with passphrase entry) + import flow |
+| | Backup export UI (with passphrase entry) + import flow. Until this lands, the Settings → Export-data button is disabled with a "coming soon" affordance — DO NOT re-enable the toast version. | Cold review, P2 |
 | | First macrobenchmark module (cold-start, list scroll, calculator perf) | ADR-0008 |
-| | DI graph (Koin) wiring repositories + actuator |
 | | Crash-on-render-of-stale-event safety net (defensive against bug-leak) |
+| | **Local crash log** captured via `Thread.setDefaultUncaughtExceptionHandler` to app-private `filesDir`, exposed via Settings → Export logs. Required because local-first + no-analytics means production exceptions are otherwise silent. New ADR. | Cold review |
+| | **Internal-testing track on Play Store** with 1–3 testers + a written soak-test protocol (30 days, Pixel a-series). Definition-of-done for the rest of M1 hangs off this loop. | Cold review |
 
 **Definition of done (milestone 1):**
 - A real pet owner can install the app, add a pet, add a medication with phases, and the alarms fire correctly.
 - 30-day soak test on a non-OEM device (Pixel a-series) passes with zero missed alarms.
-- All 9 `SchedulePhaseRulesTest` pass.
+- All 15 `SchedulePhaseRulesTest` cases pass, plus any new DST/anchor-mode cases added in M1.5.
 - All fitness functions pass with no `continue-on-error`.
 
 ---

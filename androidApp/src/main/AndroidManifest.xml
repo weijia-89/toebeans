@@ -6,10 +6,15 @@
   if any permission outside this list appears.
 
   Allowlist (v1):
-    POST_NOTIFICATIONS
-    SCHEDULE_EXACT_ALARM
-    USE_EXACT_ALARM
-    RECEIVE_BOOT_COMPLETED
+    POST_NOTIFICATIONS         (declared)
+    SCHEDULE_EXACT_ALARM       (declared)
+    USE_EXACT_ALARM            (declared)
+    RECEIVE_BOOT_COMPLETED     (allowlisted but NOT declared yet — wait for a BootReceiver)
+
+  RECEIVE_BOOT_COMPLETED is intentionally absent from the declarations below: declaring a
+  permission with no consumer is privacy noise and a yellow flag for store reviewers and
+  end users ("why does this app need this?"). The allowlist permits it for the moment the
+  BootReceiver lands in M1.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -17,7 +22,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- v0.1: no launcher icon resource yet; Android falls back to the system default.
          A real ic_launcher (adaptive icon) is a slice-1 UI work item. -->

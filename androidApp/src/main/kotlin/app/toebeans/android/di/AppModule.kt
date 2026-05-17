@@ -16,6 +16,8 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
+import app.toebeans.core.scheduler.ScheduleCalculator
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -34,6 +36,10 @@ public val appModule =
         single<MedicationRepository> { FakeMedicationRepository() }
         single<ScheduleRepository> { FakeScheduleRepository() }
         single<DoseEventRepository> { FakeDoseEventRepository() }
+
+        // Schedule calculator (pure, KMP commonMain). Stateless — single instance is correct.
+        // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
+        single<ScheduleCalculator> { DefaultScheduleCalculator() }
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }

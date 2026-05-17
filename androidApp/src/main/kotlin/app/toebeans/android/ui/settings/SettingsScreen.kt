@@ -1,7 +1,6 @@
 package app.toebeans.android.ui.settings
 
 import android.os.Build
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -38,8 +36,11 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * Settings screen. Four grouping cards:
  *   1. Display — theme override (Auto/Light/Dark) + Material You dynamic-color toggle.
- *   2. Data — placeholder Export-data action (no-op for v0.1 except a toast confirming
- *      the affordance is wired; full implementation lands with the Backup milestone).
+ *   2. Data — descriptive copy + a DISABLED "Export data (coming soon)" button. The
+ *      affordance is visible but inert until the backup-format ADR + implementation
+ *      lands in M1. A live-but-no-op Toast version was tried and intentionally rolled
+ *      back: in a trust-positioned app, a button that responds but does nothing
+ *      undoes the trust the rest of the surface earns.
  *   3. About — current build facts.
  *   4. What's coming — short user-facing list of features on the roadmap.
  *
@@ -55,7 +56,6 @@ public fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     Column(
         modifier =
@@ -121,11 +121,11 @@ public fun SettingsScreen(
         }
 
         SettingsCard(title = "Data") {
-            // Placeholder export. v0.1 the encrypted-backup format is not yet finalized
-            // (ADR pending) so we don't write a file — but the affordance is here so
-            // users discover the feature exists and reviewers see the surface area.
-            // Tapping it surfaces a Toast acknowledging the request rather than silently
-            // doing nothing (which would feel broken).
+            // Encrypted backup is a real product commitment (see "What's coming" card
+            // below + ROADMAP milestone 1) but the format isn't finalized in v0.1. We
+            // intentionally render the button DISABLED rather than wiring a Toast: a
+            // button that visibly responds but does nothing is worse for trust than a
+            // disabled affordance that says "not yet."
             Text(
                 text =
                     "Your data lives only on this device. A future update will let " +
@@ -134,16 +134,10 @@ public fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TextButton(
-                onClick = {
-                    Toast
-                        .makeText(
-                            context,
-                            "Backup export is coming in a future update.",
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                },
+                onClick = {},
+                enabled = false,
             ) {
-                Text("Export data")
+                Text("Export data (coming soon)")
             }
         }
 

@@ -29,7 +29,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Home / Today screen state. Joins four flows so the screen can render:
@@ -55,7 +56,7 @@ import java.util.UUID
  * is pure. Segregating the I/O (the flows in [buildUiState]) from the compute (the
  * companion functions) keeps the compute directly unit-testable.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
 public class HomeViewModel(
     petRepository: PetRepository,
     medicationRepository: MedicationRepository,
@@ -84,7 +85,9 @@ public class HomeViewModel(
     ) {
         viewModelScope.launch {
             doseEventRepository.recordGivenForSlot(
-                doseEventId = UUID.randomUUID().toString(),
+                // KMP-native UUID; matches Uuid.random() used elsewhere in the app
+                // (ScheduleCreateViewModel, MedicationEditViewModel, PetEditViewModel).
+                doseEventId = Uuid.random().toString(),
                 scheduleId = scheduleId,
                 scheduledAt = scheduledAt,
                 resolvedAt = Clock.System.now(),

@@ -18,16 +18,20 @@ import kotlin.test.assertTrue
 /**
  * Test-as-spec for the [ScheduleCalculator] contract.
  *
- * **THIS TEST IS REQUIRED TO FAIL** against the current code base. It is the specification of
- * the tapering-schedule semantics; the implementation in [DefaultScheduleCalculator] is a stub.
+ * **All 15 cases pass green** against the current [DefaultScheduleCalculator] implementation.
+ * This file is now the regression contract — any change to the calculator must keep these
+ * green, and any extension (e.g. ADR-0007 anchor modes, DST handling) must add cases here
+ * rather than introduce a sibling test class.
  *
  * Per AGENTS.md § Test-as-spec rules:
- *   1. A human reviewer must approve this test before any implementation work begins.
- *   2. Implementation may then proceed in a separate PR that ONLY makes this test pass.
- *   3. Mutation testing (pitest) is required after the test passes.
+ *   1. A human reviewer must approve any new case in this file before implementation work
+ *      that depends on it begins.
+ *   2. Implementation that lights up a new case lives in its own PR.
+ *   3. Mutation testing (pitest) is deferred per ADR-0006 (Kover coverage gates this surface
+ *      at 85% in the meantime).
  *
  * Reference inputs are stated in UTC for clarity, then projected through the timezone parameter.
- * Test 5 (DST) is intentionally deferred to a follow-up PR with its own ADR.
+ * DST-specific behavior is deferred to a future test class with its own ADR-0007 acceptance.
  */
 class SchedulePhaseRulesTest {
     private val calculator: ScheduleCalculator = DefaultScheduleCalculator()

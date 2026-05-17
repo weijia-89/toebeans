@@ -33,7 +33,7 @@ Kotlin 2.0 with Compose Multiplatform UI. A KMP `shared` module holds the
 domain models and repository contracts. The schedule calculator (a pure
 function that projects a `Schedule` plus its phases into a list of
 `ScheduledDose` values for a given window) also lives there and is fully
-implemented; its 9-case test-as-spec passes green. SQLDelight is wired in
+implemented; its 15-case test-as-spec passes green. SQLDelight is wired in
 for the on-disk schema, but the current scaffold uses in-memory fakes for
 the repositories so the UI can be reviewed before the persistence layer
 ships. DI is via Koin. The reminder-firing path will use AlarmManager for
@@ -60,10 +60,11 @@ To run the shared-module tests without an Android SDK:
 ```
 
 The shared-module tests are the test-as-spec contract for the schedule
-calculator — nine cases that lock down empty-result fast paths, phase
-concatenation, end-date-inclusive semantics, the malformed-input throw
-discipline, and the ADR-0008 bounds (window ≤ 30 days, event count
-≤ 100,000). All nine pass green; the calculator is fully implemented.
+calculator — fifteen cases that lock down empty-result fast paths, phase
+concatenation, end-date-inclusive semantics, day-interval (skip-day)
+behavior, the malformed-input throw discipline, and the ADR-0008 bounds
+(window ≤ 30 days, event count ≤ 100,000). All fifteen pass green; the
+calculator is fully implemented.
 
 ## Repository layout
 
