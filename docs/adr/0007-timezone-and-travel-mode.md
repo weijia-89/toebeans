@@ -183,3 +183,23 @@ A user with airplane mode on, or a phone whose TZ has not yet auto-updated, mate
 - A new `SchedulePhaseDstRulesTest` covering spring-forward, fall-back, and TZ-change-mid-window.
 - An integration test in `:androidApp` that simulates `ACTION_TIMEZONE_CHANGED` and asserts AlarmManager re-materialization.
 - Updated `0004-tapering-schedule-model.md` STRIDE section to remove the v0.1 caveat under DoS / window size.
+
+---
+
+## Verification status (2026-05-17)
+
+This block is updated whenever an acceptance gate moves. Last revised 2026-05-17 after an adversarial review surfaced that the test class promised on line 122 above does not yet exist.
+
+| Gate | Status | Evidence |
+|---|---|---|
+| **G1.** Validate the TIGHT drug list against Plumb's Veterinary Drug Handbook 9th ed. | **Open** | No commit links a Plumb's page citation to any entry in the TIGHT table above. |
+| **G2.** Emulator DST dogfood with a fake DST shift; verify spring-forward and fall-back behave as specified. | **Open — partially.** Two spot-checks landed: `SchedulePhaseRulesTest` now pins (a) 8 AM dose stays at 8 AM local across spring-forward and (b) 2:30 AM dose on spring-forward day resolves to the lesser-offset instant (calibration entry 2026-05-17, score 89). These cover the kotlinx-datetime contract the calculator depends on, NOT the full DST_SKIP / DST_DUPLICATE_RESOLVED warning surfaces. | `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt` (4 DST-related cases). The full `SchedulePhaseDstRulesTest` class promised on line 122 above is **NOT YET CREATED**. |
+| **G3.** User-research session (n=3-5) on the time-sensitive-medication prompt copy. | **Blocked** on M1.2 (internal beta needs to exist before n=3-5 users can be recruited). | M1.2 retention gate at day 14 (see `docs/ROADMAP.md`). |
+
+**Implication for M1.5 work**: the calculator currently does NOT emit `DST_SKIP` or `DST_DUPLICATE_RESOLVED` warnings as specified in the § DST handling section above. The two SchedulePhaseRulesTest spot-checks pin what the calculator DOES do (snap-to-nearest-valid-instant via kotlinx-datetime's default behavior), not the surface API the materialization layer would consume. Implementing G2 fully is a milestone-1.5 work item that depends on:
+
+1. Creating `SchedulePhaseDstRulesTest` (failing-first, per AGENTS.md test-as-spec rule).
+2. Extending `ScheduledDose` with optional `dstWarning: DstWarning?` field (additive, source-compatible).
+3. Threading the warning through `ReminderListViewModel` to the user-visible reminder row.
+
+**Reader contract**: This ADR remains *Accepted* because waiting indefinitely on G1-G3 is worse than the no-DST-surfacing default. But a contributor reading only the § Decision block above (without scrolling to this Verification status block) could ship code under the assumption that the calculator already emits DST warnings — IT DOES NOT. The status block exists to make that gap visible at the same scroll depth as the policy claim.
