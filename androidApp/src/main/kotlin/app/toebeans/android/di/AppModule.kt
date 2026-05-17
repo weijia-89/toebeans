@@ -4,6 +4,7 @@ import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
 import app.toebeans.android.data.FakeScheduleRepository
+import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
@@ -43,6 +44,7 @@ public val appModule =
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }
+        single { FirstLaunchPreferences(androidContext()) }
 
         // ViewModels
         viewModel {

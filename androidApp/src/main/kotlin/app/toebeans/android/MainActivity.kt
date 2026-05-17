@@ -6,9 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemeMode
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.ToebeansAppShell
+import app.toebeans.android.ui.firstlaunch.FirstLaunchDialogHost
 import app.toebeans.android.ui.theme.ToebeansTheme
 import org.koin.android.ext.android.inject
 
@@ -27,6 +29,7 @@ import org.koin.android.ext.android.inject
  */
 class MainActivity : ComponentActivity() {
     private val themePrefs: ThemePreferences by inject()
+    private val firstLaunchPrefs: FirstLaunchPreferences by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +44,10 @@ class MainActivity : ComponentActivity() {
                 }
             ToebeansTheme(darkTheme = darkTheme, dynamic = dynamicEnabled) {
                 ToebeansAppShell()
+                // Layered on top of the shell so it sits above whichever tab is active.
+                // The host short-circuits when the seen-flag is true, so this is a
+                // ~free no-op after the first launch is acknowledged.
+                FirstLaunchDialogHost(prefs = firstLaunchPrefs)
             }
         }
     }
