@@ -24,6 +24,8 @@ jobs:
         run: bash scripts/test_scheduler_purity.sh .
       - name: Permission-allowlist gate
         run: bash scripts/test_permission_allowlist.sh .
+      - name: No-PII-in-crash-log gate (ADR-0009)
+        run: bash scripts/test_no_pii_in_crash_log.sh .
       - name: AGENTS / CLAUDE parity
         run: bash scripts/agents_claude_parity.sh .
       - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)

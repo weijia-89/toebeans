@@ -83,13 +83,14 @@ Log every scored change to `.codeit/calibration.jsonl`. After ~50 entries, recal
 
 ## Fitness functions (enforced in CI)
 
-See `.github/workflows/ci.yml`. The five gates:
+See `.github/workflows/ci.yml`. The six gates:
 
 1. **No-network** — fail if any class in `commonMain/` or `androidMain/` imports a network library.
 2. **No-analytics** — fail if Firebase, GA, Mixpanel, Segment, etc. appear in the Gradle classpath.
 3. **Scheduler purity** — fail if any function in `shared/.../scheduler/` references a platform clock other than the injected `Clock`.
 4. **Permission whitelist** — fail if AndroidManifest declares a permission not on the allowlist above.
-5. **Scheduler test coverage** — fail if `shared/.../scheduler/` line coverage < 85%.
+5. **No-PII-in-crash-log** — fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009). Enforces the no-PII claim mechanically rather than by reviewer attention.
+6. **Scheduler test coverage** — fail if `shared/.../scheduler/` line coverage < 85% (Kover-enforced).
 
 ## Hallucination vigilance
 

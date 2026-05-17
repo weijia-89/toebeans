@@ -22,7 +22,7 @@ Last updated: 2026-05-16.
 | ✓ | `SchedulePhaseRulesTest` test-as-spec, **15 cases**, all green |
 | ✓ | Backup codec (`BackupCipher` PBKDF2 + AES-256-GCM, expect/actual JVM+Android) + 15 tests |
 | ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. **Boot receiver not yet wired — see M1.** |
-| ✓ | 5 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, AGENTS/CLAUDE parity) |
+| ✓ | 6 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, no-PII-in-crash-log per ADR-0009, AGENTS/CLAUDE parity) |
 | ✓ | GitHub Actions CI (fitness + lint + tests + Android assemble) |
 | ✓ | **9 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class, local-crash-log-no-telemetry) |
 | ✓ | Vibe-dangerous pre-commit hook + `.codeit/calibration.jsonl` audit log |
@@ -53,7 +53,22 @@ Last updated: 2026-05-16.
 | | Backup export UI (with passphrase entry) + import flow. Until this lands, the Settings → Export-data button is disabled with a "coming soon" affordance — DO NOT re-enable the toast version. | Cold review, P2 |
 | | First macrobenchmark module (cold-start, list scroll, calculator perf) | ADR-0008 |
 | | Crash-on-render-of-stale-event safety net (defensive against bug-leak) |
-| | `scripts/test_no_pii_in_crash_log.sh` fitness function: greps the crash-handler source for any reference to repository / dao / model package names so the local-crash-log handler (ADR-0009) cannot drift toward leaking domain data into the log. | Cold review |
+| ✓ | `scripts/test_no_pii_in_crash_log.sh` fitness function: greps the crash-handler source for any reference to repository / dao / model / persistence symbols so the local-crash-log handler (ADR-0009) cannot drift toward leaking domain data into the log. Wired into CI as the 5th gate; self-test verified it catches an injected `Pet` reference. | Cold review |
+
+### Recommended M1 sequencing
+
+M1 is a **multi-session effort**, not a single push. Each item below is its own commit-or-PR scope. Sequencing reflects dependency order and risk:
+
+1. **First, before any new feature work:** `ignoreFailures = true` removal in `shared/build.gradle.kts`. Cheap, will surface whatever's currently hidden.
+2. **SQLDelight repositories** (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`). All downstream items (3, 4, 5) depend on real persistence — the in-memory fakes return empty state in a separate-process `BroadcastReceiver`, so the `DoseAlarmReceiver` DB lookup cannot ship against them. Most expensive single item in M1; budget 2-3 days.
+3. **Real `DoseAlarmReceiver` DB lookup** + **PendingIntent collision mitigation**. Both touch the alarm-firing path, both are vibe-dangerous, both need the SQLDelight layer from (2) before they can land. Pair them in one PR with a test-as-spec for receiver-side lookup that matches a known DoseEvent ID.
+4. **`BootReceiver` + 72h-horizon rehydration.** The most safety-critical work in M1 — determines whether alarms survive device reboots. ADR-0005 vibe-dangerous + needs its own ADR amendment for the rehydration window choice. Restore `RECEIVE_BOOT_COMPLETED` to the manifest as part of this commit.
+5. **Compose UI: Add Medication, Reminder List, Schedule Detail.** These three unblock the deferred Schedule delete affordance and surface the calculator-driven schedules to real users. Probably 2-3 days; design discussion required for the anchor-mode prompt (ADR-0007).
+6. **Midnight-mode UX warning + inline `MalformedScheduleException` error UI.** Both require (5) to host them.
+7. **Backup export UI with passphrase entry.** Needs a security review for the passphrase-entry surface even at v0.1 PBKDF2. Argon2id is M2 work per ADR feedback; do not preemptively migrate.
+8. **First macrobenchmark module + crash-on-render-of-stale-event safety net.** Both informational/defensive; can land after the core M1 happy path is ship-able.
+
+Each item ends with: full gate green + calibration entry + ADR amendment if it touched a vibe-dangerous surface. Do not batch.
 
 **Definition of done (milestone 1):**
 - A real pet owner can install the app, add a pet, add a medication with phases, and the alarms fire correctly.
@@ -71,8 +86,8 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 
 | Pending | What | Source |
 |---|---|---|
-| | Play Store internal-testing track set up with 1–3 testers (developer + close circle). | Cold review |
-| | Written soak-test protocol for testers: 30-day run on a Pixel a-series device, alarm-fire log shared via the local crash-log export (ADR-0009), missed-alarm count + reason summary. | Cold review |
+| | Play Store internal-testing track set up with 1–3 testers (developer + close circle). **Walkthrough doc shipped at `docs/play-store-internal-testing-walkthrough.md` (8 phases, ~3-5 hours wall-clock + 1-3 day ID verification wait). Execution is a human task — Cascade cannot click through Play Console.** | Cold review |
+| ✓ | Written soak-test protocol for testers: 30-day run on a Pixel a-series device, daily log + weekly snapshots + day-30 structured report; alarm-fire reliability + crash-log capture + retention gate at day 14 (M1.2 definition-of-done). Shipped at `docs/soak-test-protocol.md`. | Cold review |
 | | Adoption metric (read by the developer, NOT analytics): does at least one tester continue to use the app past day 14? If not, we have a retention problem upstream of feature work and M2 cannot proceed. | Cold review |
 | | **Decision gate: AGPL-3.0 vs Apache-2.0 license posture.** This MUST be decided before M2 ships publicly. AGPL preserves the open-core moat but closes off most strategic-acquirer interest (Covetrus and IDEXX will not take AGPL into a closed product line); Apache+CLA preserves both options at the cost of weaker moat preservation. Feasibility dossier open question #2. Decision lives at the repo root LICENSE plus a short ADR-0010. | Cold review, feasibility dossier §11 |
 | | **Decision gate: distribution wedge.** The dossier names four candidates (direct App Store growth, clinic partnerships, insurer co-marketing, rescue/foster licensing); pick ONE to invest in for M2. CAC for pet apps is $15–60; we cannot afford all four. | Cold review, feasibility dossier §4.6 |
