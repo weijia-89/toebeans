@@ -1,5 +1,6 @@
 package app.toebeans.android.ui.settings
 
+import android.content.Intent
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,15 +24,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.android.preferences.ThemeMode
 import app.toebeans.android.ui.theme.ToebeansTheme
 import org.koin.androidx.compose.koinViewModel
+import java.io.File
 
 /**
  * Settings screen. Four grouping cards:
@@ -56,6 +60,7 @@ public fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Column(
         modifier =
@@ -138,6 +143,49 @@ public fun SettingsScreen(
                 enabled = false,
             ) {
                 Text("Export data (coming soon)")
+            }
+        }
+
+        SettingsCard(title = "Diagnostics") {
+            // Local crash-log capture per ADR-0009. The handler writes to
+            // filesDir/crash.log; this button reads the file and hands it to the
+            // user via ACTION_SEND. Intent extras are capped around 1 MB on most
+            // platforms; the log is rotated at 256 KB so a single file fits well
+            // under the cap.
+            //
+            // Hidden when the log is absent (no crash has happened yet on this
+            // install) so first-launch users do not see a button for something
+            // they have no use for.
+            val logFile = File(context.filesDir, LocalCrashLog.FILE_PRIMARY)
+            val logExists = logFile.exists() && logFile.length() > 0
+            Text(
+                text =
+                    "We collect nothing automatically. If toebeans crashes and you " +
+                        "want to send the log, you can export it yourself. The log " +
+                        "contains the stack trace and your device model — no pet, " +
+                        "medication, or dose data.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(
+                onClick = {
+                    val contents = runCatching { logFile.readText() }.getOrElse { "(failed to read log)" }
+                    val intent =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "toebeans crash log")
+                            putExtra(Intent.EXTRA_TEXT, contents)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    val chooser =
+                        Intent
+                            .createChooser(intent, "Share crash log")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(chooser)
+                },
+                enabled = logExists,
+            ) {
+                Text(if (logExists) "Export crash log" else "No crash log yet")
             }
         }
 

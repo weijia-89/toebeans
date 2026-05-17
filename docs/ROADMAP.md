@@ -24,10 +24,13 @@ Last updated: 2026-05-16.
 | ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. **Boot receiver not yet wired — see M1.** |
 | ✓ | 5 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, AGENTS/CLAUDE parity) |
 | ✓ | GitHub Actions CI (fitness + lint + tests + Android assemble) |
-| ✓ | **8 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class) |
+| ✓ | **9 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class, local-crash-log-no-telemetry) |
 | ✓ | Vibe-dangerous pre-commit hook + `.codeit/calibration.jsonl` audit log |
 | ✓ | Kover line-coverage gate at 85% on `scheduler/` + `backup/` (was 0 at scaffold time) |
 | ✓ | DI smoke test (`AppModuleSmokeTest`) resolves every ViewModel through Koin — catches missing-binding bugs that compile cleanly but crash at app launch |
+| ✓ | Pet + medication delete affordances (top-bar action + confirmation dialog) with VM-level tests |
+| ✓ | `DoseEvent.medicationId` denormalization (model + SQLDelight schema + repo signatures + fake + UI plumbing) — drops the seed-only `replaceFirst("sched-","med-")` join, fixes the Logged Today retrospective for user-created medications |
+| ✓ | Local crash-log capture (`LocalCrashLog` + `Settings → Export crash log`) per ADR-0009 — no telemetry, user-initiated share, 7 unit tests covering write/rotate/delegation/IO-failure |
 
 ---
 
@@ -50,14 +53,36 @@ Last updated: 2026-05-16.
 | | Backup export UI (with passphrase entry) + import flow. Until this lands, the Settings → Export-data button is disabled with a "coming soon" affordance — DO NOT re-enable the toast version. | Cold review, P2 |
 | | First macrobenchmark module (cold-start, list scroll, calculator perf) | ADR-0008 |
 | | Crash-on-render-of-stale-event safety net (defensive against bug-leak) |
-| | **Local crash log** captured via `Thread.setDefaultUncaughtExceptionHandler` to app-private `filesDir`, exposed via Settings → Export logs. Required because local-first + no-analytics means production exceptions are otherwise silent. New ADR. | Cold review |
-| | **Internal-testing track on Play Store** with 1–3 testers + a written soak-test protocol (30 days, Pixel a-series). Definition-of-done for the rest of M1 hangs off this loop. | Cold review |
+| | `scripts/test_no_pii_in_crash_log.sh` fitness function: greps the crash-handler source for any reference to repository / dao / model package names so the local-crash-log handler (ADR-0009) cannot drift toward leaking domain data into the log. | Cold review |
 
 **Definition of done (milestone 1):**
 - A real pet owner can install the app, add a pet, add a medication with phases, and the alarms fire correctly.
 - 30-day soak test on a non-OEM device (Pixel a-series) passes with zero missed alarms.
 - All 15 `SchedulePhaseRulesTest` cases pass, plus any new DST/anchor-mode cases added in M1.5.
 - All fitness functions pass with no `continue-on-error`.
+
+---
+
+## Milestone 1.2 — Internal beta + decision gate
+
+**Ship-ability:** the developer and 1–3 trusted testers, distributed via Play Store internal-testing track. NOT public.
+
+This milestone sits between M1's "feature complete" and M1.5's "travel-aware" because the internal-beta loop is what tells us whether we've actually built the right thing before we burn time on the harder edge cases.
+
+| Pending | What | Source |
+|---|---|---|
+| | Play Store internal-testing track set up with 1–3 testers (developer + close circle). | Cold review |
+| | Written soak-test protocol for testers: 30-day run on a Pixel a-series device, alarm-fire log shared via the local crash-log export (ADR-0009), missed-alarm count + reason summary. | Cold review |
+| | Adoption metric (read by the developer, NOT analytics): does at least one tester continue to use the app past day 14? If not, we have a retention problem upstream of feature work and M2 cannot proceed. | Cold review |
+| | **Decision gate: AGPL-3.0 vs Apache-2.0 license posture.** This MUST be decided before M2 ships publicly. AGPL preserves the open-core moat but closes off most strategic-acquirer interest (Covetrus and IDEXX will not take AGPL into a closed product line); Apache+CLA preserves both options at the cost of weaker moat preservation. Feasibility dossier open question #2. Decision lives at the repo root LICENSE plus a short ADR-0010. | Cold review, feasibility dossier §11 |
+| | **Decision gate: distribution wedge.** The dossier names four candidates (direct App Store growth, clinic partnerships, insurer co-marketing, rescue/foster licensing); pick ONE to invest in for M2. CAC for pet apps is $15–60; we cannot afford all four. | Cold review, feasibility dossier §4.6 |
+| | First-launch UX revisit: the seeded Rufus + Luna demo pets are useful for reviewers but distracting for real first-time testers. Decide between (a) gate the seed behind a "Load demo data" first-launch prompt, (b) ship without seed and lose the reviewer demo. | Cold review |
+
+**Definition of done (milestone 1.2):**
+- One tester has used the app for 30 consecutive days without losing trust.
+- License decision is made and the LICENSE file reflects it.
+- Distribution wedge is named and a M2 work item exists for it.
+- Crash log export has been exercised by at least one tester (proves ADR-0009 works in the field).
 
 ---
 
