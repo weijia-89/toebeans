@@ -7,6 +7,7 @@ import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
+import app.toebeans.android.ui.schedule.ScheduleDetailViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
 import org.junit.After
 import org.junit.Assert.assertNotNull
@@ -55,6 +56,7 @@ class AppModuleSmokeTest {
         assertNotNull(getKoin().get<PetEditViewModel>())
         assertNotNull(getKoin().get<MedicationEditViewModel>())
         assertNotNull(getKoin().get<ScheduleCreateViewModel>())
+        assertNotNull(getKoin().get<ScheduleDetailViewModel>())
         assertNotNull(getKoin().get<ReminderListViewModel>())
         assertNotNull(getKoin().get<SettingsViewModel>())
     }

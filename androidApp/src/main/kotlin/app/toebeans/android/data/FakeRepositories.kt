@@ -79,6 +79,8 @@ public class FakeScheduleRepository : ScheduleRepository {
             snap.values.filter { it.medicationId == medicationId }.sortedByDescending(Schedule::createdAt)
         }
 
+    override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
+
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
         phasesByScheduleId.asStateFlow().map { snap ->
             (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)

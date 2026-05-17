@@ -24,7 +24,13 @@
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.androidx.benchmark)
+    // Intentionally NOT applying `androidx.benchmark`: that plugin is for microbenchmark
+    // *library* modules (com.android.library + benchmark-junit4), not for macrobenchmark
+    // *test* modules. The plugin's own error message says so verbatim:
+    //   "The androidx.benchmark plugin currently supports only android library modules.
+    //    Note that to run macrobenchmarks, this plugin is not required."
+    // The macrobench runtime deps (benchmark-macro-junit4 + uiautomator) are pulled in
+    // via the dependencies{} block below, which is all that's needed.
 }
 
 android {

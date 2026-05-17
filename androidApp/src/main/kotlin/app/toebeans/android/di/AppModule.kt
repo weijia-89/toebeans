@@ -13,6 +13,7 @@ import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
+import app.toebeans.android.ui.schedule.ScheduleDetailViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
@@ -64,7 +65,21 @@ public val appModule =
         }
         viewModel { PetEditViewModel(petRepository = get()) }
         viewModel { MedicationEditViewModel(medicationRepository = get()) }
-        viewModel { ScheduleCreateViewModel(medicationRepository = get(), scheduleRepository = get()) }
+        viewModel {
+            ScheduleCreateViewModel(
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                scheduleCalculator = get(),
+            )
+        }
+        viewModel {
+            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+            ScheduleDetailViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
+            )
+        }
         viewModel {
             HomeViewModel(
                 petRepository = get(),

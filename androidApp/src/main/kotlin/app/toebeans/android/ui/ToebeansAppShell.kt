@@ -30,6 +30,7 @@ import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
 import app.toebeans.android.ui.reminders.ReminderListScreen
 import app.toebeans.android.ui.schedule.ScheduleCreateScreen
+import app.toebeans.android.ui.schedule.ScheduleDetailScreen
 import app.toebeans.android.ui.settings.SettingsScreen
 
 /**
@@ -93,10 +94,9 @@ public fun ToebeansAppShell() {
             }
             composable(Destinations.REMINDERS) {
                 ReminderListScreen(
-                    // Stub navigation: tap target is Schedule Detail (B7). Until that
-                    // screen ships, taps are intentionally no-ops so the row stays
-                    // visually tappable and the future wiring is a one-line change.
-                    onScheduleClick = { /* no-op; B7 wires this through */ },
+                    onScheduleClick = { scheduleId ->
+                        navController.navigate(Destinations.scheduleDetail(scheduleId))
+                    },
                     contentPadding = innerPadding,
                 )
             }
@@ -189,6 +189,17 @@ public fun ToebeansAppShell() {
                     medicationId = medId,
                     onBack = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Destinations.SCHEDULE_DETAIL_ROUTE,
+                arguments = listOf(navArgument(Destinations.Args.SCHEDULE_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val scheduleId =
+                    entry.arguments?.getString(Destinations.Args.SCHEDULE_ID) ?: return@composable
+                ScheduleDetailScreen(
+                    scheduleId = scheduleId,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

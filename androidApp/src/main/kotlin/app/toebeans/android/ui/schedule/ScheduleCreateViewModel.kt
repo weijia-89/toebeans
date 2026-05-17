@@ -6,6 +6,9 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
+import app.toebeans.core.scheduler.MalformedScheduleException
+import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +17,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.days
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -32,6 +37,8 @@ import kotlin.uuid.Uuid
 public class ScheduleCreateViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val scheduleCalculator: ScheduleCalculator,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val _state =
         MutableStateFlow(
@@ -56,15 +63,15 @@ public class ScheduleCreateViewModel(
     }
 
     public fun onStartDateChange(value: LocalDate?) {
-        _state.update { it.copy(startDate = value, startDateError = null) }
+        _state.update { it.copy(startDate = value, startDateError = null, formError = null) }
     }
 
     public fun onEndDateChange(value: LocalDate?) {
-        _state.update { it.copy(endDate = value) }
+        _state.update { it.copy(endDate = value, formError = null) }
     }
 
     public fun addPhase() {
-        _state.update { it.copy(phases = it.phases + blankPhaseDraft()) }
+        _state.update { it.copy(phases = it.phases + blankPhaseDraft(), formError = null) }
     }
 
     public fun removePhase(index: Int) {
@@ -72,7 +79,10 @@ public class ScheduleCreateViewModel(
             if (state.phases.size <= 1) {
                 state
             } else {
-                state.copy(phases = state.phases.filterIndexed { i, _ -> i != index })
+                state.copy(
+                    phases = state.phases.filterIndexed { i, _ -> i != index },
+                    formError = null,
+                )
             }
         }
     }
@@ -83,16 +93,70 @@ public class ScheduleCreateViewModel(
     ) {
         // Clear the per-phase error on any field change so the red message disappears as
         // soon as the user begins addressing what caused it. The error re-renders only if
-        // a subsequent save() attempt still fails.
+        // a subsequent save() attempt still fails. Same for the form-level [formError]
+        // banner — any field touch resets the calculator-preflight verdict.
+        //
+        // Also recompute the night-dose warning (B9): any LocalTime in [00:00, 06:00)
+        // triggers the warning, and any edit resets [PhaseDraft.nightDoseAffirmed] to
+        // false so the user re-confirms after changes. The recomputation is authoritative
+        // — even if the caller's transform set nightDoseWarning to a stale value via
+        // copy(), the values below overwrite it.
         _state.update { state ->
             state.copy(
                 phases =
                     state.phases.mapIndexed { i, phase ->
-                        if (i == index) transform(phase).copy(error = null) else phase
+                        if (i == index) {
+                            val transformed = transform(phase).copy(error = null)
+                            val hasNightDose = transformed.doseTimes.any { it.isInNightWindow() }
+                            transformed.copy(
+                                nightDoseWarning = hasNightDose,
+                                nightDoseAffirmed = false,
+                            )
+                        } else {
+                            phase
+                        }
                     },
+                formError = null,
             )
         }
     }
+
+    /**
+     * Affirm the night-dose warning on the phase at [index]. Per ADR-0004 D2 +
+     * v0.1-followups #1, this is the explicit "Yes, that's intentional" action — it
+     * clears [PhaseDraft.nightDoseWarning] and sets [PhaseDraft.nightDoseAffirmed].
+     *
+     * Affirmation is reset by any subsequent edit via [updatePhase]; see the KDoc on
+     * [PhaseDraft] for the rationale.
+     *
+     * No-op if [index] is out of range or if the phase has no warning to affirm (calling
+     * affirm on a phase with all-daytime doses just sets the affirmed flag harmlessly).
+     */
+    public fun affirmNightDose(index: Int) {
+        _state.update { state ->
+            if (index !in state.phases.indices) {
+                state
+            } else {
+                state.copy(
+                    phases =
+                        state.phases.mapIndexed { i, phase ->
+                            if (i == index) {
+                                phase.copy(nightDoseWarning = false, nightDoseAffirmed = true)
+                            } else {
+                                phase
+                            }
+                        },
+                )
+            }
+        }
+    }
+
+    /**
+     * `[00:00, 06:00)` — inclusive at midnight, exclusive at 6am, per ADR-0004 D2's
+     * worked example ("first dose at startDate 0000 local" must trigger) and the natural
+     * UX read of "6am is when people wake up on purpose, nothing to nudge about."
+     */
+    private fun LocalTime.isInNightWindow(): Boolean = this.hour < 6
 
     /**
      * Convert the form state to a [Schedule] + [SchedulePhase] list and persist.
@@ -146,8 +210,77 @@ public class ScheduleCreateViewModel(
                 endDate = s.endDate,
                 createdAt = Clock.System.now(),
             )
+
+        // Pre-flight the calculator across a representative window before persisting.
+        // The Reminders/Today renderers run the same calculator at view-time; if it would
+        // throw a MalformedScheduleException there, surface that here as an inline form
+        // error rather than letting the user save a schedule that explodes downstream.
+        //
+        // The window is `[startDate 00:00, startDate + MAX_WINDOW_DAYS)` in the user's
+        // local zone — the same shape Home/Reminders ask for. Most realistic schedules
+        // produce zero or a few thousand events here; the EventCountExceeded path fires
+        // only on pathological combinations (e.g. day-interval=1 × max-doses-per-day ×
+        // long durations stacked into many phases) that we want to catch at create-time.
+        //
+        // Note: DuplicatePhaseOrder and PhaseOrderGap cannot fire because save() assigns
+        // phaseOrder = idx in a dense sequence by construction. But running the full
+        // calculator anyway keeps the preflight resilient to future refactors that might
+        // let user-supplied phaseOrder values back into the form.
+        val preflightError = runPreflight(schedule, phases)
+        if (preflightError != null) {
+            _state.update { it.copy(formError = preflightError) }
+            return null
+        }
+
         scheduleRepository.upsert(schedule, phases)
         return scheduleId
+    }
+
+    /**
+     * Execute the calculator against a 30-day window starting at [Schedule.startDate].
+     * Returns a user-facing error string keyed off the [MalformedScheduleException]
+     * subclass, or `null` if the calculator succeeds.
+     *
+     * Pulled out so tests can call it without going through full persistence.
+     */
+    internal fun runPreflight(
+        schedule: Schedule,
+        phases: List<SchedulePhase>,
+    ): String? {
+        val from = schedule.startDate.atStartOfDayIn(timeZone)
+        val to = from + DefaultScheduleCalculator.MAX_WINDOW_DAYS.days
+        return try {
+            scheduleCalculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = phases,
+                timeZone = timeZone,
+                fromInclusive = from,
+                toExclusive = to,
+            )
+            null
+        } catch (e: MalformedScheduleException.EventCountExceeded) {
+            "This schedule would generate ${e.attemptedCount} doses in 30 days — more than " +
+                "the safe limit (${e.maxCount}). Reduce the number of phases, doses per day, " +
+                "or stretch the skip-day interval."
+        } catch (e: MalformedScheduleException.DuplicatePhaseOrder) {
+            // Defense-in-depth: not reachable from the current save() loop, but if a
+            // future refactor exposes user-supplied phaseOrder values this would catch
+            // them before persistence.
+            "Two phases share the same position (${e.phaseOrder}). Each phase needs its own slot."
+        } catch (e: MalformedScheduleException.PhaseOrderGap) {
+            "Phases are out of order (${e.phaseOrders}). Remove the gaps and try again."
+        } catch (e: MalformedScheduleException.WindowNotPositive) {
+            // Should be impossible: we construct a 30-day window. Surfaces as a generic
+            // failure if it ever does fire, so the user isn't stuck staring at a silent
+            // form.
+            "Couldn't validate this schedule — the preview window was invalid. Please retry."
+        } catch (e: MalformedScheduleException.WindowTooLarge) {
+            "Couldn't validate this schedule — the preview window was too large. Please retry."
+        } catch (e: MalformedScheduleException) {
+            // Catch-all for future MalformedScheduleException subclasses so we don't leak
+            // a generic IllegalArgumentException through onto the user's screen.
+            "This schedule isn't valid: ${e.message ?: e.code}"
+        }
     }
 
     private fun validatePhase(
@@ -192,12 +325,40 @@ public data class ScheduleCreateUiState(
     public val endDate: LocalDate? = null,
     public val phases: List<PhaseDraft>,
     public val startDateError: String? = null,
+    /**
+     * Form-level error surfaced by the calculator pre-flight in [ScheduleCreateViewModel.save].
+     * Cleared by any field mutation so the banner disappears as the user begins addressing the
+     * underlying configuration. Independent of [PhaseDraft.error] (which is per-phase
+     * field-validation feedback).
+     */
+    public val formError: String? = null,
 )
 
+/**
+ * Per-phase form draft.
+ *
+ * ### Night-dose warning fields (B9, per ADR-0004 D2 + v0.1-followups #1)
+ *
+ * `nightDoseWarning` is a derived flag — `updatePhase` recomputes it after every edit
+ * by scanning [doseTimes] for any entry in `[00:00, 06:00)`. Callers do NOT set it
+ * directly; passing a value through `copy()` will be overwritten by the next
+ * `updatePhase` call (this is intentional — `copy` callers shouldn't try to lie about
+ * whether the warning applies).
+ *
+ * `nightDoseAffirmed` is set ONLY by [ScheduleCreateViewModel.affirmNightDose]. Any
+ * subsequent edit via `updatePhase` resets it to `false` so the user re-sees the
+ * warning if they add another night dose. Spec is silent on persistence; we default
+ * to the safer "reset on edit" policy. See `ScheduleCreateNightDoseTest` test #5.
+ *
+ * Both flags default to `false`. The warning is non-blocking — it does not affect
+ * [ScheduleCreateViewModel.save]'s validation path.
+ */
 public data class PhaseDraft(
     public val durationDaysText: String,
     public val doseTimes: List<LocalTime>,
     public val dayIntervalText: String,
     public val doseAmount: String,
     public val error: String?,
+    public val nightDoseWarning: Boolean = false,
+    public val nightDoseAffirmed: Boolean = false,
 )

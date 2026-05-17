@@ -28,6 +28,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.DatePickerField
@@ -135,6 +139,38 @@ public fun ScheduleCreateScreen(
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Form-level error banner (calculator pre-flight). Renders only when set.
+                // Uses MaterialTheme.colorScheme.errorContainer for a softer-than-error look
+                // that still meets WCAG AA contrast against onErrorContainer body text.
+                state.formError?.let { msg ->
+                    Surface(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                // clearAndSetSemantics (not semantics) so the inner Text's own
+                                // semantics node is suppressed in the a11y tree. Without this,
+                                // TalkBack would announce the message twice — once from the
+                                // Surface's contentDescription, once from the Text. Confirmed by
+                                // the Compose semantics docs: the default `semantics { }` creates
+                                // a sibling node (mergeDescendants = false); clearAndSetSemantics
+                                // replaces the subtree entirely. The visible Text is unaffected
+                                // for sighted users.
+                                .clearAndSetSemantics {
+                                    liveRegion = LiveRegionMode.Polite
+                                    contentDescription = "Error: $msg"
+                                },
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text(
+                            text = msg,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+
                 Text("Schedule window", style = MaterialTheme.typography.titleMedium)
 
                 DatePickerField(
@@ -166,6 +202,7 @@ public fun ScheduleCreateScreen(
                         isOnlyPhase = state.phases.size == 1,
                         onChange = { updated -> viewModel.updatePhase(idx) { updated } },
                         onRemove = { viewModel.removePhase(idx) },
+                        onAffirmNightDose = { viewModel.affirmNightDose(idx) },
                     )
                 }
 

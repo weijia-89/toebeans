@@ -15,6 +15,15 @@ public interface ScheduleRepository {
     /** Observe all schedules for a single medication. */
     public fun observeForMedication(medicationId: String): Flow<List<Schedule>>
 
+    /**
+     * Observe a single schedule by id, or `null` if it no longer exists.
+     *
+     * Mirrors [PetRepository.observeById]. Used by surfaces that hold a schedule id
+     * directly (e.g. the Schedule Detail screen reached via the Reminder List), where
+     * we want the consumer to react to deletes without manually polling.
+     */
+    public fun observeById(id: String): Flow<Schedule?>
+
     /** Observe all phases for a schedule, ordered by [SchedulePhase.phaseOrder]. */
     public fun observePhases(scheduleId: String): Flow<List<SchedulePhase>>
 

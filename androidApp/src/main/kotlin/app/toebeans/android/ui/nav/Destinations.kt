@@ -24,6 +24,12 @@ public object Destinations {
     public const val MEDICATION_EDIT_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/edit"
     public const val SCHEDULE_CREATE_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/schedule/new"
 
+    // Schedule Detail is reached from the Reminders tab (top-level surface). Using a
+    // flat top-level route keeps the URL short and avoids forcing the Reminder List to
+    // pass petId + medicationId it already has on hand; the detail VM resolves both
+    // from the scheduleId via observeById on the repositories.
+    public const val SCHEDULE_DETAIL_ROUTE: String = "schedule/{scheduleId}"
+
     public fun petDetail(petId: String): String = "pets/detail/$petId"
 
     public fun petEdit(petId: String): String = "pets/detail/$petId/edit"
@@ -40,10 +46,13 @@ public object Destinations {
         medicationId: String,
     ): String = "pets/detail/$petId/medications/$medicationId/schedule/new"
 
+    public fun scheduleDetail(scheduleId: String): String = "schedule/$scheduleId"
+
     /** Args for stacked destinations. Compose Navigation looks up by these exact strings. */
     public object Args {
         public const val PET_ID: String = "petId"
         public const val MEDICATION_ID: String = "medicationId"
+        public const val SCHEDULE_ID: String = "scheduleId"
     }
 }
 

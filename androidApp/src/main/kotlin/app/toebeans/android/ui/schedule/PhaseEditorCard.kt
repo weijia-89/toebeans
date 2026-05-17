@@ -16,11 +16,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.toebeans.android.ui.components.TimePickerField
@@ -39,6 +44,7 @@ public fun PhaseEditorCard(
     isOnlyPhase: Boolean,
     onChange: (PhaseDraft) -> Unit,
     onRemove: () -> Unit,
+    onAffirmNightDose: () -> Unit = {},
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -140,6 +146,41 @@ public fun PhaseEditorCard(
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                     Text("Add dose time")
+                }
+            }
+
+            // Night-dose warning (B9, per ADR-0004 D2 + v0.1-followups #1). Surfaced when
+            // any dose time falls in [00:00, 06:00). Non-blocking — the user can ignore the
+            // banner and save the schedule. "Yes, that's intentional" dismisses the banner;
+            // subsequent edits to dose times re-trigger it per the reset-on-edit policy
+            // (see KDoc on PhaseDraft).
+            if (draft.nightDoseWarning) {
+                val msg = "This dose fires between midnight and 6am. Confirm you want to be woken up."
+                Surface(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            // clearAndSetSemantics + liveRegion = Polite so TalkBack announces
+                            // the warning exactly once on its appearance, without focus-stealing,
+                            // and without double-announcing from descendant Text nodes. Same
+                            // pattern as the formError banner in ScheduleCreateScreen (B8).
+                            .clearAndSetSemantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Warning: $msg"
+                            },
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(text = msg, style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = onAffirmNightDose) {
+                            Text("Yes, that's intentional")
+                        }
+                    }
                 }
             }
 

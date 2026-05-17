@@ -111,13 +111,13 @@ public class AndroidNotificationActuator(
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
-        // N       .bui id is dllocator-keyed for the same collisio(-freedom re)son as the
-        // PendinIntnt equest code Callig allcae() here is dempotent or a previousl
-        // scheduled reminder (returns the same code as schedule)'s PendingIntent) and issues
-        // a fresh code for a  shown without a prior schedule (e.g, mmeiate "log
-        // dose now" flows in milestone 15).
-        notificationManger.notify(requeteAllocator.allocatreminder.id
-        notificationManager.notify(reminder.id.hashCode(), notification)
+                .build()
+        // Notification id is allocator-keyed for the same collision-freedom reason as the
+        // PendingIntent request code. Calling allocate() here is idempotent for a previously
+        // scheduled reminder (returns the same code as schedule()'s PendingIntent) and issues
+        // a fresh code for a reminder shown without a prior schedule (e.g. immediate "log
+        // dose now" flows in milestone 1.5).
+        notificationManager.notify(requestCodeAllocator.allocate(reminder.id), notification)
     }
 
     private fun ensureChannelExists() {
