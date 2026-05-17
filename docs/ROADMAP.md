@@ -31,6 +31,7 @@ Last updated: 2026-05-16.
 | ✓ | Pet + medication delete affordances (top-bar action + confirmation dialog) with VM-level tests |
 | ✓ | `DoseEvent.medicationId` denormalization (model + SQLDelight schema + repo signatures + fake + UI plumbing) — drops the seed-only `replaceFirst("sched-","med-")` join, fixes the Logged Today retrospective for user-created medications |
 | ✓ | Local crash-log capture (`LocalCrashLog` + `Settings → Export crash log`) per ADR-0009 — no telemetry, user-initiated share, 7 unit tests covering write/rotate/delegation/IO-failure |
+| ✓ | `ignoreFailures = true` removed from `shared/build.gradle.kts` and `androidApp/build.gradle.kts`. Test failures are now fatal at every layer (local + CI). Hand-back item 3 closed. |
 
 ---
 
@@ -40,13 +41,11 @@ Last updated: 2026-05-16.
 
 | Pending | What | Source |
 |---|---|---|
-| | Remove `ignoreFailures = true` in `shared/build.gradle.kts` | Hand-back item 3 |
 | | SQLDelight repositories (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`) | Persistence layer |
-| | `DoseEvent.medicationId` schema column + repo contract change. Drops the `replaceFirst("sched-", "med-")` string-munge join in `HomeViewModel.joinToUiState`, which currently only resolves for the seeded Luna pair and silently drops every user-created medication's dose from the Logged Today card. | Cold review, P1 |
 | | **Schedule delete affordance.** Pet + medication delete shipped with confirmation dialogs (top-bar action on the edit screens, hard-delete via fake repo today, soft-delete via `archivedAt`/`discontinuedAt` once SQLDelight lands). Schedule delete requires a schedule detail/edit screen that does not yet exist; building it is its own work item. | Cold review, P2 (partial: pet + med done) |
 | | Real `DoseAlarmReceiver` DB lookup (replaces `ScheduledReminder(scheduleId = "", ...)` placeholder) | v0.1-followups #3 |
 | | `BootReceiver` declared in manifest + rehydrate 72h-horizon alarms in `ToebeansApp` boot path. Until this lands, the `RECEIVE_BOOT_COMPLETED` permission is consumer-less. | v0.1-followups #4 |
-| | PendingIntent collision mitigation (monotonic int counter) | v0.1-followups #5 |
+| ✓ | PendingIntent collision mitigation — `RequestCodeAllocator` (SharedPreferences-backed, strictly monotonic Int) replaces `reminderId.hashCode()` in `AndroidNotificationActuator`. Regression test uses the canonical Java "Aa" / "BB" hash-collision pair to prove independent scheduling. 10 unit tests on the allocator + 1 actuator regression case. | v0.1-followups #5 |
 | | Compose UI: Add Medication (with anchor-mode prompt per ADR-0007), Reminder List, Schedule Detail |
 | | Midnight-mode UX warning during phase creation | v0.1-followups #1 |
 | | Inline error UI when calculator throws `MalformedScheduleException` | from D3 decision |
@@ -59,14 +58,11 @@ Last updated: 2026-05-16.
 
 M1 is a **multi-session effort**, not a single push. Each item below is its own commit-or-PR scope. Sequencing reflects dependency order and risk:
 
-1. **First, before any new feature work:** `ignoreFailures = true` removal in `shared/build.gradle.kts`. Cheap, will surface whatever's currently hidden.
-2. **SQLDelight repositories** (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`). All downstream items (3, 4, 5) depend on real persistence — the in-memory fakes return empty state in a separate-process `BroadcastReceiver`, so the `DoseAlarmReceiver` DB lookup cannot ship against them. Most expensive single item in M1; budget 2-3 days.
-3. **Real `DoseAlarmReceiver` DB lookup** + **PendingIntent collision mitigation**. Both touch the alarm-firing path, both are vibe-dangerous, both need the SQLDelight layer from (2) before they can land. Pair them in one PR with a test-as-spec for receiver-side lookup that matches a known DoseEvent ID.
-4. **`BootReceiver` + 72h-horizon rehydration.** The most safety-critical work in M1 — determines whether alarms survive device reboots. ADR-0005 vibe-dangerous + needs its own ADR amendment for the rehydration window choice. Restore `RECEIVE_BOOT_COMPLETED` to the manifest as part of this commit.
-5. **Compose UI: Add Medication, Reminder List, Schedule Detail.** These three unblock the deferred Schedule delete affordance and surface the calculator-driven schedules to real users. Probably 2-3 days; design discussion required for the anchor-mode prompt (ADR-0007).
-6. **Midnight-mode UX warning + inline `MalformedScheduleException` error UI.** Both require (5) to host them.
-7. **Backup export UI with passphrase entry.** Needs a security review for the passphrase-entry surface even at v0.1 PBKDF2. Argon2id is M2 work per ADR feedback; do not preemptively migrate.
-8. **First macrobenchmark module + crash-on-render-of-stale-event safety net.** Both informational/defensive; can land after the core M1 happy path is ship-able.
+1. **Tier A cheap independent wins** (this work block): PendingIntent collision mitigation, first-launch seed gate, stale-event safety net, macrobench module. None depend on SQLDelight; each lands as its own commit. The `ignoreFailures = true` removal that was step 1 has already shipped.
+2. **Tier B Compose UI surface** against the existing in-memory fakes: Reminder List, Schedule Detail (+ delete affordance), inline `MalformedScheduleException` error UI, midnight-mode UX warning, Backup export UI with passphrase entry. The DI swap from fakes → SQLDelight in step 3 is then a single Koin module edit.
+3. **SQLDelight repositories** (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`). All downstream items (4, 5) depend on real persistence — the in-memory fakes return empty state in a separate-process `BroadcastReceiver`, so the `DoseAlarmReceiver` DB lookup cannot ship against them. Most expensive single item in M1; budget 2-3 days.
+4. **Real `DoseAlarmReceiver` DB lookup**. Vibe-dangerous; needs the SQLDelight layer from (3). Pair with a test-as-spec for receiver-side lookup that matches a known DoseEvent ID.
+5. **`BootReceiver` + 72h-horizon rehydration.** The most safety-critical work in M1 — determines whether alarms survive device reboots. ADR-0005 vibe-dangerous + needs its own ADR amendment for the rehydration window choice. Restore `RECEIVE_BOOT_COMPLETED` to the manifest as part of this commit.
 
 Each item ends with: full gate green + calibration entry + ADR amendment if it touched a vibe-dangerous surface. Do not batch.
 

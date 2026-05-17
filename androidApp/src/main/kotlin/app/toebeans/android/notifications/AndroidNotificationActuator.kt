@@ -17,20 +17,27 @@ import app.toebeans.core.notifications.ScheduledReminder
  *
  * Design notes (per `docs/adr/0002-alarmmanager-workmanager-hybrid.md`):
  *  - We use `setExactAndAllowWhileIdle` to satisfy the ±60s fire-window requirement.
- *  - The PendingIntent is keyed by [ScheduledReminder.id]'s hash, NOT by request code 0.
- *    This is what makes [schedule] idempotent: re-scheduling the same id overwrites the
- *    existing alarm in AlarmManager's internal map.
- *  - The PendingIntent uses `FLAG_UPDATE_CURRENT` for the same reason.
+ *  - The PendingIntent request code is issued by [RequestCodeAllocator], which maps each
+ *    [ScheduledReminder.id] to a stable monotonic Int. Idempotence of [schedule] follows
+ *    from the allocator's idempotence: re-scheduling the same id returns the same code,
+ *    which AlarmManager uses to look up and replace the existing alarm.
+ *  - The PendingIntent uses `FLAG_UPDATE_CURRENT` so the replacement is in-place.
  *  - We do NOT serialize the full reminder payload into the intent. We carry only [REMINDER_ID]
  *    and let the receiver re-fetch authoritative data.
  *
  * Vibe-dangerous: any change here requires human-written tests AND human-read diffs (AGENTS.md).
  *
- * **Known limit: PendingIntent request-code is `reminderId.hashCode()` (32-bit Int).** Two
- * different reminder IDs can theoretically collide. By the birthday paradox, expect ~50%
- * collision probability at ~65,000 concurrent pending reminders. A typical user has 1–10.
- * If toebeans ever supports vet-clinic-scale (10k+ active pets per install), this needs to
- * change to a stable Int allocator keyed by a SQLDelight sequence — see slice-1 TODO.
+ * **Collision posture:** PendingIntent request codes are issued by [RequestCodeAllocator],
+ * which assigns a strictly-monotonic Int to each `reminderId` and persists the mapping in
+ * SharedPreferences. Two different ids cannot collide. The earlier `reminderId.hashCode()`
+ * scheme was retired because hash collisions on the 32-bit code could silently overwrite a
+ * scheduled alarm — unacceptable in the medication-firing path.
+ *
+ * **Notification-id collision (known follow-up):** `show()` still uses
+ * `reminder.id.hashCode()` as the `NotificationManager.notify` id. The hazard is smaller than
+ * for PendingIntents — a notification collision only affects the user-visible toast, not the
+ * alarm itself — but a complete fix would route show() through the same allocator. Tracked
+ * in `docs/issues/v0.1-followups.md`.
  *
  * Permission posture:
  *  - On API 31+, `SCHEDULE_EXACT_ALARM` requires user grant; we fall back to `setWindow` with
@@ -42,6 +49,7 @@ public class AndroidNotificationActuator(
     private val context: Context,
     private val alarmManager: AlarmManager,
     private val notificationManager: NotificationManagerCompat,
+    private val requestCodeAllocator: RequestCodeAllocator,
 ) : NotificationActuator {
     init {
         ensureChannelExists()
@@ -73,6 +81,10 @@ public class AndroidNotificationActuator(
         val pendingIntent = buildPendingIntent(reminderId)
         alarmManager.cancel(pendingIntent)
         pendingIntent.cancel() // also release the PendingIntent itself
+        // Drop the allocator mapping AFTER the OS-side cancel; if we released first and the
+        // cancel raced with a re-schedule under the same id, the re-schedule would allocate a
+        // new code and the OS would hold a stale PendingIntent under the old code.
+        requestCodeAllocator.release(reminderId)
     }
 
     override fun show(reminder: ScheduledReminder) {
@@ -118,7 +130,7 @@ public class AndroidNotificationActuator(
             }
         return PendingIntent.getBroadcast(
             context,
-            reminderId.hashCode(),
+            requestCodeAllocator.allocate(reminderId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

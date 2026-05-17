@@ -43,11 +43,16 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
 
         val notificationManager = NotificationManagerCompat.from(context)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        // The allocator is shared across processes via SharedPreferences, so the receiver
+        // constructing its own instance is safe — it sees the same state as the foreground
+        // app instance. show() does NOT consume the allocator, but the actuator's constructor
+        // requires one regardless of which method is called.
         val actuator =
             AndroidNotificationActuator(
                 context = context,
                 alarmManager = alarmManager,
                 notificationManager = notificationManager,
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
             )
         actuator.show(placeholder)
     }

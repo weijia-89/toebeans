@@ -40,20 +40,30 @@ class AndroidNotificationActuatorTest {
     private lateinit var alarmManager: AlarmManager
     private lateinit var notificationManagerCompat: NotificationManagerCompat
     private lateinit var systemNotificationManager: NotificationManager
+    private lateinit var allocator: RequestCodeAllocator
     private lateinit var actuator: AndroidNotificationActuator
 
     @Before
     fun setUp() {
         context = RuntimeEnvironment.getApplication()
+        // Each test gets a fresh prefs file so allocator state doesn't bleed across cases.
+        // We achieve this by using a uniquely-named in-memory prefs the allocator owns.
+        context
+            .getSharedPreferences(RequestCodeAllocator.PREFS_FILE_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
         alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         notificationManagerCompat = NotificationManagerCompat.from(context)
         systemNotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        allocator = RequestCodeAllocator.fromContext(context)
         actuator =
             AndroidNotificationActuator(
                 context = context,
                 alarmManager = alarmManager,
                 notificationManager = notificationManagerCompat,
+                requestCodeAllocator = allocator,
             )
     }
 
@@ -171,5 +181,43 @@ class AndroidNotificationActuatorTest {
         val alarms = shadowOf(alarmManager).scheduledAlarms
         assertEquals(1, alarms.size)
         assertEquals(99_000_000L, alarms[0].triggerAtTime)
+    }
+
+    /**
+     * Regression for the PendingIntent collision class. "Aa" and "BB" are the canonical
+     * minimal pair of Java strings with colliding hashCodes (both 2112). Under the previous
+     * `reminderId.hashCode()` scheme, scheduling the second alarm silently overwrote the
+     * first. The allocator must give them distinct request codes so both alarms survive.
+     */
+    @Test
+    fun `regression — reminders with colliding hashCodes both schedule successfully`() {
+        // Sanity check: pre-condition this regression test depends on. If Kotlin's String
+        // hashing ever diverges from Java's, this test should fail loudly so we re-pick the
+        // collision pair.
+        assertEquals(
+            "test depends on Aa and BB having equal hashCodes (Java spec)",
+            "Aa".hashCode(),
+            "BB".hashCode(),
+        )
+
+        val a = ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1_000_000L))
+        val b = ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2_000_000L))
+        actuator.schedule(a)
+        actuator.schedule(b)
+
+        val triggers = shadowOf(alarmManager).scheduledAlarms.map { it.triggerAtTime }.sorted()
+        assertEquals(
+            "both colliding-hash reminders must produce independent alarms",
+            listOf(1_000_000L, 2_000_000L),
+            triggers,
+        )
+
+        // And the allocator must have given them distinct codes — defends against a future
+        // refactor that "helpfully" falls back to hashing.
+        val codeA = allocator.peek("Aa")
+        val codeB = allocator.peek("BB")
+        assertNotNull("Aa must be assigned a code after schedule()", codeA)
+        assertNotNull("BB must be assigned a code after schedule()", codeB)
+        assertTrue("colliding-hash ids must receive distinct codes", codeA != codeB)
     }
 }
