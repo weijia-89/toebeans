@@ -31,19 +31,29 @@ import app.toebeans.core.notifications.ScheduledReminder
  * which assigns a strictly-monotonic Int to each `reminderId` and persists the mapping in
  * SharedPreferences. Two different ids cannot collide. The earlier `reminderId.hashCode()`
  * scheme was retired because hash collisions on the 32-bit code could silently overwrite a
- * scheduled alarm — unacceptable in the medication-firing path.
+ * scheduled alarm, unacceptable in the medication-firing path.
  *
- * **Notification-id collision (known follow-up):** `show()` still uses
- * `reminder.id.hashCode()` as the `NotificationManager.notify` id. The hazard is smaller than
- * for PendingIntents — a notification collision only affects the user-visible toast, not the
- * alarm itself — but a complete fix would route show() through the same allocator. Tracked
- * in `docs/issues/v0.1-followups.md`.
+ * **Notification id is allocator-keyed.** Both `schedule()` and `show()` use the same
+ * `RequestCodeAllocator` to obtain the underlying Int. The PendingIntent path and the
+ * NotificationManager path stay aligned: two reminder ids with colliding hashCodes (the
+ * canonical "Aa"/"BB" pair) produce distinct notifications, just as they produce distinct
+ * alarms. Regression test:
+ * `AndroidNotificationActuatorTest.regression, show with hashCode-colliding reminder ids`.
  *
- * Permission posture:
- *  - On API 31+, `SCHEDULE_EXACT_ALARM` requires user grant; we fall back to `setWindow` with
- *    a 60-second window if [AlarmManager.canScheduleExactAlarms] returns false.
- *  - On API 33+, `POST_NOTIFICATIONS` requires runtime grant; if not granted, [show] is a no-op
- *    that we should log (TODO: hook to UI banner in slice 1).
+ * Permission posture (API matrix; see AndroidManifest.xml for the full rationale):
+ *  - API 24-30: setExactAndAllowWhileIdle works without an explicit alarm permission.
+ *  - API 31-32: `SCHEDULE_EXACT_ALARM` is required. [AlarmManager.canScheduleExactAlarms]
+ *    returns false if the user has not granted it; we fall back to `setWindow` with a
+ *    60-second window. (USE_EXACT_ALARM does not exist on these API levels.)
+ *  - API 33+: `USE_EXACT_ALARM` is auto-granted and non-revocable for qualifying apps
+ *    (medication reminders qualify per Google Play policy). [canScheduleExactAlarms]
+ *    returns true automatically; the setWindow fallback is unreachable.
+ *  - On API 33+, `POST_NOTIFICATIONS` requires runtime grant. If not granted, [show] is a
+ *    silent no-op TODAY (slice 1 work item to surface as a UI banner). For the
+ *    medication-firing path, this is a SILENT DOSE LOSS hazard: the alarm fires, the
+ *    receiver runs, but the user-visible notification never appears. Tracked in
+ *    `docs/issues/v0.1-followups.md` under priority "medication-critical". Cross-reference
+ *    ADR-0011 (post-notifications denial UX, to be written).
  */
 public class AndroidNotificationActuator(
     private val context: Context,
@@ -101,7 +111,12 @@ public class AndroidNotificationActuator(
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
-                .build()
+        // N       .bui id is dllocator-keyed for the same collisio(-freedom re)son as the
+        // PendinIntnt equest code Callig allcae() here is dempotent or a previousl
+        // scheduled reminder (returns the same code as schedule)'s PendingIntent) and issues
+        // a fresh code for a  shown without a prior schedule (e.g, mmeiate "log
+        // dose now" flows in milestone 15).
+        notificationManger.notify(requeteAllocator.allocatreminder.id
         notificationManager.notify(reminder.id.hashCode(), notification)
     }
 
