@@ -30,15 +30,21 @@ import org.koin.dsl.module
  */
 public val appModule =
     module {
-        // Repositories — all in-memory fakes for the scaffold milestone. Each one will be
+        // Repositories, all in-memory fakes for the scaffold milestone. Each one will be
         // swapped for an SQLDelight-backed impl in one edit when the persistence layer
         // lands.
+        //
+        // **When SQLDelight wires up (milestone 1):** the driver construction MUST include
+        // an AndroidSqliteDriver.Callback that enables foreign-key enforcement via
+        // `PRAGMA foreign_keys=ON`. SQLite has FKs off by default and SQLDelight does not
+        // enable them automatically. See `docs/adr/0010-sqlite-foreign-keys.md` for the
+        // canonical pattern and the test contract that gates the wire-up PR.
         single<PetRepository> { FakePetRepository() }
         single<MedicationRepository> { FakeMedicationRepository() }
         single<ScheduleRepository> { FakeScheduleRepository() }
         single<DoseEventRepository> { FakeDoseEventRepository() }
 
-        // Schedule calculator (pure, KMP commonMain). Stateless — single instance is correct.
+        // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
         single<ScheduleCalculator> { DefaultScheduleCalculator() }
 

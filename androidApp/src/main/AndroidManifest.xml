@@ -9,12 +9,25 @@
     POST_NOTIFICATIONS         (declared)
     SCHEDULE_EXACT_ALARM       (declared)
     USE_EXACT_ALARM            (declared)
-    RECEIVE_BOOT_COMPLETED     (allowlisted but NOT declared yet — wait for a BootReceiver)
+    RECEIVE_BOOT_COMPLETED     (allowlisted but NOT declared yet, wait for a BootReceiver)
 
   RECEIVE_BOOT_COMPLETED is intentionally absent from the declarations below: declaring a
   permission with no consumer is privacy noise and a yellow flag for store reviewers and
   end users ("why does this app need this?"). The allowlist permits it for the moment the
   BootReceiver lands in M1.
+
+  Why both SCHEDULE_EXACT_ALARM and USE_EXACT_ALARM are declared (API-level matrix):
+    minSdk 24, targetSdk 34.
+    API 24-30: neither permission is required at runtime; setExactAndAllowWhileIdle works.
+    API 31-32: SCHEDULE_EXACT_ALARM is required (user-grantable, revocable).
+               USE_EXACT_ALARM does not exist on these levels.
+    API 33+:   EITHER suffices. We prefer USE_EXACT_ALARM (auto-granted, non-revocable)
+               because medication-firing tolerates no user-revoke risk and the app
+               qualifies under Google Play's USE_EXACT_ALARM policy for calendar /
+               reminder use cases. SCHEDULE_EXACT_ALARM stays declared as a belt-and-
+               suspenders fallback for users transitioning from a prior install.
+    Source: https://developer.android.com/develop/background-work/services/alarms/schedule
+            § "Declare the appropriate exact alarm permission".
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
