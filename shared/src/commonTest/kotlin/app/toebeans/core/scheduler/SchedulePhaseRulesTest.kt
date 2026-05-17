@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  * Test-as-spec for the [ScheduleCalculator] contract.
  *
  * **All 15 cases pass green** against the current [DefaultScheduleCalculator] implementation.
- * This file is now the regression contract — any change to the calculator must keep these
+ * This file is now the regression contract, any change to the calculator must keep these
  * green, and any extension (e.g. ADR-0007 anchor modes, DST handling) must add cases here
  * rather than introduce a sibling test class.
  *
@@ -235,7 +235,7 @@ class SchedulePhaseRulesTest {
     // D2: confusing-time anchor. Per the human-reviewed decision (2026-05-15), a phase
     // beginning at 00:00 local on startDate produces a dose at exactly that instant.
     // A separate UX layer (slice 1) will warn the user when any doseTimesLocal falls in
-    // [00:00, 06:00) — see docs/issues/v0.1-followups.md item #1.
+    // [00:00, 06:00), see docs/issues/v0.1-followups.md item #1.
     @Test
     fun `phase with midnight dose time anchors first dose at startDate 0000 local`() {
         val schedule =
@@ -270,11 +270,11 @@ class SchedulePhaseRulesTest {
         // Pin every expected dose by index so the failure message identifies which one drifted.
         val expected =
             listOf(
-                // day 1, 00:00 — the key anchor assertion
+                // day 1, 00:00, the key anchor assertion
                 LocalDateTime(2026, 6, 1, 0, 0),
                 // day 1, 12:00
                 LocalDateTime(2026, 6, 1, 12, 0),
-                // day 2, 00:00 — not skipped to next noon
+                // day 2, 00:00, not skipped to next noon
                 LocalDateTime(2026, 6, 2, 0, 0),
                 // day 2, 12:00
                 LocalDateTime(2026, 6, 2, 12, 0),
@@ -388,7 +388,7 @@ class SchedulePhaseRulesTest {
         }
     }
 
-    // D4: an empty phase list is not an error — it is a no-op. Returns empty.
+    // D4: an empty phase list is not an error, it is a no-op. Returns empty.
     @Test
     fun `empty phases returns empty result`() {
         val schedule =
@@ -457,7 +457,7 @@ class SchedulePhaseRulesTest {
                 id = "sched-b2",
                 medicationId = "med-b2",
                 startDate = baseDate,
-                endDate = baseDate.plusDays(2), // 2026-06-03 inclusive — schedule ends here
+                endDate = baseDate.plusDays(2), // 2026-06-03 inclusive, schedule ends here
                 createdAt = Instant.parse("2026-05-31T12:00:00Z"),
             )
         val phase =
@@ -615,7 +615,7 @@ class SchedulePhaseRulesTest {
         assertEquals("WindowTooLarge", thrown.code)
     }
 
-    // EventCountExceeded is defense-in-depth — per-field caps make it unreachable from
+    // EventCountExceeded is defense-in-depth, per-field caps make it unreachable from
     // legitimate input (max realistic = 30d × 6 doses × 1 phase = 180). We still cover its
     // construction path so the typed payload is exercised against future regressions.
     @Test
@@ -673,6 +673,130 @@ class SchedulePhaseRulesTest {
             LocalDateTime(2026, 6, 5, 20, 0).toInstant(utc),
             result.last().scheduledAt,
             "last dose must be at the last phase's last day (Jun-5), not at the schedule's endDate (Jun-20)",
+        )
+    }
+
+    // ADR-0007 v0.1 FOLLOW_PHONE TZ semantics. The wall-clock time stays at 8 AM local across
+    // DST transitions; the UTC instant shifts by the DST offset. 2026 spring-forward in
+    // America/Los_Angeles lands at 2 AM PST on Sun Mar 8 (the second Sunday of March), pushing
+    // clocks to 3 AM PDT and the offset from UTC-8 to UTC-7. An 8 AM dose, well outside the
+    // 2-3 AM gap, fires at 16:00 UTC on Mar 7 (PST) and at 15:00 UTC on Mar 8 onwards (PDT).
+    //
+    // Pinning this is medication-critical: an AI agent or future refactor that "helpfully"
+    // normalizes everything to UTC would silently shift the Mar 8 dose to 7 AM PDT, an hour
+    // earlier than the user expects. The wall-clock interpretation is the right one for
+    // pet medications administered at human-routine times.
+    //
+    // STAY_HOME_TZ and ELAPSED_INTERVAL anchor modes (per ADR-0007) are explicitly out of scope
+    // for v0.1 and will get their own test class in milestone 1.5.
+    @Test
+    fun `DST spring-forward, 8 AM dose stays at 8 AM local across the transition`() {
+        val pt = TimeZone.of("America/Los_Angeles")
+        val startDate = LocalDate(2026, 3, 7) // Saturday, the day before DST starts
+        val schedule =
+            Schedule(
+                id = "sched-dst",
+                medicationId = "med-dst",
+                startDate = startDate,
+                endDate = null,
+                createdAt = Instant.parse("2026-03-06T00:00:00Z"),
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-dst",
+                scheduleId = "sched-dst",
+                phaseOrder = 0,
+                durationDays = 5,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+            )
+
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phase),
+                timeZone = pt,
+                fromInclusive = startDate.atTime(0, 0).toInstant(pt),
+                toExclusive = startDate.plusDays(5).atTime(0, 0).toInstant(pt),
+            )
+
+        assertEquals(5, result.size, "5 days x 1 dose/day = 5 events across the DST boundary")
+
+        // Mar 7 is PST (UTC-8): 8 AM local = 16:00 UTC.
+        assertEquals(
+            Instant.parse("2026-03-07T16:00:00Z"),
+            result[0].scheduledAt,
+            "Mar 7 (PST) 8 AM local must fire at 16:00 UTC",
+        )
+
+        // Mar 8 onward is PDT (UTC-7): 8 AM local = 15:00 UTC.
+        // The UTC instant shifted by an hour BUT the user-perceived wall-clock time did not.
+        assertEquals(
+            Instant.parse("2026-03-08T15:00:00Z"),
+            result[1].scheduledAt,
+            "Mar 8 (PDT, DST transition day) 8 AM local must fire at 15:00 UTC, " +
+                "not at the pre-DST UTC instant. FOLLOW_PHONE semantics.",
+        )
+        assertEquals(Instant.parse("2026-03-09T15:00:00Z"), result[2].scheduledAt)
+        assertEquals(Instant.parse("2026-03-10T15:00:00Z"), result[3].scheduledAt)
+        assertEquals(Instant.parse("2026-03-11T15:00:00Z"), result[4].scheduledAt)
+    }
+
+    // DST gap case: a dose scheduled inside the non-existent 2-3 AM local hour on the
+    // spring-forward day. Per kotlinx-datetime's documented resolver semantics (lesser /
+    // earlier offset, "as if the time gap didn't occur yet"), the input "2:30 AM" on
+    // 2026-03-08 in PT maps to instant 10:30 UTC (PST = UTC-8). At that UTC instant the
+    // user's wall clock reads 3:30 AM PDT (because DST started at 10:00 UTC = 3:00 AM PDT).
+    //
+    // The user-visible consequence: a "2:30 AM" dose on the DST day fires at "3:30 AM" by
+    // the user's clock. This is the documented behavior; pin it so a future refactor that
+    // switches to "later offset" resolution (3:30 AM PDT = 10:30 UTC, firing at 2:30 AM
+    // local on the dial, except 2:30 doesn't exist) cannot silently change behavior.
+    //
+    // Realistic toebeans use rarely schedules medications inside the 2-6 AM window, so the
+    // practical hazard is low; the test exists to pin the documented contract.
+    @Test
+    fun `DST gap, 2_30 AM local on spring-forward day fires at the lesser-offset instant`() {
+        val pt = TimeZone.of("America/Los_Angeles")
+        val dstDay = LocalDate(2026, 3, 8) // spring-forward Sunday
+        val schedule =
+            Schedule(
+                id = "sched-dst-gap",
+                medicationId = "med-dst-gap",
+                startDate = dstDay,
+                endDate = null,
+                createdAt = Instant.parse("2026-03-07T00:00:00Z"),
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-dst-gap",
+                scheduleId = "sched-dst-gap",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(2, 30)), // inside the non-existent 2-3 AM PT hour
+                doseAmount = null,
+            )
+
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phase),
+                timeZone = pt,
+                fromInclusive = dstDay.atTime(0, 0).toInstant(pt),
+                toExclusive = dstDay.plusDays(1).atTime(0, 0).toInstant(pt),
+            )
+
+        assertEquals(1, result.size, "single dose on the DST day even inside the gap")
+        // 2:30 AM "PST" resolves via the earlier offset (UTC-8) to 10:30 UTC. At that UTC
+        // instant the local clock has already advanced to 3:30 AM PDT.
+        assertEquals(
+            Instant.parse("2026-03-08T10:30:00Z"),
+            result[0].scheduledAt,
+            "2:30 AM input inside the DST gap must resolve via the lesser (PST) offset " +
+                "per kotlinx-datetime's documented semantics. User's clock at 10:30 UTC " +
+                "reads 3:30 AM PDT.",
         )
     }
 }

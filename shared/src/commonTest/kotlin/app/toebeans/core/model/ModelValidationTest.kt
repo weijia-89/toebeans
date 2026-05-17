@@ -174,4 +174,41 @@ class ModelValidationTest {
             )
         }
     }
+
+    // The calculator's F5 global-ordering claim is asserted-by-construction (not by a sort
+    // call) and depends on SchedulePhase.init enforcing strict-ascending doseTimesLocal. The
+    // init invariant exists at SchedulePhase.kt:47 but had no direct test. Pin it here so a
+    // future refactor that relaxes the init check cannot silently break F5.
+    @Test
+    fun `SchedulePhase rejects descending doseTimesLocal`() {
+        assertFailsWith<IllegalArgumentException> {
+            SchedulePhase(
+                id = "ph1",
+                scheduleId = "s1",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = 2,
+                doseTimesLocal = listOf(LocalTime(20, 0), LocalTime(8, 0)), // descending
+                doseAmount = null,
+            )
+        }
+    }
+
+    @Test
+    fun `SchedulePhase rejects equal doseTimesLocal, strict ascending not merely sorted`() {
+        // Equal times would produce two doses at the same instant, a duplicate dose, which
+        // is a medication-critical bug. The init check uses `distinct().size == size` to
+        // catch this beyond what `sorted()` alone would allow.
+        assertFailsWith<IllegalArgumentException> {
+            SchedulePhase(
+                id = "ph1",
+                scheduleId = "s1",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = 2,
+                doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(8, 0)), // equal
+                doseAmount = null,
+            )
+        }
+    }
 }
