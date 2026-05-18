@@ -58,7 +58,7 @@ Permission handling:
 
 ## References
 
-- Android docs: *Schedule alarms* — `setExactAndAllowWhileIdle`.
+- Android docs: *Schedule alarms* (`setExactAndAllowWhileIdle`).
 - Android docs: *WorkManager*.
 - Google Play policy: *Use of high priority FCM and exact alarms* (eligibility for medication apps).
-- dontkillmyapp.com — OEM battery-optimization catalogue (a known operational hazard).
+- dontkillmyapp.com: OEM battery-optimization catalogue (a known operational hazard).

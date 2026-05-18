@@ -1,16 +1,16 @@
 # ADR-0014: Should the pre-commit hook enforce calibration score floor?
 
 Date: 2026-05-17
-Status: **Proposed — decision deferred to Wei after M1.2**
+Status: **Proposed, decision deferred to Wei after M1.2**
 Deciders: Wei Jia
 
 ## Context
 
 The 2026-05-17 adversarial review surfaced a process gap: the pre-commit hook (`scripts/git-hooks/pre-commit`) currently enforces that any vibe-dangerous file change is paired with a new line in `.codeit/calibration.jsonl`. **It does not enforce that the score in the new entry meets the tier floor.**
 
-Evidence in the calibration log: 6 vibe-dangerous entries in the last 14 days shipped with scores 86, 86, 88, 89, 89, 91 — all below the 95 floor specified in AGENTS.md. Each was honestly noted as "below floor" with a falsifier-based rationale. The discipline `AGENTS.md § When confidence < tier-floor` ("Re-investigate. Update the plan. Re-score. After 2 iterations without crossing the floor, escalate with a gap report.") is **honor-system**: nothing in the toolchain blocks the commit when score < floor.
+Evidence in the calibration log: 6 vibe-dangerous entries in the last 14 days shipped with scores 86, 86, 88, 89, 89, 91. All below the 95 floor specified in AGENTS.md. Each was honestly noted as "below floor" with a falsifier-based rationale. The discipline `AGENTS.md § When confidence < tier-floor` ("Re-investigate. Update the plan. Re-score. After 2 iterations without crossing the floor, escalate with a gap report.") is **honor-system**: nothing in the toolchain blocks the commit when score < floor.
 
-One of those sub-floor commits — `c7f5eff` ("route notification ids through RequestCodeAllocator", score 91) — shipped with **4 Kotlin compile errors** in the touched file. CI would presumably have caught it, but the broken state persisted on origin/main for ~14 hours until the next session noticed. The reviewer's verdict: the floor exists to prevent exactly this; honor-system enforcement is insufficient against tired-author drift.
+One of those sub-floor commits, `c7f5eff` ("route notification ids through RequestCodeAllocator", score 91), shipped with **4 Kotlin compile errors** in the touched file. CI would presumably have caught it, but the broken state persisted on origin/main for ~14 hours until the next session noticed. The reviewer's verdict: the floor exists to prevent exactly this; honor-system enforcement is insufficient against tired-author drift.
 
 ## Decision
 
@@ -29,7 +29,7 @@ case "$TIER" in
     *)              FLOOR=0  ;;
 esac
 if (( SCORE < FLOOR )); then
-    echo "BLOCKED — calibration entry scored $SCORE, below $TIER floor $FLOOR."
+    echo "BLOCKED: calibration entry scored $SCORE, below $TIER floor $FLOOR."
     echo "Per AGENTS.md, re-investigate the lowest-scoring component before committing."
     exit 1
 fi
@@ -66,7 +66,7 @@ Per-incident analysis:
 - `c7f5eff` (score 91): WOULD have been blocked. Compile errors. Block would have helped.
 - `c2a931e` (score 86): WOULD have been blocked. Deliberately red-CI test. Block would have hurt the workflow.
 - `decdec2` (score 89): WOULD have been blocked. DST test pinning. The sub-floor was JDK17 unavailability, not skipped discipline. Marginal.
-- The other 5: same shape — honest sub-floor with evidence-based rationale. Mixed.
+- The other 5: same shape, honest sub-floor with evidence-based rationale. Mixed.
 
 ## Consequences
 

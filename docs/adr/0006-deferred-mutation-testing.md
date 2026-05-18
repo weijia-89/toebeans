@@ -9,7 +9,7 @@ Deciders: Wei Jia (with Cascade)
 `AGENTS.md` requires mutation testing for any change to a vibe-dangerous surface, and ADR-0005 specifies pitest as the tool. At v0.1 scaffolding time, two facts collided:
 
 1. The standard pitest Gradle plugin (`info.solidsoft.pitest`) does not integrate cleanly with Kotlin Multiplatform source sets. Pitest expects Java-style `sourceSets` (the legacy accessor), and the KMP plugin's source-set layout is not directly addressable from that accessor. Reproducing the integration manually (custom `mainSourceSets`, `additionalTestSourceSets`) compiles in some Gradle versions and silently produces empty mutation reports in others.
-2. The scheduler is currently a stub (`DefaultScheduleCalculator` throws `NotImplementedError`). Any mutation report against an unimplemented function is uninformative — every mutant survives or every mutant fails identically, depending on how the test catches the throw.
+2. The scheduler is currently a stub (`DefaultScheduleCalculator` throws `NotImplementedError`). Any mutation report against an unimplemented function is uninformative. Every mutant survives or every mutant fails identically, depending on how the test catches the throw.
 
 ArcMutate has a commercial extension that handles Kotlin/KMP better, but it is paid and out of scope for a v0.1 OSS scaffold. Stryker-Mutator has experimental Kotlin support but is unstable.
 
@@ -40,7 +40,7 @@ True mutation testing returns when one of these happens:
 
 ### Negative
 
-- We do not have actual mutation testing at v0.1. Line coverage is a strictly weaker signal — it catches "this code never runs" but not "this assertion is too weak."
+- We do not have actual mutation testing at v0.1. Line coverage is a strictly weaker signal. It catches "this code never runs" but not "this assertion is too weak."
 - A reviewer of a future vibe-dangerous change must consciously evaluate whether the line-coverage threshold is enough, or whether they require an ArcMutate run as a one-off.
 
 ### Rejected alternatives

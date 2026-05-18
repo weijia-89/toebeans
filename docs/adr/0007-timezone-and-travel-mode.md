@@ -52,7 +52,7 @@ A `TimezoneChangeReceiver` listens for `ACTION_TIMEZONE_CHANGED` (and `ACTION_TI
 During medication creation, after the user picks a drug name, the UI asks:
 
 > *"Is this a time-sensitive medication?"*
-> *"Some medications — anti-seizure (phenobarbital, levetiracetam), insulin, anti-arrhythmia drugs — work best when doses are evenly spaced regardless of timezone or daylight saving. Most other medications are fine with normal scheduling. Pick one:"*
+> *"Some medications, like anti-seizure (phenobarbital, levetiracetam), insulin, and anti-arrhythmia drugs, work best when doses are evenly spaced regardless of timezone or daylight saving. Most other medications are fine with normal scheduling. Pick one:"*
 >
 > [ ] Normal scheduling (most medications)
 > [ ] Time-sensitive: keep dose interval constant (tap to learn more)
@@ -84,7 +84,7 @@ The following table seeds the in-app guidance copy. **Each TIGHT entry must be v
 
 - The 80%+ LOOSE cohort gets the intuitive wall-clock behavior they expect.
 - The TIGHT cohort gets medically-sound elapsed-interval scheduling without manual workaround.
-- Travel without pet, travel with pet, and DST are explicit cases with explicit behaviors — no implicit "best guess" by the calculator.
+- Travel without pet, travel with pet, and DST are explicit cases with explicit behaviors. The calculator does not make an implicit "best guess".
 - The data model is additive: existing schedules (no `anchorMode`) default to `FOLLOW_PHONE`. No migration risk for early users.
 
 ### Negative
@@ -95,13 +95,13 @@ The following table seeds the in-app guidance copy. **Each TIGHT entry must be v
 
 ### Rejected alternatives
 
-- **Single mode (FOLLOW_PHONE only).** Rejected: harms diabetic-pet owners and epilepsy-management owners — a small but high-stakes subset of users.
+- **Single mode (FOLLOW_PHONE only).** Rejected: harms diabetic-pet owners and epilepsy-management owners, a small but high-stakes subset of users.
 - **Single mode (ELAPSED_INTERVAL only).** Rejected: wakes the user up at the wrong wall-clock hour after travel; most-medications case becomes confusing.
 - **Auto-detect from drug name.** Rejected: drug-database vendor risk; on-device drug DB adds binary size; risk of false-classify TIGHT as LOOSE (high-severity failure mode).
 
 ## Interaction with ADR-0004 (tapering schedule model)
 
-The calculator interface from ADR-0004 already takes `timeZone: TimeZone` as an explicit parameter — this remains. New: caller logic determines which `TimeZone` to pass based on the schedule's `anchorMode` and the pet's `homeTimezone`. The calculator itself remains pure and timezone-agnostic at the API surface; the materialization layer encodes the policy.
+The calculator interface from ADR-0004 already takes `timeZone: TimeZone` as an explicit parameter, and this remains. New: caller logic determines which `TimeZone` to pass based on the schedule's `anchorMode` and the pet's `homeTimezone`. The calculator itself remains pure and timezone-agnostic at the API surface; the materialization layer encodes the policy.
 
 ## Interaction with ADR-0002 (alarm hybrid)
 
@@ -133,8 +133,8 @@ The sections below were the v0.1 problem statement before this ADR was promoted 
 
 - `Schedule` does NOT carry a `timeZone` field at the database level.
 - `ScheduleCalculator.computeScheduledDoses` takes `timeZone: TimeZone` as a parameter.
-- The caller — `ToebeansApp` at materialization time — passes `TimeZone.currentSystemDefault()`.
-- **Consequence:** when the user's phone changes timezone (e.g., they land in Tokyo), the **next** 72-hour materialization runs with the new TZ. This is "travel mode for free" — desired behavior in most cases.
+- The caller (`ToebeansApp` at materialization time) passes `TimeZone.currentSystemDefault()`.
+- **Consequence:** when the user's phone changes timezone (e.g., they land in Tokyo), the **next** 72-hour materialization runs with the new TZ. This is "travel mode for free," desired behavior in most cases.
 
 ## Problems with the v0.1 decision
 
@@ -193,7 +193,7 @@ This block is updated whenever an acceptance gate moves. Last revised 2026-05-17
 | Gate | Status | Evidence |
 |---|---|---|
 | **G1.** Validate the TIGHT drug list against Plumb's Veterinary Drug Handbook 9th ed. | **Open** | No commit links a Plumb's page citation to any entry in the TIGHT table above. |
-| **G2.** Emulator DST dogfood with a fake DST shift; verify spring-forward and fall-back behave as specified. | **Open — partially.** Two spot-checks landed: `SchedulePhaseRulesTest` now pins (a) 8 AM dose stays at 8 AM local across spring-forward and (b) 2:30 AM dose on spring-forward day resolves to the lesser-offset instant (calibration entry 2026-05-17, score 89). These cover the kotlinx-datetime contract the calculator depends on, NOT the full DST_SKIP / DST_DUPLICATE_RESOLVED warning surfaces. | `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt` (4 DST-related cases). The full `SchedulePhaseDstRulesTest` class promised on line 122 above is **NOT YET CREATED**. |
+| **G2.** Emulator DST dogfood with a fake DST shift; verify spring-forward and fall-back behave as specified. | **Open, partially.** Two spot-checks landed: `SchedulePhaseRulesTest` now pins (a) 8 AM dose stays at 8 AM local across spring-forward and (b) 2:30 AM dose on spring-forward day resolves to the lesser-offset instant (calibration entry 2026-05-17, score 89). These cover the kotlinx-datetime contract the calculator depends on, NOT the full DST_SKIP / DST_DUPLICATE_RESOLVED warning surfaces. | `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt` (4 DST-related cases). The full `SchedulePhaseDstRulesTest` class promised on line 122 above is **NOT YET CREATED**. |
 | **G3.** User-research session (n=3-5) on the time-sensitive-medication prompt copy. | **Blocked** on M1.2 (internal beta needs to exist before n=3-5 users can be recruited). | M1.2 retention gate at day 14 (see `docs/ROADMAP.md`). |
 
 **Implication for M1.5 work**: the calculator currently does NOT emit `DST_SKIP` or `DST_DUPLICATE_RESOLVED` warnings as specified in the § DST handling section above. The two SchedulePhaseRulesTest spot-checks pin what the calculator DOES do (snap-to-nearest-valid-instant via kotlinx-datetime's default behavior), not the surface API the materialization layer would consume. Implementing G2 fully is a milestone-1.5 work item that depends on:
@@ -202,4 +202,4 @@ This block is updated whenever an acceptance gate moves. Last revised 2026-05-17
 2. Extending `ScheduledDose` with optional `dstWarning: DstWarning?` field (additive, source-compatible).
 3. Threading the warning through `ReminderListViewModel` to the user-visible reminder row.
 
-**Reader contract**: This ADR remains *Accepted* because waiting indefinitely on G1-G3 is worse than the no-DST-surfacing default. But a contributor reading only the § Decision block above (without scrolling to this Verification status block) could ship code under the assumption that the calculator already emits DST warnings — IT DOES NOT. The status block exists to make that gap visible at the same scroll depth as the policy claim.
+**Reader contract**: This ADR remains *Accepted* because waiting indefinitely on G1-G3 is worse than the no-DST-surfacing default. But a contributor reading only the § Decision block above (without scrolling to this Verification status block) could ship code under the assumption that the calculator already emits DST warnings. IT DOES NOT. The status block exists to make that gap visible at the same scroll depth as the policy claim.

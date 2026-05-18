@@ -8,13 +8,13 @@ Deciders: Wei Jia (with Cascade)
 
 We need a mobile app that ships Android first and preserves an iOS path. The product plan envisions iOS arriving at milestone 5 (roughly 16+ weeks after the MVP). The candidates are:
 
-- **Kotlin Multiplatform (KMP) + Compose Multiplatform** — single Kotlin codebase, native UI on both platforms.
-- **Kotlin Multiplatform with native UI** (Compose on Android, SwiftUI on iOS) — share business logic only.
-- **Flutter** — cross-platform UI from day one.
-- **React Native + Expo** — cross-platform UI in JS/TS.
-- **Native-only Android, native-only iOS later** — separate codebases.
+- **Kotlin Multiplatform (KMP) + Compose Multiplatform**: single Kotlin codebase, native UI on both platforms.
+- **Kotlin Multiplatform with native UI** (Compose on Android, SwiftUI on iOS): share business logic only.
+- **Flutter**: cross-platform UI from day one.
+- **React Native + Expo**: cross-platform UI in JS/TS.
+- **Native-only Android, native-only iOS later**: separate codebases.
 
-The reminders-first MVP needs reliable Android notifications, AlarmManager, WorkManager, and SQLite. The iOS port needs UNUserNotifications and the same persistence schema. There is no symptom-checker, no on-device ML at v1 — the platform-native API surface is moderate, not heavy.
+The reminders-first MVP needs reliable Android notifications, AlarmManager, WorkManager, and SQLite. The iOS port needs UNUserNotifications and the same persistence schema. There is no symptom-checker, no on-device ML at v1. The platform-native API surface is moderate.
 
 Compose Multiplatform for iOS was **stable as of v1.8.0 (May 2025)** per JetBrains. KMP itself has been stable since November 2023. Netflix and Cash App use KMP in production.
 
@@ -57,5 +57,5 @@ Kotlin Multiplatform with Compose Multiplatform for UI.
 ## References
 
 - JetBrains, *Compose Multiplatform 1.8.0 Released: Compose Multiplatform for iOS is Stable*, May 2025.
-- kotlinlang.org/multiplatform — KMP status, production-user list.
+- kotlinlang.org/multiplatform: KMP status, production-user list.
 - Internal: `research/00-feasibility-dossier.md` §5.1.

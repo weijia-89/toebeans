@@ -9,7 +9,7 @@ Deciders: Wei Jia (with Cascade)
 The product posture (ADR-0003) is local-first with zero network calls and zero
 analytics. A CI fitness function fails the build if any analytics or
 crash-reporting library appears in the dependency graph. That posture is
-intentional — it is one of the moats called out in the feasibility dossier and
+intentional; it is one of the moats called out in the feasibility dossier and
 it makes the privacy story unambiguous.
 
 It also means **production exceptions are silent**. There is no Crashlytics,
