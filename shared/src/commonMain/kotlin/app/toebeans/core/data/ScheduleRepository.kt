@@ -41,6 +41,28 @@ public interface ScheduleRepository {
     public fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>>
 
     /**
+     * Observe every schedule across every medication and pet. Order is implementation-defined
+     * — the backup aggregator and other rollup callers sort downstream as needed.
+     *
+     * Returns active and ended schedules alike. UI filters on [Schedule.endDate] when
+     * "active only" semantics are wanted.
+     *
+     * Used by [app.toebeans.core.backup.BackupAggregator] to snapshot the full schedule
+     * set into a backup payload. SQLDelight impl: `SELECT * FROM schedule`.
+     */
+    public fun observeAll(): Flow<List<Schedule>>
+
+    /**
+     * Observe every schedule phase across every schedule. Order is implementation-defined
+     * — backup callers do not care about ordering across schedule boundaries, and within a
+     * schedule the phaseOrder field is the authoritative sort key when ordering matters.
+     *
+     * Used by [app.toebeans.core.backup.BackupAggregator] alongside [observeAll] to snapshot
+     * the full phase set into a backup payload. SQLDelight impl: `SELECT * FROM schedule_phase`.
+     */
+    public fun observeAllPhases(): Flow<List<SchedulePhase>>
+
+    /**
      * Insert or update a schedule with its phases. The phases must form a valid
      * dense 0..N-1 phaseOrder sequence — caller-side validation responsibility per the
      * test-as-spec contract on the scheduler. The repository will throw

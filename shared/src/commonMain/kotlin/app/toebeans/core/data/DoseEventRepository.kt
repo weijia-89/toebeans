@@ -61,6 +61,20 @@ public interface DoseEventRepository {
     public fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>>
 
     /**
+     * Observe every dose event in storage, regardless of status, pet, schedule, or recency.
+     *
+     * Unlike [observeAllRecent], this method returns PENDING/SKIPPED/MISSED events alongside
+     * GIVEN events and does NOT filter by time. It exists for the backup aggregator's
+     * full-state snapshot per ADR-0016: a backup must restore the user's complete dose
+     * history on import.
+     *
+     * Order is implementation-defined. SQLDelight impl: `SELECT * FROM dose_event`. Callers
+     * that need to render UI should NOT use this method — use the scoped/recent variants
+     * instead so they pay only for the rows they show.
+     */
+    public fun observeAll(): Flow<List<DoseEvent>>
+
+    /**
      * Record an ad-hoc GIVEN dose against [scheduleId] / [medicationId] at [at]. Caller
      * supplies the unique [doseEventId] (UUID). status=GIVEN, scheduledAt=resolvedAt=at.
      *
@@ -119,4 +133,21 @@ public interface DoseEventRepository {
 
     /** Delete a recorded dose event. Used to support an Undo affordance. */
     public suspend fun delete(doseEventId: String)
+
+    /**
+     * Insert or replace a [DoseEvent] row verbatim. Used by the backup import path to
+     * restore dose history from a [app.toebeans.core.backup.BackupExport] payload.
+     *
+     * The caller carries the merge-by-id decision. This method is unconditional: if an
+     * event with the same id exists it is overwritten. Production import code in
+     * [app.toebeans.core.backup.BackupImporter] reads the existing-id set first and
+     * skips events that already exist, so a normal "insert new, skip existing" merge
+     * never reaches the replace branch.
+     *
+     * Unlike [recordGivenNow] / [recordGivenForSlot], this does NOT enforce status or
+     * FK-consistency invariants beyond what the SQLDelight schema requires. The caller
+     * is responsible for handing in a well-formed event (typically deserialized from a
+     * trusted backup file we just produced).
+     */
+    public suspend fun upsert(event: DoseEvent)
 }

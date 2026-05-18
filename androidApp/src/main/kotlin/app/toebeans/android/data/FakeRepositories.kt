@@ -86,6 +86,12 @@ public class FakeScheduleRepository : ScheduleRepository {
             (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
         }
 
+    override fun observeAll(): Flow<List<Schedule>> =
+        schedules.asStateFlow().map { snap -> snap.values.sortedByDescending(Schedule::createdAt) }
+
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> =
+        phasesByScheduleId.asStateFlow().map { snap -> snap.values.flatten() }
+
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         // Two-source combine: re-emit when either schedules OR phases change. Filtering
         // and joining are pure, so this is just a fanout. SQLDelight will replace with

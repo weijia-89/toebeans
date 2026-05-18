@@ -1,5 +1,6 @@
 package app.toebeans.android.di
 
+import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
@@ -14,7 +15,12 @@ import app.toebeans.android.ui.pets.PetsViewModel
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.android.ui.schedule.ScheduleDetailViewModel
+import app.toebeans.android.ui.settings.ExportBackupViewModel
+import app.toebeans.android.ui.settings.ImportBackupViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
+import app.toebeans.core.backup.BackupAggregator
+import app.toebeans.core.backup.BackupImporter
+import app.toebeans.core.backup.BackupSerializer
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
@@ -53,6 +59,29 @@ public val appModule =
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }
         single { FirstLaunchPreferences(androidContext()) }
+
+        // Backup pipeline per ADR-0016. The serializer is stateless (just wraps a
+        // configured Json instance); aggregator and importer fan in/out over the
+        // four repository contracts. All are pure-KMP; no Android types leak in
+        // through their constructors so swapping the repository bindings for
+        // SQLDelight-backed impls in milestone 1 leaves these untouched.
+        single { BackupSerializer() }
+        single {
+            BackupAggregator(
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                doseEventRepository = get(),
+            )
+        }
+        single {
+            BackupImporter(
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                doseEventRepository = get(),
+            )
+        }
 
         // ViewModels
         viewModel {
@@ -103,4 +132,17 @@ public val appModule =
             )
         }
         viewModel { SettingsViewModel(prefs = get()) }
+        viewModel {
+            ExportBackupViewModel(
+                aggregator = get(),
+                serializer = get(),
+                appVersion = BuildConfig.VERSION_NAME,
+            )
+        }
+        viewModel {
+            ImportBackupViewModel(
+                serializer = get(),
+                importer = get(),
+            )
+        }
     }

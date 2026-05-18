@@ -52,7 +52,7 @@ These caps are **defense in depth.** A correctly-built UI never reaches them. Th
 | App cold-start (Activity onCreate → first frame) | < 2,000 ms on Nokia C12 class | Macrobenchmark module (milestone 1) |
 | Reminder-list scroll | 60 fps median, ≤ 5% frames > 32ms | Macrobenchmark |
 | `computeScheduledDoses` for 72h × 4 doses/day × 2 phases | < 50 ms on Helio G37 | JVM microbenchmark |
-| Backup export of 1,000-event archive | < 3,000 ms (PBKDF2 dominates) | JVM microbenchmark |
+| Backup export of 1,000-event archive | < 3,000 ms (originally PBKDF2-dominated; v1 ships plain JSON per ADR-0016, so the budget is JSON serialize + I/O only and met with ~50x headroom. Restore the original budget if/when the encrypted posture reactivates per ADR-0016 v2 triggers.) | JVM microbenchmark |
 | AlarmManager re-materialization (boot) | < 500 ms for 50 active schedules | Robolectric perf test |
 
 ### Anti-patterns (do not introduce without ADR override)

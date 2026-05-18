@@ -233,6 +233,10 @@ private class InMemSchedRepoB9 : ScheduleRepository {
                 .map { ScheduleWithPhases(it, phases.value[it.id] ?: emptyList()) }
         }
 
+    override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
+
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> = phases.asStateFlow().map { it.values.flatten() }
+
     override suspend fun upsert(
         schedule: Schedule,
         phases: List<SchedulePhase>,

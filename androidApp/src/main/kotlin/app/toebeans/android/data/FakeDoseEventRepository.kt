@@ -62,6 +62,13 @@ public class FakeDoseEventRepository : DoseEventRepository {
                 .maxByOrNull { it.scheduledAt }
         }
 
+    override fun observeAll(): Flow<List<DoseEvent>> =
+        // Full snapshot for the backup aggregator (ADR-0016). Includes every status —
+        // PENDING/GIVEN/SKIPPED/MISSED — and applies no time filter. Order is descending
+        // by scheduledAt to match the rest of this fake's surfaces, though aggregator
+        // callers don't depend on the order.
+        doseEvents.map { events -> events.values.sortedByDescending { it.scheduledAt } }
+
     override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
         // Single-flow observation — no join is needed for filtering, the UI does the
         // pet/med name lookup separately via its own MedicationRepository flow. This
@@ -153,5 +160,11 @@ public class FakeDoseEventRepository : DoseEventRepository {
 
     override suspend fun delete(doseEventId: String) {
         doseEvents.value = doseEvents.value - doseEventId
+    }
+
+    override suspend fun upsert(event: DoseEvent) {
+        // Unconditional insert/replace. Backup-import merge-by-id is enforced one layer
+        // up in [BackupImporter], which only calls upsert for IDs not already present.
+        doseEvents.update { it + (event.id to event) }
     }
 }

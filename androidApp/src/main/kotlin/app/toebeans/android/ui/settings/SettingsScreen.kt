@@ -1,7 +1,11 @@
 package app.toebeans.android.ui.settings
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,10 +13,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -21,6 +28,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,19 +42,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.android.preferences.ThemeMode
 import app.toebeans.android.ui.theme.ToebeansTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
 /**
- * Settings screen. Four grouping cards:
- *   1. Display — theme override (Auto/Light/Dark) + Material You dynamic-color toggle.
- *   2. Data — descriptive copy + a DISABLED "Export data (coming soon)" button. The
- *      affordance is visible but inert until the backup-format ADR + implementation
- *      lands in M1. A live-but-no-op Toast version was tried and intentionally rolled
- *      back: in a trust-positioned app, a button that responds but does nothing
- *      undoes the trust the rest of the surface earns.
- *   3. About — current build facts.
- *   4. What's coming — short user-facing list of features on the roadmap.
+ * Settings screen. Five grouping cards:
+ *   1. Display: theme override (Auto/Light/Dark) + Material You dynamic-color toggle.
+ *   2. Data: Export and Import buttons. Per ADR-0016, v1 ships plain JSON: the file
+ *      contains no medical-grade or identifying information, so we do not gate the
+ *      export on a passphrase. The encrypted posture reactivates per ADR-0016 v2
+ *      triggers (when more sensitive fields land in the schema, or when v2 of the
+ *      backup format is designed). Both buttons drive Storage Access Framework
+ *      pickers so the file lives at whatever location the user picks.
+ *   3. Diagnostics: local crash log export (ADR-0009).
+ *   4. About: current build facts.
+ *   5. What's coming: short user-facing list of features on the roadmap.
  *
  * Why the Display card is first: it's the only one a user is likely to actually touch.
  * About and What's coming are reference/curiosity surfaces. Putting Display at the top
@@ -57,10 +69,69 @@ public fun SettingsScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: SettingsViewModel = koinViewModel(),
+    exportViewModel: ExportBackupViewModel = koinViewModel(),
+    importViewModel: ImportBackupViewModel = koinViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
+    val exportState by exportViewModel.state.collectAsStateWithLifecycle()
+    val importState by importViewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // SAF launcher for ACTION_CREATE_DOCUMENT. The MIME type "application/json" hints
+    // the picker toward JSON-aware folders; the user-supplied filename comes from
+    // exportViewModel.suggestedFilename(). A null result means the user backed out,
+    // which we treat as a silent no-op (no error state, the user is in control).
+    val createDocumentLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            if (uri != null) {
+                exportViewModel.exportTo { bytes ->
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                            ?: error("Could not open the destination file. Please pick another location.")
+                    }
+                }
+            }
+        }
+
+    // SAF launcher for ACTION_OPEN_DOCUMENT. We hint application/json but also accept
+    // application/octet-stream so backups exported by Files apps that strip the mime
+    // are still pickable. The picker returns a content:// URI that we read on IO. A
+    // null result means the user backed out, no-op.
+    val openDocumentLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            if (uri != null) {
+                importViewModel.readAndStage {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                            ?: throw IllegalStateException(
+                                "Could not open the selected file. Please pick a different location.",
+                            )
+                    }
+                }
+            }
+        }
+
+    // Toast-on-success for import. Toasts (rather than an AlertDialog) match the
+    // ADR-0016 spec for the post-import announcement: the user has already confirmed
+    // intent at the confirm dialog, so the post-state is informational, not decisional.
+    // The Toast text names the merge-by-id semantic counts so a user who imported a
+    // file with overlapping ids understands why their "existing" rows did not change.
+    val importSuccessLocal = importState as? ImportBackupUiState.Success
+    LaunchedEffect(importSuccessLocal) {
+        val success = importSuccessLocal ?: return@LaunchedEffect
+        Toast
+            .makeText(
+                context,
+                buildImportSuccessText(success.summary),
+                Toast.LENGTH_LONG,
+            ).show()
+        importViewModel.onAcknowledge()
+    }
 
     Column(
         modifier =
@@ -126,24 +197,174 @@ public fun SettingsScreen(
         }
 
         SettingsCard(title = "Data") {
-            // Encrypted backup is a real product commitment (see "What's coming" card
-            // below + ROADMAP milestone 1) but the format isn't finalized in v0.1. We
-            // intentionally render the button DISABLED rather than wiring a Toast: a
-            // button that visibly responds but does nothing is worse for trust than a
-            // disabled affordance that says "not yet."
+            // Per ADR-0016: v1 exports plain JSON. The copy is honest about that. No
+            // "encrypted" framing because the file is not encrypted, and the schema
+            // does not yet contain anything that would warrant encryption at rest.
+            // The v2 plan reactivates encryption once the schema gains more sensitive
+            // fields or once we have a real keyless-encryption mechanism that survives
+            // device transfer.
             Text(
                 text =
-                    "Your data lives only on this device. A future update will let " +
-                        "you export an encrypted backup to a file you control.",
+                    "Your data lives only on this device. Export a backup file to a " +
+                        "location you control, or import one to merge into the current " +
+                        "device.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(
-                onClick = {},
-                enabled = false,
+            Text(
+                text =
+                    "Backups are plain JSON. They include your pets, medications, " +
+                        "schedules, and dose history, nothing else, no encryption " +
+                        "envelope. Keep the file somewhere private the same way you " +
+                        "would keep a photo or note.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Export data (coming soon)")
+                TextButton(
+                    onClick = { createDocumentLauncher.launch(exportViewModel.suggestedFilename()) },
+                    enabled = exportState !is ExportBackupUiState.Writing,
+                ) {
+                    Text("Export data")
+                }
+                if (exportState is ExportBackupUiState.Writing) {
+                    // Small inline progress affordance. The export typically completes
+                    // in well under a second for v1's data volumes, so a full-screen
+                    // modal would feel like a flicker. The inline spinner conveys
+                    // "working" without being visually loud.
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Text(
+                        text = "Writing backup…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = {
+                        // ACTION_OPEN_DOCUMENT accepts a mime-type array; we hint json but
+                        // also accept octet-stream to tolerate file managers that drop the
+                        // mime metadata.
+                        openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream"))
+                    },
+                    enabled =
+                        importState !is ImportBackupUiState.Importing &&
+                            importState !is ImportBackupUiState.AwaitingConfirm,
+                ) {
+                    Text("Import data")
+                }
+                if (importState is ImportBackupUiState.Importing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Text(
+                        text = "Importing…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        // Result dialogs for the export flow. We use AlertDialogs (rather than a
+        // Snackbar) because: (1) Settings does not host a SnackbarHost today, and (2)
+        // the export terminal state ("backup saved" or "backup failed") is meaningful
+        // enough that the user wants explicit acknowledgement, not a fly-by toast that
+        // they might miss if they're scrolling.
+        when (val state = exportState) {
+            is ExportBackupUiState.Success ->
+                AlertDialog(
+                    onDismissRequest = { exportViewModel.onAcknowledge() },
+                    confirmButton = {
+                        TextButton(onClick = { exportViewModel.onAcknowledge() }) {
+                            Text("OK")
+                        }
+                    },
+                    title = { Text("Backup saved") },
+                    text = {
+                        Text(
+                            text = formatExportSummary(state),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                )
+            is ExportBackupUiState.Error ->
+                AlertDialog(
+                    onDismissRequest = { exportViewModel.onAcknowledge() },
+                    confirmButton = {
+                        TextButton(onClick = { exportViewModel.onAcknowledge() }) {
+                            Text("OK")
+                        }
+                    },
+                    title = { Text("Backup failed") },
+                    text = {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                )
+            else -> { /* Idle and Writing have no terminal dialog */ }
+        }
+
+        // Import confirm dialog. Per ADR-0016 the dialog MUST name the merge-by-id
+        // semantic explicitly so the user understands existing rows will not be
+        // overwritten. Silent merges are forbidden because the user otherwise cannot
+        // tell whether their on-device edits will survive an import.
+        when (val state = importState) {
+            is ImportBackupUiState.AwaitingConfirm ->
+                AlertDialog(
+                    onDismissRequest = { importViewModel.onCancelConfirm() },
+                    confirmButton = {
+                        TextButton(onClick = { importViewModel.confirmImport() }) {
+                            Text("Import")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { importViewModel.onCancelConfirm() }) {
+                            Text("Cancel")
+                        }
+                    },
+                    title = { Text("Import this backup?") },
+                    text = {
+                        Text(
+                            text =
+                                "This file contains ${state.pets} pets, ${state.medications} medications, " +
+                                    "${state.schedules} schedules, and ${state.doseEvents} dose events. " +
+                                    "Items whose IDs already exist on this device will be left alone; " +
+                                    "new items will be added. Your current data will not be overwritten.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                )
+            is ImportBackupUiState.Error ->
+                AlertDialog(
+                    onDismissRequest = { importViewModel.onAcknowledge() },
+                    confirmButton = {
+                        TextButton(onClick = { importViewModel.onAcknowledge() }) {
+                            Text("OK")
+                        }
+                    },
+                    title = { Text("Import failed") },
+                    text = {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                )
+            else -> { /* Idle, Importing, and Success use other surfaces */ }
         }
 
         SettingsCard(title = "Diagnostics") {
@@ -333,6 +554,43 @@ private fun ComingSoonItem(text: String) {
         )
         Text(text = text, style = MaterialTheme.typography.bodyMedium)
     }
+}
+
+/**
+ * Build the Toast text shown after a successful import. Names the merge-by-id semantic
+ * counts directly so a user whose file overlapped existing rows knows the existing
+ * rows survived intact. Per ADR-0016, the post-import announcement MUST surface the
+ * skipped counts even when zero, so the user learns the semantic on the first import
+ * and is not surprised on a later import that has overlaps.
+ */
+private fun buildImportSuccessText(summary: app.toebeans.core.backup.BackupImportSummary): String {
+    val added = summary.totalAdded
+    val skipped = summary.totalSkipped
+    return if (skipped == 0) {
+        "Import complete. Added $added items."
+    } else {
+        "Import complete. Added $added new items; kept $skipped existing items that " +
+            "already had matching IDs on this device."
+    }
+}
+
+/**
+ * Build the human-readable summary shown inside the "Backup saved" dialog. Kept as
+ * a top-level helper rather than a method on [ExportBackupUiState.Success] so the
+ * VM stays free of UI-string responsibility (per the same boundary that keeps the
+ * VM independent of Android types).
+ */
+private fun formatExportSummary(state: ExportBackupUiState.Success): String {
+    val kb = state.bytesWritten / 1024
+    val sizeLabel =
+        if (kb < 1) {
+            "${state.bytesWritten} bytes"
+        } else {
+            "$kb KB"
+        }
+    return "Saved $sizeLabel containing ${state.pets} pets, " +
+        "${state.medications} medications, ${state.schedules} schedules, " +
+        "and ${state.doseEvents} dose events."
 }
 
 @Preview(showBackground = true)

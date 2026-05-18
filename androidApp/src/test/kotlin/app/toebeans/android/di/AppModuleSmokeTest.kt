@@ -8,7 +8,12 @@ import app.toebeans.android.ui.pets.PetsViewModel
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.android.ui.schedule.ScheduleDetailViewModel
+import app.toebeans.android.ui.settings.ExportBackupViewModel
+import app.toebeans.android.ui.settings.ImportBackupViewModel
 import app.toebeans.android.ui.settings.SettingsViewModel
+import app.toebeans.core.backup.BackupAggregator
+import app.toebeans.core.backup.BackupImporter
+import app.toebeans.core.backup.BackupSerializer
 import org.junit.After
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -59,5 +64,14 @@ class AppModuleSmokeTest {
         assertNotNull(getKoin().get<ScheduleDetailViewModel>())
         assertNotNull(getKoin().get<ReminderListViewModel>())
         assertNotNull(getKoin().get<SettingsViewModel>())
+        assertNotNull(getKoin().get<ExportBackupViewModel>())
+        assertNotNull(getKoin().get<ImportBackupViewModel>())
+        // Also verify the singleton backup pipeline beans resolve, since the VMs above
+        // already exercise their constructors via Koin. Asserting them explicitly here
+        // produces a clearer failure if the singleton registration breaks (vs the
+        // diagnostic landing on the VM that depends on it).
+        assertNotNull(getKoin().get<BackupSerializer>())
+        assertNotNull(getKoin().get<BackupAggregator>())
+        assertNotNull(getKoin().get<BackupImporter>())
     }
 }
