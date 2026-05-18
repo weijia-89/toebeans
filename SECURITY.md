@@ -35,6 +35,46 @@ See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-d
 - `./gradlew dependencyCheckAnalyze` (OWASP) gate in CI.
 - Hallucinated-package vigilance per [`AGENTS.md` § Hallucination vigilance](AGENTS.md#hallucination-vigilance). Every new import requires explicit human verification against Maven Central.
 
+### Buildscript-transitive vs. app-runtime dependencies
+
+The supply-chain surface has two classes, and toebeans treats them very
+differently.
+
+**App-runtime classpath.** Anything that ends up in
+`:shared:jvmRuntimeClasspath` or `:androidApp:releaseRuntimeClasspath` ships
+to user devices, so a CVE here maps directly to user risk. The pinned
+versions in `gradle/libs.versions.toml` define this set, and a human review
+per `AGENTS.md` precedes any change.
+
+**Buildscript / plugin classpath.** Anything pulled in by the Android Gradle
+Plugin, the Kotlin Gradle Plugin, or other build-only plugins runs on the
+developer machine and the GitHub Actions runner during a build. None of
+these classes are packaged into the APK. The transitives that AGP pulls in
+(including the grpc-netty and bouncycastle stacks) live entirely in this
+classpath. A CVE on any of them is a developer-environment supply-chain
+concern, and end users on the published APK are not exposed.
+
+When Dependabot opens an alert on a buildscript-transitive dependency, the
+realized user risk is zero by construction. The alert is dismissed with
+reason `not_used` and a comment pointing at the triage log for that batch.
+
+We do not force-upgrade plugin transitives via
+`configurations.all { resolutionStrategy.force(...) }`. AGP plugin internals
+can break in non-obvious ways when forced to a version they were not built
+against, and the gain is buildscript-only.
+
+The upstream fix path is bumping AGP and Kotlin to versions whose transitives
+are already on the patched line. We piggyback those bumps on real motivating
+changes like a Kotlin minor release or a new Compose Multiplatform release,
+and avoid treating buildscript-only alerts as a reason to drive a Gradle
+upgrade on their own.
+
+Triage decisions are logged in
+`docs/security/dependabot-triage-<YYYY-MM-DD>.md` with the alert IDs, the
+classpath each package lives in, and the dismissal rationale per package.
+The first such log is
+[`docs/security/dependabot-triage-2026-05-18.md`](docs/security/dependabot-triage-2026-05-18.md).
+
 ## Disclosure
 
 We follow [coordinated disclosure](https://www.cisa.gov/coordinated-vulnerability-disclosure-process):
