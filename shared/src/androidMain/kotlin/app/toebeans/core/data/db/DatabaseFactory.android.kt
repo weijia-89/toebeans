@@ -26,11 +26,12 @@ public actual class DatabaseFactory(
     private val databaseName: String = "toebeans.db",
 ) {
     public actual fun create(): ToebeansDatabase {
-        val driver = AndroidSqliteDriver(
-            schema = ToebeansDatabase.Schema,
-            context = context,
-            name = databaseName,
-        )
+        val driver =
+            AndroidSqliteDriver(
+                schema = ToebeansDatabase.Schema,
+                context = context,
+                name = databaseName,
+            )
         return ToebeansDatabase(driver)
     }
 }
