@@ -118,7 +118,7 @@ public fun SettingsScreen(
                 importViewModel.readAndStage {
                     withContext(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                            ?: throw IllegalStateException(
+                            ?: error(
                                 "Could not open the selected file. Please pick a different location.",
                             )
                     }
