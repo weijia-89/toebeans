@@ -1,0 +1,114 @@
+-- Schedule.sq — Schedule + SchedulePhase entities, schema + queries.
+--
+-- VIBE-DANGEROUS per AGENTS.md.
+--
+-- Schedule and SchedulePhase are kept together in this file per ADR-0016: they are
+-- jointly imported/exported in backups and persisted atomically by
+-- ScheduleRepository.upsert(schedule, phases). Cross-file table references to Pet
+-- (Pet.sq) and Medication (Medication.sq) resolve in SQLDelight 2.x's same-package
+-- compilation.
+--
+-- Split from the original consolidated toebeans.sq on 2026-05-18.
+
+CREATE TABLE Schedule (
+    id            TEXT NOT NULL PRIMARY KEY,
+    medication_id TEXT NOT NULL,
+    start_date_iso TEXT NOT NULL,                            -- ISO-8601 yyyy-MM-dd, local-date semantics
+    end_date_iso   TEXT,                                     -- nullable = "until I stop it"
+    created_at    INTEGER NOT NULL,
+    FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
+);
+
+CREATE INDEX Schedule_medication_id_idx ON Schedule(medication_id);
+
+CREATE TABLE SchedulePhase (
+    id               TEXT NOT NULL PRIMARY KEY,
+    schedule_id      TEXT NOT NULL,
+    phase_order      INTEGER NOT NULL,                       -- 0, 1, 2, ...
+    duration_days    INTEGER NOT NULL CHECK (duration_days > 0),
+    doses_per_day    INTEGER NOT NULL CHECK (doses_per_day BETWEEN 1 AND 6),
+    dose_times_local TEXT NOT NULL,                          -- JSON array of HH:MM strings, length = doses_per_day
+    dose_amount      TEXT,                                   -- overrides Medication.dose_amount when non-null
+    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE,
+    UNIQUE (schedule_id, phase_order)
+);
+
+CREATE INDEX SchedulePhase_schedule_id_idx ON SchedulePhase(schedule_id);
+
+-- ====================================================================
+-- Schedule queries.
+-- ====================================================================
+
+-- Backs ScheduleRepository.observeById.
+selectScheduleById:
+SELECT * FROM Schedule WHERE id = ?;
+
+-- Active schedules for a medication ("active" = end_date is NULL or end_date >= ?). Pre-existing
+-- query; no fake method exactly matches this filtered shape (the fake's
+-- observeForMedication returns all schedules). Preserved for any consumer that
+-- already calls it.
+selectActiveSchedulesForMedication:
+SELECT * FROM Schedule WHERE medication_id = ? AND (end_date_iso IS NULL OR end_date_iso >= ?);
+
+-- Backs FakeScheduleRepository.observeForMedication. Returns all schedules for a
+-- medication (active + ended), ordered by created_at DESC to match the fake's
+-- sortedByDescending(Schedule::createdAt).
+selectSchedulesForMedication:
+SELECT * FROM Schedule WHERE medication_id = ? ORDER BY created_at DESC;
+
+-- Cross-pet active-schedule query that additionally filters out archived pets and
+-- discontinued medications. Used by surfaces that want "schedules whose chain is fully
+-- live". The fake's observeActiveWithPhases does NOT apply these archive/discontinued
+-- filters — for fake parity use selectSchedulesActiveOnOrAfter below.
+selectAllActiveSchedules:
+SELECT s.* FROM Schedule s
+  INNER JOIN Medication m ON m.id = s.medication_id
+  INNER JOIN Pet p ON p.id = m.pet_id
+WHERE p.archived_at IS NULL AND m.discontinued_at IS NULL
+  AND (s.end_date_iso IS NULL OR s.end_date_iso >= ?);
+
+-- Backs FakeScheduleRepository.observeActiveWithPhases. Filters only on end_date_iso
+-- to match the fake's semantics ("endDate == null OR endDate >= onOrAfter — a
+-- schedule that ended yesterday is NOT active for today's worklist", per
+-- ScheduleRepository.observeActiveWithPhases KDoc). Ordered by created_at ASC to
+-- match the fake's sortedBy { it.createdAt }.
+selectSchedulesActiveOnOrAfter:
+SELECT * FROM Schedule
+WHERE end_date_iso IS NULL OR end_date_iso >= ?
+ORDER BY created_at ASC;
+
+-- Backs FakeScheduleRepository.observeAll. Full snapshot for the backup aggregator
+-- (ADR-0016). Order is implementation-defined per the KDoc; descending by created_at
+-- to match the fake's sortedByDescending(Schedule::createdAt).
+selectAllSchedules:
+SELECT * FROM Schedule ORDER BY created_at DESC;
+
+-- Backs ScheduleRepository.upsert (schedule half). Idempotent on id.
+upsertSchedule:
+INSERT OR REPLACE INTO Schedule(id, medication_id, start_date_iso, end_date_iso, created_at)
+VALUES (?, ?, ?, ?, ?);
+
+-- Backs FakeScheduleRepository.delete(id). FK CASCADE removes the schedule's phases
+-- and any DoseEvents pinned to it.
+deleteSchedule:
+DELETE FROM Schedule WHERE id = ?;
+
+-- ====================================================================
+-- SchedulePhase queries.
+-- ====================================================================
+
+-- Backs FakeScheduleRepository.observePhases.
+selectPhasesForSchedule:
+SELECT * FROM SchedulePhase WHERE schedule_id = ? ORDER BY phase_order ASC;
+
+-- Backs FakeScheduleRepository.observeAllPhases. Full snapshot for the backup
+-- aggregator (ADR-0016). Order is implementation-defined per the KDoc — callers
+-- sort within a schedule using phase_order when ordering matters.
+selectAllSchedulePhases:
+SELECT * FROM SchedulePhase;
+
+-- Backs ScheduleRepository.upsert (phases half). Idempotent on id; the UNIQUE
+-- (schedule_id, phase_order) constraint enforces dense ordering.
+upsertSchedulePhase:
+INSERT OR REPLACE INTO SchedulePhase(id, schedule_id, phase_order, duration_days, doses_per_day, dose_times_local, dose_amount)
+VALUES (?, ?, ?, ?, ?, ?, ?);

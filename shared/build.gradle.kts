@@ -78,6 +78,16 @@ kotlin {
             }
         }
 
+        val jvmMain by getting {
+            dependencies {
+                // SQLDelight's JDBC SQLite driver backs the in-memory database used by
+                // DatabaseFactory.jvm.kt and by :shared:jvmTest. The Android target uses
+                // AndroidSqliteDriver via libs.sqldelight.driver.android; this driver
+                // exists strictly for the JVM smoke / unit test surface.
+                implementation(libs.sqldelight.driver.jvm)
+            }
+        }
+
         if (enableIosTargets.toBoolean()) {
             val iosMain by creating {
                 dependsOn(commonMain)
