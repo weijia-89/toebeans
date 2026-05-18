@@ -1,4 +1,4 @@
-# toebeans soak-test protocol — v0.1.0-internal-1
+# toebeans soak-test protocol, v0.1.0-internal-1
 
 Hand this document to every internal-testing-track tester (yourself
 included) before they install. It defines what "successful soak"
@@ -39,7 +39,7 @@ within 5 minutes of the scheduled time on a phone that was not in
 explicit Do Not Disturb.
 
 If a dose silently failed to fire (no notification, no record, the
-user only noticed because they checked the app manually) — **that is
+user only noticed because they checked the app manually), **that is
 a soak failure** even if it happened once in 30 days. Medication-
 critical apps don't get to grade themselves on a curve.
 
@@ -59,7 +59,7 @@ Set this up before the soak window opens.
 - Phone should be the tester's daily-driver, not a test device. The
   whole point is to soak under realistic battery state, doze, app-
   standby, and notification volume.
-- Do NOT disable battery optimization for toebeans yet — we want to
+- Do NOT disable battery optimization for toebeans yet. We want to
   see whether the default Android scheduling gets the job done. If
   it doesn't, we'll know that's a real-world problem, not a Pixel-
   pristine fiction.
@@ -71,13 +71,13 @@ Set this up before the soak window opens.
 - Do Not Disturb schedule documented: when does it fire on your
   device? toebeans does NOT currently bypass DND (that's an M1
   decision), so it matters whether DND eats a 10pm dose.
-- App not pinned, not foregrounded — toebeans should work when
+- App not pinned, not foregrounded. toebeans should work when
   backgrounded for hours.
 
 ### Data
 
 - Add at least one **real pet**. Don't soak with the seeded Luna and
-  Rufus alone — they don't generate alarms.
+  Rufus alone; they don't generate alarms.
 - Add at least one **real medication** with a **real schedule** that
   matters in your life. If you don't have a pet on medication, soak
   with a pretend-vitamin schedule, but commit to actually acting on
@@ -99,7 +99,7 @@ On day 0, record:
   100+ apps competing for the alarm budget).
 - Any custom Do Not Disturb schedule (start/end times, days).
 - Whether you've explicitly added toebeans to "Not optimized" in
-  battery settings (default: NO — we want to see real-world default).
+  battery settings (default: NO, since we want to see real-world default).
 
 Record this in the day-0 row of your daily log.
 
@@ -107,7 +107,7 @@ Record this in the day-0 row of your daily log.
 
 ## The daily log
 
-A spreadsheet, a notes app, a sticky-note next to your bed — anywhere
+A spreadsheet, a notes app, a sticky-note next to your bed, anywhere
 you'll keep it for 30 days.
 
 One row per day. Columns:
@@ -132,7 +132,7 @@ eventually arrived.
 
 "Silently missed" is the worst case. If you notice it (because you
 checked the app or the dose box), record it. If you didn't notice
-and you just kept moving — that's exactly what we're trying to
+and you just kept moving, that's exactly what we're trying to
 prevent in production, but we can't capture what you didn't see. The
 crash log won't catch it either; the alarm just doesn't fire. This
 is part of why ROADMAP M1 has a "crash-on-render-of-stale-event
@@ -150,8 +150,8 @@ Once a week, take 5 minutes and answer:
 2. **Friction.** Was there a moment this week where the app made
    medication tracking *harder* than no app would have been? What
    was it?
-3. **Trust.** Right now, would you trust toebeans alone — without a
-   second backup reminder, without a paper calendar — to keep your
+3. **Trust.** Right now, would you trust toebeans alone (without a
+   second backup reminder, without a paper calendar) to keep your
    pet on schedule? Why or why not?
 4. **Retention check (day 14 + 28 only).** Did you open the app at
    least once on each of the last 7 days? If you went a stretch
@@ -168,7 +168,7 @@ feature progress.
 ### A dose silently missed
 
 1. Open toebeans. Note whether the dose appears in the "Logged today"
-   card (it shouldn't — we didn't log it). Note whether it appears in
+   card (it shouldn't; we didn't log it). Note whether it appears in
    the Today worklist (it should, as a still-pending row).
 2. Note time, expected dose, actual time of discovery.
 3. Note phone state at the expected fire time if you can reconstruct
@@ -193,7 +193,7 @@ the same moment if you can. Add to "Anything weird".
 
 ### Travelling, daylight saving, time zone change
 
-ROADMAP M1.5 covers timezone-aware behavior. v0.1 does NOT — schedules
+ROADMAP M1.5 covers timezone-aware behavior. v0.1 does NOT. Schedules
 are stored in local time and fire at local times. If you travel
 across timezones during the soak, document:
 
@@ -210,7 +210,7 @@ This is exactly the data ADR-0007 wants for its G3 acceptance gate.
 Send this back. Markdown or plain text both fine.
 
 ```
-# toebeans soak-test report — <your name or initials> — <date range>
+# toebeans soak-test report, <your name or initials>, <date range>
 
 ## Setup
 - Phone: <make model>
@@ -221,7 +221,7 @@ Send this back. Markdown or plain text both fine.
 - Battery optimization for toebeans: <"not optimized" / "optimized" / "default">
 
 ## Pets and meds soaked
-- <pet 1>: <medication, schedule shape — e.g. "BID 8am/8pm">
+- <pet 1>: <medication, schedule shape, e.g. "BID 8am/8pm">
 - <pet 2 if any>: <...>
 
 ## Reliability tally (across the whole 30 days)
@@ -249,7 +249,7 @@ schedule? <yes / no / qualified yes>. Why?
 Did you open the app at least once on most days past day 14?
 <yes / no>. Why or why not?
 
-## Feature ideas (low priority — keep these short)
+## Feature ideas (low priority; keep these short)
 - <idea 1>
 - <idea 2>
 
@@ -273,7 +273,7 @@ Per ROADMAP M1.2 definition-of-done:
 - Use the timezone observations (if any traveled) as evidence for
   ADR-0007 G3.
 - Use the silently-missed count to size the M1 "crash-on-render-of-
-  stale-event safety net" work — if it's 0, the safety net is
+  stale-event safety net" work. If it's 0, the safety net is
   insurance; if it's >0, it's a P0 fix.
 
 Thank you. This is real-world data on a medication app and it is
