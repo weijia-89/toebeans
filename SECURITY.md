@@ -24,7 +24,7 @@ Please report security vulnerabilities **privately**. Do not open a public issue
 See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md`](docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md#12-threat-model-stride-code-helper-613) §12. Highlights:
 
 - **No PII collected.** No user accounts. No analytics. No network calls.
-- **Backup encryption.** Manual export is encrypted with AES-256-GCM, key derived from a user passphrase via Argon2id. The passphrase is **never** persisted.
+- **Backup encryption.** Manual backup export ships plain JSON in v1 per [ADR-0016](docs/adr/0016-plain-json-backup-encryption-deferred.md), which records the threat-model rationale for deferring encryption and names the four trigger conditions that reactivate the encrypted posture. The cipher design that activates on trigger is recorded in [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md). The design uses AES-256-GCM with a 128-bit authentication tag plus a passphrase-derived key via Argon2id, a memory-hard key derivation function (KDF) standardized in RFC 9106. The passphrase is **never** persisted.
 - **Android Auto Backup.** Encryption is provided by the Android platform's per-user device-bound key. If a user enables this feature, their data lives in their own Google account backup quota; toebeans never sees it.
 - **Permissions.** AndroidManifest is restricted to the explicit allowlist in [`AGENTS.md`](AGENTS.md). Adding any permission requires an ADR and human review.
 
