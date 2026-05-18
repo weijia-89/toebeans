@@ -88,7 +88,7 @@ public object StaleEventGuard {
     ): Nothing? {
         val msg = buildMessage(site, eventId, missingFieldName, missingValue)
         if (BuildConfig.DEBUG) {
-            throw IllegalStateException(msg)
+            error(msg)
         }
         Log.w(TAG, msg)
         return null
