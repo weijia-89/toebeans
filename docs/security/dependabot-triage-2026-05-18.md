@@ -174,6 +174,36 @@ Full log: `/tmp/toebeans-baseline.log`.
 * `settings.gradle.kts` — Dependabot's reported "manifest" for every
   alert; contains no dependency declarations, only plugin and repo
   configuration
-* `SECURITY.md` — threat model (does not currently address
-  buildscript-transitive supply-chain risk; could be amended)
+* `SECURITY.md` — threat model. Amended in the same branch
+  (`chore/dependabot-triage`) with a new subsection under Supply chain
+  posture that names the buildscript-transitive vs. app-runtime split
+  and documents the `not_used` dismissal policy.
 * `AGENTS.md` — vibe-safety classification for Gradle dep changes
+
+## Execution log
+
+* `2026-05-18T19:36Z` — Dismissed all 43 alerts via
+  `gh api PATCH /repos/weijia-89/toebeans/dependabot/alerts/<N>` with
+  `state=dismissed`, `dismissed_reason=not_used`, and the policy
+  comment below. Verified post-dismiss: `state=open` query returns 0
+  alerts.
+
+  Comment text (242 chars, under the GitHub 280-char limit):
+
+  > Buildscript transitive (AGP plugin classpath). Not in
+  > `:androidApp:releaseRuntimeClasspath` or `:shared:jvmRuntimeClasspath`;
+  > APK users not exposed. Policy: SECURITY.md > Supply chain posture.
+  > Triage: docs/security/dependabot-triage-2026-05-18.md
+
+  Audit trail on each alert preserves dismisser, timestamp, reason,
+  and comment.
+
+* `2026-05-18` — `.github/dependabot.yml` deferred. Investigated as
+  part of Path A. The `ignore` block in a Dependabot config file
+  prevents Dependabot from opening *update PRs* for matched packages,
+  and does **not** suppress security alerts on those packages.
+  GitHub's auto-dismiss rules for transitive dependencies are scoped
+  to npm `devDependencies` and do not apply to the Gradle buildscript
+  classpath. There is no clean repeatable suppression today; future
+  alerts on the same packages will need re-dismissal, anchored by the
+  policy in `SECURITY.md`.
