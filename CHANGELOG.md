@@ -32,6 +32,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 * Today screen now shows the current date below the title and renders pet
   chips for the household roster.
 * Bottom-nav-aware FAB placement and a warm color palette across screens.
+* `docs/screenshots/` directory with seven captures from the `toebeans-pixel7`
+  emulator. The README now embeds them inline: the Today screen as a hero
+  under the status line, a three-up strip showing the dose-log flow (Pets,
+  Pet Detail, Today after logging) beneath the feature bullets, the Reminders
+  list and Settings paired below that, and the first-launch welcome dialog
+  in the Security and privacy section.
 
 ### Changed
 

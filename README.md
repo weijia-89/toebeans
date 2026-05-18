@@ -6,6 +6,10 @@ third-party services.
 Status: `v0.1.0-dev`, pre-MVP scaffold. The dose-log surface works end-to-end.
 The reminder-firing path lands in the next milestone.
 
+<p align="center">
+  <img src="docs/screenshots/01-home-today.png" alt="Today screen with two pets and two pending Methimazole doses for Luna" width="280">
+</p>
+
 ## What it does today
 
 * Add pets with weight and birthdate, plus a free-text notes field.
@@ -16,6 +20,26 @@ The reminder-firing path lands in the next milestone.
   `on May 13` once enough time has passed.
 * Theme picker (Auto / Light / Dark). Optional Material You dynamic color on
   Android 12 and up.
+
+<p align="center">
+  <img src="docs/screenshots/02-pets-list.png" alt="Pets list with Luna the cat and Rufus the dog" width="220">
+  &nbsp;
+  <img src="docs/screenshots/03-pet-detail-luna.png" alt="Luna's detail showing Methimazole 2.5 mg and a Log dose now button" width="220">
+  &nbsp;
+  <img src="docs/screenshots/06-home-dose-logged.png" alt="Today screen after logging: morning dose shows Given check, Logged today row appears" width="220">
+</p>
+
+Pick a pet, tap **Log dose now** on the medication row. The Today screen
+records the morning dose as `Given ✓` and a row appears under **Logged today**.
+
+The Reminders tab lists every active schedule, and Settings holds the theme
+picker alongside the Material You toggle and the JSON export/import controls.
+
+<p align="center">
+  <img src="docs/screenshots/05-reminders.png" alt="Reminders list: Luna's Methimazole, twice daily for 3650 days" width="220">
+  &nbsp;
+  <img src="docs/screenshots/04-settings.png" alt="Settings: theme picker Auto/Light/Dark, Material You toggle, Data export and import, Diagnostics" width="220">
+</p>
 
 ## What it deliberately doesn't do
 
@@ -73,7 +97,8 @@ toebeans/
   shared/      KMP shared module
   androidApp/  Android app: Compose UI, fake repositories, theme prefs
   docs/
-    adr/       Short architecture decisions (MADR format)
+    adr/         Short architecture decisions (MADR format)
+    screenshots/ Emulator captures embedded in this README
     ARCHITECTURE.md
     ROADMAP.md
   scripts/     Build helpers and CI checks
@@ -89,6 +114,13 @@ here.
 Every record lives in app-private storage. Nothing leaves the device. There
 is no opt-in or opt-out for telemetry because there is none to opt into. The
 threat model is in [SECURITY.md](SECURITY.md).
+
+The first-launch dialog states the local-only posture in plain language and
+offers an opt-in demo dataset before any data is written.
+
+<p align="center">
+  <img src="docs/screenshots/00-welcome-dialog.png" alt="First-launch welcome dialog: toebeans is a local-first medication reminder, with Load demo data and Start fresh options" width="280">
+</p>
 
 ## License
 
