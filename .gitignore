@@ -59,3 +59,6 @@ jacoco.exec
 
 # Anything matching localonly convention (per workspace policy)
 localonly/
+
+# Git worktrees for parallel-agent work
+.worktrees/
