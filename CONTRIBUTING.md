@@ -22,6 +22,20 @@ Until JDK 17 is available locally, CI is the only compile-tests gate. A push tha
 
 The local gauntlet is the per-contributor mitigation, not the whole fix. The CI workflow itself still runs Lint before Gradle compile and short-circuits the latter on the former's failure, so the same inference problem reappears for any contributor without local JDK 17. Reworking `.github/workflows/ci.yml` to run lint and compile-tests as independent gates is tracked in [ADR-0017 § Followups](docs/adr/0017-lessons-from-adr-0016-ci-iteration.md#followups) as a separate, deferred work item.
 
+### When a Gradle dependency changes
+
+Whenever a commit adds, upgrades, or removes a Gradle dependency (any line in `gradle/libs.versions.toml` or any `implementation`/`api`/`testImplementation`/`runtimeOnly` declaration in a module's `build.gradle.kts`), run a dependency-refreshing compile step before the regular gauntlet:
+
+```
+./gradlew --refresh-dependencies :shared:compileTestKotlinJvm :androidApp:compileDebugUnitTestKotlin
+```
+
+The reason is mechanical. Gradle caches resolved dependencies aggressively. A contributor who edits `libs.versions.toml`, then runs the gauntlet without the `--refresh-dependencies` flag, may see green compile-tests that were resolved against the stale cache. The CI runner has no cache and resolves cleanly, so a dependency typo or a version that fails to resolve will fail in CI even though the local gauntlet was green.
+
+The first dependency addition this rule applies to is the BouncyCastle artifact `org.bouncycastle:bcprov-jdk18on`, planned for the Argon2id backup cipher implementation per [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md) and tracked as D1. The rule is general; it covers every future dependency change too.
+
+The CI workflow itself uses a fresh dependency resolution on every run (no cache key tied to `libs.versions.toml` exists today), so this addendum is a per-contributor local hygiene step. The wire-up of a CI-side dependency-resolution cache and the matching `--refresh-dependencies` gate is a separate, deferred concern outside this addendum's scope.
+
 ## What to read before contributing
 
 - [AGENTS.md](AGENTS.md). The load-bearing contract for any agent or human working on the codebase, including vibe-safety tiers, the permission allowlist, the refusal list, and the CI fitness functions.
