@@ -160,7 +160,7 @@ public fun SettingsScreen(
 
         SettingsCard(title = "Display") {
             // Three-way theme picker as a SingleChoiceSegmentedButtonRow. The "Auto"
-            // default option means most users never touch this — the segmented control
+            // default option means most users never touch this. The segmented control
             // is for the user who finds the system default uncomfortable in some
             // context (e.g. reading in bed, vet's office under fluorescents).
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -187,7 +187,7 @@ public fun SettingsScreen(
             }
 
             // Material You dynamic-color toggle. On Android < 12 (API 31) the underlying
-            // platform API doesn't exist, so we disable the row and explain why — leaving
+            // platform API doesn't exist, so we disable the row and explain why. Leaving
             // a dead toggle would just look broken. The Switch is right-aligned per the
             // M3 settings pattern; tapping the label as well as the switch toggles the
             // state (full-row touch target).
@@ -393,7 +393,7 @@ public fun SettingsScreen(
                 text =
                     "We collect nothing automatically. If toebeans crashes and you " +
                         "want to send the log, you can export it yourself. The log " +
-                        "contains the stack trace and your device model — no pet, " +
+                        "contains the stack trace and your device model. No pet, " +
                         "medication, or dose data.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -497,8 +497,8 @@ private fun SettingsRow(
 
 /**
  * Boolean toggle row used by the Display card. Two-line text (title + subtitle) on the
- * left, right-aligned [Switch] on the right. Tapping anywhere on the row toggles state —
- * the row itself is the click target, not just the Switch, so the visible touch surface
+ * left, right-aligned [Switch] on the right. Tapping anywhere on the row toggles state.
+ * The row itself is the click target, not just the Switch, so the visible touch surface
  * matches what a user expects from a Material 3 settings list.
  */
 @Composable
@@ -509,7 +509,7 @@ private fun ToggleRow(
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    // toggleable wraps the whole row in one accessible toggle node — TalkBack announces
+    // toggleable wraps the whole row in one accessible toggle node. TalkBack announces
     // "Material You colors, switch, on" rather than reading the title and subtitle as
     // separate text nodes plus a switch as its own control.
     Row(
