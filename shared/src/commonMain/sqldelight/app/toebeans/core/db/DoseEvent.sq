@@ -1,0 +1,132 @@
+-- DoseEvent.sq — DoseEvent entity schema + queries.
+--
+-- VIBE-DANGEROUS per AGENTS.md. The DoseEvent table is the medication-firing path's
+-- ground truth; every query here is on the critical surface.
+--
+-- DoseEvent rows are materialized LAZILY by the scheduler at a 72-hour horizon.
+-- Pre-generating an entire phase's events is a vibe-impossible anti-pattern
+-- (AGENTS.md). After resolution (given/skipped/missed), rows are retained for the
+-- 30-day history view.
+--
+-- medication_id is denormalized from Schedule.medication_id so retrospective
+-- surfaces (Home "Logged today", Pet detail history) can resolve the medication
+-- name even if the parent Schedule is deleted, and so the queries that drive those
+-- surfaces don't have to join DoseEvent -> Schedule -> Medication on every read.
+-- The DoseEvent model KDoc spells out the rationale; the ON DELETE policy is SET
+-- NULL there too (M1 work), but v0.1 the column is NOT NULL because no in-memory
+-- fake exercises the orphan path yet.
+--
+-- Split from the original consolidated toebeans.sq on 2026-05-18.
+
+CREATE TABLE DoseEvent (
+    id            TEXT NOT NULL PRIMARY KEY,
+    schedule_id   TEXT NOT NULL,
+    medication_id TEXT NOT NULL,
+    scheduled_at  INTEGER NOT NULL,                           -- epoch ms UTC
+    fired_at      INTEGER,                                    -- when the notification actually fired
+    resolved_at   INTEGER,                                    -- when user tapped 'Given' or 'Skipped'
+    status        TEXT NOT NULL CHECK (status IN ('pending', 'given', 'skipped', 'missed')),
+    note          TEXT,
+    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE,
+    FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
+);
+
+CREATE INDEX DoseEvent_schedule_id_idx ON DoseEvent(schedule_id);
+CREATE INDEX DoseEvent_medication_id_idx ON DoseEvent(medication_id);
+CREATE INDEX DoseEvent_scheduled_at_idx ON DoseEvent(scheduled_at);
+CREATE INDEX DoseEvent_status_idx ON DoseEvent(status);
+
+-- ====================================================================
+-- DoseEvent queries.
+-- ====================================================================
+
+-- Pending dose events in a time window. Used by the scheduler to project upcoming
+-- doses and by the missed-dose sweep. No direct fake method maps 1:1 (the fake
+-- composes via observeAll), but the production scheduler depends on this.
+selectPendingDoseEventsInRange:
+SELECT * FROM DoseEvent
+WHERE status = 'pending' AND scheduled_at >= ? AND scheduled_at < ?
+ORDER BY scheduled_at ASC;
+
+-- Backs FakeDoseEventRepository.observeForPet. Joins through Schedule + Medication
+-- to scope to a pet, with a since-filter and DESC order to match the fake.
+selectDoseEventsForPetSince:
+SELECT de.* FROM DoseEvent de
+  INNER JOIN Schedule s ON s.id = de.schedule_id
+  INNER JOIN Medication m ON m.id = s.medication_id
+WHERE m.pet_id = ? AND de.scheduled_at >= ?
+ORDER BY de.scheduled_at DESC;
+
+-- Backs FakeDoseEventRepository.observeLastGivenForMedication. Joins through
+-- Schedule to scope to a medication; status = GIVEN only; returns the row with
+-- the maximum scheduled_at (most recent). LIMIT 1 to match the fake's maxByOrNull
+-- contract (single row or none).
+selectLastGivenForMedication:
+SELECT de.* FROM DoseEvent de
+  INNER JOIN Schedule s ON s.id = de.schedule_id
+WHERE s.medication_id = ? AND de.status = 'given'
+ORDER BY de.scheduled_at DESC
+LIMIT 1;
+
+-- Backs FakeDoseEventRepository.observeAll. Full snapshot for the backup aggregator
+-- (ADR-0016): every status (pending/given/skipped/missed), no time filter, order is
+-- DESC by scheduled_at to match the fake's sortedByDescending { it.scheduledAt }.
+selectAllDoseEvents:
+SELECT * FROM DoseEvent ORDER BY scheduled_at DESC;
+
+-- Backs FakeDoseEventRepository.observeAllRecent. status = GIVEN only, scheduled_at
+-- since-filtered, DESC. Powers the Home "Logged today" surface. The fake does not
+-- apply a LIMIT — the interface KDoc suggests "LIMIT 50 and matching ORDER BY index"
+-- as the SQLDelight-impl posture, but we keep the query LIMIT-free here so the
+-- caller (C1d) can choose the limit. The scheduled_at index covers the ORDER BY.
+selectAllGivenSince:
+SELECT * FROM DoseEvent
+WHERE status = 'given' AND scheduled_at >= ?
+ORDER BY scheduled_at DESC;
+
+-- Count existing dose events for a schedule in a time window. Used by the
+-- scheduler to deduplicate when materializing the next 72h horizon. No direct
+-- fake method maps to this; the fake composes via observeAll.
+countExistingDoseEventsForScheduleInRange:
+SELECT COUNT(*) FROM DoseEvent
+WHERE schedule_id = ? AND scheduled_at >= ? AND scheduled_at < ?;
+
+-- Backs FakeDoseEventRepository.recordGivenNow and recordGivenForSlot (initial
+-- insert path; the idempotent replace-by-existing-id path uses upsertDoseEvent).
+-- Unique-id INSERT; will fail loudly on duplicate id (intentional — duplicate ids
+-- indicate a caller bug).
+insertDoseEvent:
+INSERT INTO DoseEvent(id, schedule_id, medication_id, scheduled_at, fired_at, resolved_at, status, note)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Backs FakeDoseEventRepository.upsert(event) — the backup-import path. INSERT OR
+-- REPLACE so an existing id (e.g. a re-imported event) is overwritten verbatim.
+-- BackupImporter enforces "insert new, skip existing" one layer up; this query
+-- exists for the rare replace path and for the fake's recordGivenForSlot
+-- idempotence rewrite when a (scheduleId, scheduledAt) collision is detected.
+upsertDoseEvent:
+INSERT OR REPLACE INTO DoseEvent(id, schedule_id, medication_id, scheduled_at, fired_at, resolved_at, status, note)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Stamp the notification-fired timestamp. Called by the alarm/work scheduler when
+-- the system actually surfaces the notification (vs. just enqueuing it).
+markDoseEventFired:
+UPDATE DoseEvent SET fired_at = ? WHERE id = ?;
+
+-- Resolve a pending DoseEvent to given/skipped (or any status), with resolved_at
+-- and optional note. Used by the Today-screen worklist's mark-given/mark-skipped
+-- buttons. Compose this with upsertDoseEvent at the repository layer to support
+-- the fake's recordGivenForSlot idempotence-on-(scheduleId, scheduledAt) path.
+resolveDoseEvent:
+UPDATE DoseEvent SET status = ?, resolved_at = ?, note = ? WHERE id = ?;
+
+-- Sweep stale pending events to MISSED status. Called by the missed-dose sweeper
+-- on each app foreground / scheduler tick.
+markStalePendingAsMissed:
+UPDATE DoseEvent SET status = 'missed', resolved_at = ?
+WHERE status = 'pending' AND scheduled_at < ?;
+
+-- Backs FakeDoseEventRepository.delete(doseEventId). Hard delete; the Undo
+-- affordance in the UI swaps the row back via insertDoseEvent.
+deleteDoseEvent:
+DELETE FROM DoseEvent WHERE id = ?;

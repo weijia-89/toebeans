@@ -1,0 +1,59 @@
+-- Pet.sq — Pet entity schema + queries.
+--
+-- VIBE-DANGEROUS per AGENTS.md: any change to this schema is a migration. Migrations
+-- require a human-written test, a human-read diff, and an ADR.
+--
+-- Timestamps are stored as INTEGER epoch milliseconds (UTC) to avoid SQLite
+-- string-date footguns and to keep arithmetic cheap on the indices.
+--
+-- Split from the original consolidated toebeans.sq on 2026-05-18 (feat/sqldelight-queries-split).
+-- See docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md §5 for the canonical data model.
+
+CREATE TABLE Pet (
+    id            TEXT NOT NULL PRIMARY KEY,                 -- UUID v4
+    name          TEXT NOT NULL,
+    species       TEXT NOT NULL,                             -- 'dog' | 'cat' at v1
+    birthdate_iso TEXT,                                      -- ISO-8601 yyyy-MM-dd, nullable
+    weight_kg     REAL,                                      -- nullable
+    notes         TEXT,
+    created_at    INTEGER NOT NULL,                          -- epoch ms UTC
+    archived_at   INTEGER                                    -- soft delete; nullable
+);
+
+CREATE INDEX Pet_archived_at_idx ON Pet(archived_at);
+
+-- ====================================================================
+-- Pet queries.
+-- ====================================================================
+
+-- Active pets only (excludes soft-archived rows). Used by surfaces that want to hide
+-- pets the user has archived.
+selectAllActivePets:
+SELECT * FROM Pet WHERE archived_at IS NULL ORDER BY name COLLATE NOCASE;
+
+-- All pets including archived. Backs FakePetRepository.observeAll() which does not
+-- filter on archived_at; PetRepository.observeAll() KDoc does not promise an archive
+-- filter. UI surfaces wanting "active only" should call selectAllActivePets.
+selectAllPets:
+SELECT * FROM Pet ORDER BY name COLLATE NOCASE;
+
+-- Backs PetRepository.getById and PetRepository.observeById (one-shot + flow).
+selectPetById:
+SELECT * FROM Pet WHERE id = ?;
+
+-- Backs PetRepository.upsert. Idempotent on id.
+upsertPet:
+INSERT OR REPLACE INTO Pet(id, name, species, birthdate_iso, weight_kg, notes, created_at, archived_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Soft-archive a pet (sets archived_at; row remains in the table). Preserved from
+-- the consolidated schema for any future archive surface. No fake method calls this
+-- today.
+archivePet:
+UPDATE Pet SET archived_at = ? WHERE id = ?;
+
+-- Backs FakePetRepository.delete(id). Hard delete; FK ON DELETE CASCADE on
+-- Medication/Schedule/SchedulePhase/DoseEvent removes the dependents when
+-- PRAGMA foreign_keys=ON is set (ADR-0010).
+deletePet:
+DELETE FROM Pet WHERE id = ?;

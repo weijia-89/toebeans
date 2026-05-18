@@ -63,6 +63,10 @@ sqldelight-runtime = { group = "app.cash.sqldelight", name = "runtime", version.
 sqldelight-coroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqldelight" }
 sqldelight-driver-android = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqldelight" }
 sqldelight-driver-native = { group = "app.cash.sqldelight", name = "native-driver", version.ref = "sqldelight" }
+# JVM driver (JdbcSqliteDriver) for :shared:jvmMain + :shared:jvmTest. No version bump
+# — pinned to the same SQLDelight version as the other drivers. Added to back the
+# DatabaseFactory.jvm actual + SchemaSmokeTest per feat/sqldelight-queries-split.
+sqldelight-driver-jvm = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

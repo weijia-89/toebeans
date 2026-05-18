@@ -1,0 +1,58 @@
+-- Medication.sq — Medication entity schema + queries.
+--
+-- VIBE-DANGEROUS per AGENTS.md.
+--
+-- References Pet(id) defined in Pet.sq. SQLDelight 2.x compiles all .sq files in the
+-- same database config together, so cross-file table references resolve at code-gen
+-- time. FK cascade is enforced at runtime per ADR-0010 (PRAGMA foreign_keys=ON).
+--
+-- Split from the original consolidated toebeans.sq on 2026-05-18.
+
+CREATE TABLE Medication (
+    id              TEXT NOT NULL PRIMARY KEY,
+    pet_id          TEXT NOT NULL,
+    name            TEXT NOT NULL,                           -- 'Prednisone'
+    dose_amount     TEXT NOT NULL,                           -- '10mg' — free text at MVP
+    notes           TEXT,
+    created_at      INTEGER NOT NULL,
+    discontinued_at INTEGER,                                 -- soft retire
+    FOREIGN KEY (pet_id) REFERENCES Pet(id) ON DELETE CASCADE
+);
+
+CREATE INDEX Medication_pet_id_idx ON Medication(pet_id);
+CREATE INDEX Medication_discontinued_at_idx ON Medication(discontinued_at);
+
+-- ====================================================================
+-- Medication queries.
+-- ====================================================================
+
+-- Active meds for a pet (excludes soft-discontinued). Used by surfaces filtering
+-- to "currently prescribed".
+selectActiveMedicationsForPet:
+SELECT * FROM Medication WHERE pet_id = ? AND discontinued_at IS NULL ORDER BY name COLLATE NOCASE;
+
+-- All meds for a pet including discontinued. Backs FakeMedicationRepository.observeForPet
+-- which does not filter on discontinued_at; the interface KDoc explicitly states
+-- "Returns active and discontinued medications alike — UI filters on Medication.discontinuedAt
+-- when 'active only' semantics are wanted."
+selectMedicationsForPet:
+SELECT * FROM Medication WHERE pet_id = ? ORDER BY name COLLATE NOCASE;
+
+-- Backs FakeMedicationRepository.observeAll. Cross-pet snapshot for Home subtitles
+-- and the backup aggregator (ADR-0016).
+selectAllMedications:
+SELECT * FROM Medication ORDER BY name COLLATE NOCASE;
+
+-- Backs FakeMedicationRepository.getById.
+selectMedicationById:
+SELECT * FROM Medication WHERE id = ?;
+
+-- Backs FakeMedicationRepository.upsert. Idempotent on id.
+upsertMedication:
+INSERT OR REPLACE INTO Medication(id, pet_id, name, dose_amount, notes, created_at, discontinued_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- Backs FakeMedicationRepository.delete(id). Hard delete; FK CASCADE removes
+-- Schedule/SchedulePhase/DoseEvent rows tied to this medication.
+deleteMedication:
+DELETE FROM Medication WHERE id = ?;
