@@ -122,6 +122,7 @@ The fitness function and the naming convention are not mutually exclusive. The c
 These artifacts are proposed by this ADR but NOT created here. Each one belongs in its own session.
 
 - **`CONTRIBUTING.md` (new file) or `AGENTS.md § Test-as-spec rules` addendum.** The local-gauntlet ordering paragraph in Lesson 1 above. Suggested home: `CONTRIBUTING.md § Pre-push gauntlet` if `CONTRIBUTING.md` is created, or a new sub-bullet under `AGENTS.md § Test-as-spec rules`.
+    - → Landed at `/CONTRIBUTING.md` in commit `91005cd` (`docs(contributing): add CONTRIBUTING.md with pre-push gauntlet ordering [vibe-safe]`). The five-step local gauntlet sequence and the lint-short-circuits-compile inference both live in the new file's `§ Pre-push gauntlet ordering` section.
 - **`scripts/test_no_duplicate_private_test_class_names.sh`.** The fitness function sketched in Lesson 2, plus the `scripts/test_pre_commit_hook.sh`-style negative test cases that verify it fires on the `4ee14a2` shape and passes on the `fa61a40` shape. The CI workflow `.github/workflows/ci.yml` would also need a job entry to invoke the new script; that integration is part of the same follow-on session.
 - **Naming-convention note** (lower-cost alternative). A one-bullet addition to `AGENTS.md § Test-as-spec rules` stating that top-level `private class` declarations in test files are named with a prefix tied to the containing test file, in the shape `<TestName><Role>...`, to avoid the K2 collision class.
 
