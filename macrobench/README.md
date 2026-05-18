@@ -8,14 +8,30 @@ ADR-0008 performance-budget enforcement. Today this module ships:
 - **`StartupBenchmark.startupCompilationBaselineProfile`**: cold-start with AGP's
   Baseline Profile compilation. Today this is informational only; the actual Baseline
   Profile lands in M1.5.
+- **`ReminderListScrollBenchmark.scrollCompilationNone`**: swipeUp on the Reminder
+  List `LazyColumn` with no AOT compilation. Budget: **60 fps median, ≤ 5% frames over
+  32 ms on Nokia C12 class.** Emits `FrameTimingMetric` (median, p99, max for
+  `frameDurationCpuMs` and `frameOverrunMs`).
+- **`ReminderListScrollBenchmark.scrollCompilationBaselineProfile`**: same path with
+  `CompilationMode.Partial()` (informational; pairs with the Baseline Profile work in
+  M1.5).
 
 Pending (tracked in `docs/ROADMAP.md`):
 
-- Reminder-list scroll fps benchmark. Ships alongside the Reminder List screen (M1
-  Tier B).
 - `computeScheduledDoses` JVM microbenchmark. ADR-0008 sets a < 50 ms budget for 72h ×
   4 doses × 2 phases. Lives in `:shared` (JVM) rather than here, because Macrobench
   cannot measure pure-Kotlin performance, only on-device frame/start metrics.
+
+## Known limitation: Reminder-list dataset is single-row in M1
+
+The in-process demo seed (`loadDemoData()` in `:androidApp`) currently inserts one
+pet, one medication, and one schedule. The Reminder List `LazyColumn` therefore
+renders one row. `ReminderListScrollBenchmark` still exercises the layout, recompose,
+and gesture pipeline, but the swipe gestures are degenerate on a single-row list and
+the resulting numbers do not yet stress the 60-fps budget meaningfully. When
+SQLDelight persistence + a representative demo dataset ship (M1 Tier C), this
+benchmark starts producing budget-relevant numbers without code changes; the
+swipeUp shape is identical between the degenerate and populated cases.
 
 ## Running locally
 
@@ -65,6 +81,8 @@ gives us a `benchmark` variant of `:androidApp` that the macrobench module targe
   `build.gradle.kts`.
 - `src/main/kotlin/app/toebeans/android/macrobench/StartupBenchmark.kt`: the cold-start
   benchmark itself.
+- `src/main/kotlin/app/toebeans/android/macrobench/ReminderListScrollBenchmark.kt`: the
+  Reminder List `LazyColumn` swipeUp benchmark.
 
 ## Vibe-tier
 
