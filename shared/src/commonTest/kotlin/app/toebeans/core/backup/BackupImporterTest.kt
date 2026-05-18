@@ -48,10 +48,10 @@ class BackupImporterTest {
     @Test
     fun `import into empty repositories inserts everything`() =
         runTest {
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val scheduleRepo = InMemoryScheduleRepo()
-            val doseEventRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val scheduleRepo = ImporterScheduleRepo()
+            val doseEventRepo = ImporterDoseEventRepo()
 
             val pet = samplePet(id = "pet-rufus", name = "Rufus")
             val med = sampleMed(id = "med-1", petId = pet.id)
@@ -104,10 +104,10 @@ class BackupImporterTest {
             // Coached merge-by-id semantic per ADR-0016: existing rows win, file rows
             // with matching ids are silently dropped. The user is informed via the
             // summary counts so they know how many "duplicates" the import declined.
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val scheduleRepo = InMemoryScheduleRepo()
-            val doseEventRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val scheduleRepo = ImporterScheduleRepo()
+            val doseEventRepo = ImporterDoseEventRepo()
 
             val existingPet = samplePet(id = "pet-rufus", name = "Rufus-existing")
             petRepo.upsert(existingPet)
@@ -147,10 +147,10 @@ class BackupImporterTest {
             // imported. This avoids leaving a stale schedule with new phases (which
             // would silently change the user's existing dosing) or new phases attached
             // to no schedule.
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val scheduleRepo = InMemoryScheduleRepo()
-            val doseEventRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val scheduleRepo = ImporterScheduleRepo()
+            val doseEventRepo = ImporterDoseEventRepo()
 
             val existingSchedule = sampleSchedule(id = "sched-existing", medicationId = "med-x")
             val existingPhase =
@@ -203,10 +203,10 @@ class BackupImporterTest {
     @Test
     fun `import inserts new schedule together with its file phases`() =
         runTest {
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val scheduleRepo = InMemoryScheduleRepo()
-            val doseEventRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val scheduleRepo = ImporterScheduleRepo()
+            val doseEventRepo = ImporterDoseEventRepo()
 
             val newSchedule = sampleSchedule(id = "sched-new", medicationId = "med-y")
             val phase1 =
@@ -259,7 +259,7 @@ class BackupImporterTest {
     @Test
     fun `import rejects schemaVersion newer than current`() =
         runTest {
-            val petRepo = InMemoryPetRepo()
+            val petRepo = ImporterPetRepo()
             val backup =
                 BackupExport(
                     schemaVersion = BackupExport.CURRENT_SCHEMA_VERSION + 1,
@@ -275,9 +275,9 @@ class BackupImporterTest {
             try {
                 BackupImporter(
                     petRepo,
-                    InMemoryMedRepo(),
-                    InMemoryScheduleRepo(),
-                    InMemoryDoseEventRepo(),
+                    ImporterMedRepo(),
+                    ImporterScheduleRepo(),
+                    ImporterDoseEventRepo(),
                 ).import(backup)
                 error("Expected BackupFormatException for schemaVersion > current")
             } catch (e: BackupFormatException) {
@@ -350,7 +350,7 @@ class BackupImporterTest {
 
 // ---- In-test minimal repository fakes ---------------------------------------
 
-private class InMemoryPetRepo : PetRepository {
+private class ImporterPetRepo : PetRepository {
     private val state = MutableStateFlow<Map<String, Pet>>(emptyMap())
 
     override fun observeAll(): Flow<List<Pet>> = state.asStateFlow().map { it.values.toList() }
@@ -368,7 +368,7 @@ private class InMemoryPetRepo : PetRepository {
     }
 }
 
-private class InMemoryMedRepo : MedicationRepository {
+private class ImporterMedRepo : MedicationRepository {
     private val state = MutableStateFlow<Map<String, Medication>>(emptyMap())
 
     override fun observeForPet(petId: String): Flow<List<Medication>> =
@@ -387,7 +387,7 @@ private class InMemoryMedRepo : MedicationRepository {
     }
 }
 
-private class InMemoryScheduleRepo : ScheduleRepository {
+private class ImporterScheduleRepo : ScheduleRepository {
     private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
     private val phasesById = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
 
@@ -428,7 +428,7 @@ private class InMemoryScheduleRepo : ScheduleRepository {
     }
 }
 
-private class InMemoryDoseEventRepo : DoseEventRepository {
+private class ImporterDoseEventRepo : DoseEventRepository {
     private val state = MutableStateFlow<Map<String, DoseEvent>>(emptyMap())
 
     override fun observeForPet(
