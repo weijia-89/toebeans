@@ -15,7 +15,7 @@ At the moment of wiring the codec to a UI surface (the Settings → Export data 
 2. **Who is the adversary?** No identifiable targeted adversary. Pet-medication-schedule data has low resale value to ad networks (it doesn't reveal human health, just animal-care patterns) and zero value to credential thieves. The only plausible adversary is a bulk-scraper of cloud storage who indiscriminately collects files; the mitigation against bulk scraping is "do not upload to insecure cloud storage," which is a user-behavior question, not a file-format question.
 3. **What does encryption-without-passphrase actually buy?** Three real options exist for keyless encryption, all of which fail the brief:
    - **Hardcoded key in app source.** Bytes look scrambled but anyone with the public APK can decrypt in under a minute via standard reverse-engineering. This is theater, not protection.
-   - **Device-bound key via Android Keystore.** Real encryption, but the backup is unreadable on any other device — defeats the primary backup use case (device-loss recovery on a new phone).
+   - **Device-bound key via Android Keystore.** Real encryption, but the backup is unreadable on any other device, defeating the primary backup use case (device-loss recovery on a new phone).
    - **Passphrase entry.** Real encryption, real portability, but ~1s PBKDF2 wait per export, a two-field confirm-passphrase UI, an irrecoverability warning, and a "remember this exactly" cognitive load on the user. Justified for high-value secrets; disproportionate for pet medication schedules.
 4. **What is the cost of encryption today?** ~1s PBKDF2 spinner per export, ~3s for a 1000-event archive (see ADR-0008 perf-budget row). Passphrase UI complexity. The user has to track a passphrase they will use rarely. ADR-0003 mitigation ("monthly verify-your-backup prompt") was itself a friction point.
 5. **What is the cost of plain export today?** None. The user opens the file in any text editor or `jq` to verify contents, which is an unexpectedly nice product property.
@@ -63,7 +63,7 @@ At the moment of wiring the codec to a UI surface (the Settings → Export data 
 
 ## Verification
 
-- `scripts/test_no_network.sh` still applies — the backup file is local-only; no upload path exists in v1.
+- `scripts/test_no_network.sh` still applies, since the backup file is local-only; no upload path exists in v1.
 - `BackupCipherTest` and `BackupSerializerTest` stay green under Kover (the dormant cipher must not bit-rot).
 - The Settings → Export data button MUST do real work (no Toast-stub regressions per ADR-0003 line 45-47 reasoning).
 - The new `BackupAggregatorTest` covers the round-trip fixture: fake-repo state → `BackupAggregator.collect()` → `BackupSerializer.encodeToString` → `decodeFromString` → field equality with the source state.
@@ -71,9 +71,9 @@ At the moment of wiring the codec to a UI surface (the Settings → Export data 
 
 ## References
 
-- ADR-0003 (Local-first storage. No cloud at v1.) — amended to point to this ADR for the actual v1 posture.
-- ADR-0008 (Performance class target) — backup export 1000-event perf row no longer "PBKDF2 dominates"; remains as a budget for the JSON serialization + I/O.
-- ADR-0009 (Local crash-log capture; no telemetry) — sibling decision in the same trust-posture vein.
-- `shared/src/commonMain/kotlin/app/toebeans/core/backup/BackupCipher.kt` — the dormant cipher.
-- `shared/src/commonMain/kotlin/app/toebeans/core/backup/BackupExport.kt` — the wire-format data class (unchanged by this ADR).
-- `.codeit/calibration.jsonl` — calibration log entry at the implementing commit; coached-override entry for the merge-by-id dedupe choice.
+- ADR-0003 (Local-first storage. No cloud at v1.): amended to point to this ADR for the actual v1 posture.
+- ADR-0008 (Performance class target): backup export 1000-event perf row no longer "PBKDF2 dominates"; remains as a budget for the JSON serialization + I/O.
+- ADR-0009 (Local crash-log capture; no telemetry): sibling decision in the same trust-posture vein.
+- `shared/src/commonMain/kotlin/app/toebeans/core/backup/BackupCipher.kt`: the dormant cipher.
+- `shared/src/commonMain/kotlin/app/toebeans/core/backup/BackupExport.kt`: the wire-format data class (unchanged by this ADR).
+- `.codeit/calibration.jsonl`: calibration log entry at the implementing commit; coached-override entry for the merge-by-id dedupe choice.

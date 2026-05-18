@@ -12,7 +12,7 @@ Three UI surfaces shipped in M1 Tier B (B7 Schedule Detail, B8 inline calculator
 - Declares Compose semantics (`clearAndSetSemantics`, `LiveRegionMode.Polite`, `contentDescription`).
 - Has NO automated test that verifies the banner actually renders, that the affirm button actually wires to the VM, or that TalkBack would actually announce the warning on appearance.
 
-The deferral was rationalized in v0.1-followups #1 as "the project does not yet use a snapshot framework." Empirically that's correct: `androidApp/build.gradle.kts` test deps are `junit`, `robolectric`, `kotlinx-coroutines-test` only. `grep -rE "androidx\.compose\.ui\.test" androidApp/src` returns zero hits. The framework is **not on the classpath**, and adopting it requires a Gradle dependency addition — which AGENTS.md classifies as **vibe-dangerous** (floor ≥95, mandatory human review).
+The deferral was rationalized in v0.1-followups #1 as "the project does not yet use a snapshot framework." Empirically that's correct: `androidApp/build.gradle.kts` test deps are `junit`, `robolectric`, `kotlinx-coroutines-test` only. `grep -rE "androidx\.compose\.ui\.test" androidApp/src` returns zero hits. The framework is **not on the classpath**, and adopting it requires a Gradle dependency addition, which AGENTS.md classifies as **vibe-dangerous** (floor ≥95, mandatory human review).
 
 This ADR exists to make the dep addition reviewable in isolation rather than smuggled into an unrelated commit.
 

@@ -1,4 +1,4 @@
-# ADR-0008: Performance-class target — budget 2023 Android
+# ADR-0008: Performance-class target, budget 2023 Android
 
 Date: 2026-05-15
 Status: Accepted
@@ -6,7 +6,7 @@ Deciders: Wei Jia (with Cascade)
 
 ## Context
 
-toebeans is a medication-reminder app, not a heavyweight content-and-media app. The audience is "pet owners," which skews demographically toward the same device population as parents-of-young-children and price-conscious adults — i.e., budget Android.
+toebeans is a medication-reminder app, not a heavyweight content-and-media app. The audience is "pet owners," which skews demographically toward the same device population as parents-of-young-children and price-conscious adults, i.e., budget Android.
 
 If we let the design implicitly assume a $700 flagship, two failure modes appear:
 
@@ -41,7 +41,7 @@ We need an **explicit lowest-supported-device target** that every ADR and every 
 | `ScheduleCalculator.computeScheduledDoses` window max | 30 days (720h; covers milestone 2 "next month" view) | `computeScheduledDoses` `require` |
 | `ScheduleCalculator` event-count safety cap | 100,000 events (defense in depth; the per-field caps make this unreachable for legitimate input) | `computeScheduledDoses` final-size assertion |
 
-**On `dosesPerDay`:** the hardware (ADR-0008) could comfortably handle 24/day (q1h). The domain (toebeans is for owner-administered medication, not clinical care) caps it at 6. The enforced bound is the stricter (6). If a future feature targets clinical-care (post-op, ICU pets in foster homes), this cap may need a re-evaluation — but that is a new ADR, not an in-place edit.
+**On `dosesPerDay`:** the hardware (ADR-0008) could comfortably handle 24/day (q1h). The domain (toebeans is for owner-administered medication, not clinical care) caps it at 6. The enforced bound is the stricter (6). If a future feature targets clinical-care (post-op, ICU pets in foster homes), this cap may need a re-evaluation in a new ADR; an in-place edit is not the right shape.
 
 These caps are **defense in depth.** A correctly-built UI never reaches them. They exist to prevent a buggy or malicious caller from allocating gigabytes.
 
@@ -61,23 +61,23 @@ These caps are **defense in depth.** A correctly-built UI never reaches them. Th
 - **Recomposing the entire reminder list on a single event update.** Use stable keys and `LazyColumn` item-level recomposition.
 - **Embedding large binary assets** (images > 100 KB; fonts not subset). Cumulative APK weight target ≤ 8 MB.
 - **Using Compose's `derivedStateOf` for cheap computations.** It is only worth its overhead for genuinely expensive derivations.
-- **Allocation in hot paths** (per-frame, per-alarm). The alarm-firing path runs on a constrained `JobIntentService`-style budget — allocations there can OOM.
+- **Allocation in hot paths** (per-frame, per-alarm). The alarm-firing path runs on a constrained `JobIntentService`-style budget; allocations there can OOM.
 
 ### Reference devices (CI matrix when budget allows)
 
 Milestone 1 ships with macrobenchmarks on a single device class (emulator-config approximating Nokia C12). Milestone 1.5+ should expand to:
 
-- Nokia C12 (Android Go, 2 GB) — minimum viable user
-- Moto G Play 2023 (3 GB) — modal budget Android
-- Samsung Galaxy A14 (4 GB) — typical budget Android
-- Pixel 7a (8 GB) — developer reference (NOT the design target)
+- Nokia C12 (Android Go, 2 GB): minimum viable user
+- Moto G Play 2023 (3 GB): modal budget Android
+- Samsung Galaxy A14 (4 GB): typical budget Android
+- Pixel 7a (8 GB): developer reference (NOT the design target)
 
 ## Consequences
 
 ### Positive
 
 - Every future ADR can refer to "the ADR-0008 target" instead of relitigating "what device do we support?"
-- Junior contributors get a hard answer to "is this fast enough?" — run the benchmark on the target.
+- Junior contributors get a hard answer to "is this fast enough?". Run the benchmark on the target.
 - Forces the codebase to be cheap on memory and CPU, which compounds into longer battery life and smaller APK.
 
 ### Negative

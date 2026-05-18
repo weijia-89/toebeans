@@ -1,7 +1,7 @@
-# toebeans — MVP design doc
+# toebeans: MVP design doc
 
 **Date:** 2026-05-14
-**Status:** DRAFT — pending user approval
+**Status:** DRAFT, pending user approval
 **Author:** Cascade (working session w/ Wei Jia)
 **Skill provenance:** `brainstorming` → this doc → `code-helper plan-new-app` → scaffold
 **Companion:** see `@research/00-feasibility-dossier.md` for market/competitive/M&A evidence
@@ -212,7 +212,7 @@ No PII collected. No analytics. No crash reporting in v1 (revisit at pre-distrib
 2. detekt
 3. unit tests (commonTest + androidTest unit)
 4. Robolectric tests
-5. instrumented soak test (smoke, not full 30-day — see §7)
+5. instrumented soak test (smoke run only; see §7 for the 30-day rationale)
 6. **fitness functions** (see §9)
 7. Build debug APK
 
@@ -222,18 +222,18 @@ No PII collected. No analytics. No crash reporting in v1 (revisit at pre-distrib
 
 ## 7. First five ADRs (titles + context)
 
-1. **ADR-0001 — KMP + Compose Multiplatform.** Context: Android first, iOS preserved. Compose-MP stable for iOS as of May 2025. Single UI codebase outweighs maturity risk.
-2. **ADR-0002 — AlarmManager + WorkManager hybrid for medication reminders.** Context: WorkManager alone misses Doze/standby exactness; AlarmManager.setExactAndAllowWhileIdle required. Permission UX must explain why.
-3. **ADR-0003 — Local-first, no cloud in v1. User-controlled backup.** Context: privacy posture is a moat (dossier §3.3). Default = manual encrypted JSON export; opt-in = Android Auto Backup with sign-in disclosure.
-4. **ADR-0004 — Tapering schedule model: Schedule + ordered SchedulePhase rows.** Context: covers fixed-interval and tapering uniformly. DoseEvents materialized lazily at 72h horizon.
-5. **ADR-0005 — Vibe-dangerous classification for the reminder-firing path.** Context: medication adherence is health-critical. Per code-helper §1, this path requires human-written tests, human-read diffs, staged rollout. Test-as-spec is mandatory.
+1. **ADR-0001: KMP + Compose Multiplatform.** Context: Android first, iOS preserved. Compose-MP stable for iOS as of May 2025. Single UI codebase outweighs maturity risk.
+2. **ADR-0002: AlarmManager + WorkManager hybrid for medication reminders.** Context: WorkManager alone misses Doze/standby exactness; AlarmManager.setExactAndAllowWhileIdle required. Permission UX must explain why.
+3. **ADR-0003: Local-first, no cloud in v1. User-controlled backup.** Context: privacy posture is a moat (dossier §3.3). Default = manual encrypted JSON export; opt-in = Android Auto Backup with sign-in disclosure.
+4. **ADR-0004: Tapering schedule model: Schedule + ordered SchedulePhase rows.** Context: covers fixed-interval and tapering uniformly. DoseEvents materialized lazily at 72h horizon.
+5. **ADR-0005: Vibe-dangerous classification for the reminder-firing path.** Context: medication adherence is health-critical. Per code-helper §1, this path requires human-written tests, human-read diffs, staged rollout. Test-as-spec is mandatory.
 
 ---
 
 ## 8. AGENTS.md / CLAUDE.md scaffold
 
 ```
-# toebeans — agent host contract
+# toebeans: agent host contract
 
 ## Posture
 - Anti-enterprise default. Boring tech. Modular monolith (KMP shared + Android app).
@@ -304,11 +304,11 @@ Enforced in CI on every PR:
 
 ## 11. Smells to watch in month 3 (code-helper §6.11)
 
-1. **Manifest permission creep** — anything beyond the §9 allowlist.
-2. **DoseEvent table growth without index maintenance** — slow Home screen.
-3. **Snooze creep** — if we add snooze (deferred from MVP), watch for users using it to silence forever.
-4. **Notification channel proliferation** — keep to 1–2 channels (medication-critical, general).
-5. **OEM-specific battery workarounds in code** — keep these in one file, documented; do not scatter.
+1. **Manifest permission creep:** anything beyond the §9 allowlist.
+2. **DoseEvent table growth without index maintenance:** slow Home screen.
+3. **Snooze creep:** if we add snooze (deferred from MVP), watch for users using it to silence forever.
+4. **Notification channel proliferation:** keep to 1–2 channels (medication-critical, general).
+5. **OEM-specific battery workarounds in code:** keep these in one file, documented; do not scatter.
 
 ---
 
@@ -316,12 +316,12 @@ Enforced in CI on every PR:
 
 | Threat | Surface | Mitigation | Tag |
 |---|---|---|---|
-| **S — Spoofing** | n/a (no auth in v1) | n/a | `[verified]` |
-| **T — Tampering** | local DB; backup file | Manual export: file encrypted with AES-256-GCM, key derived (Argon2id) from a passphrase the user enters at export time and again at import time. Passphrase never persisted. DB is in app-private storage. Android Auto Backup: encryption provided by Android platform (per-user device-bound key). | `[verified]` |
-| **R — Repudiation** | DoseEvent log | n/a (single-user, no claims to repudiate) | `[verified]` |
-| **I — Info disclosure** | backup file leaked; device shared | Backup is encrypted with user passphrase (not stored). Settings warn before enabling Android Auto Backup that data lands in user's Google account. | `[verified]` |
-| **D — Denial of service** | malicious notification flood on boot | RECEIVE_BOOT_COMPLETED handler reschedules only future events inside the 72h horizon; capped at `MAX_PENDING_PER_PET=64`. | `[verified]` |
-| **E — Elevation of privilege** | exported components | All Activities/Receivers explicitly `android:exported="false"` except the NotificationAction receiver (intent-filter-restricted). | `[verified]` |
+| **S: Spoofing** | n/a (no auth in v1) | n/a | `[verified]` |
+| **T: Tampering** | local DB; backup file | Manual export: file encrypted with AES-256-GCM, key derived (Argon2id) from a passphrase the user enters at export time and again at import time. Passphrase never persisted. DB is in app-private storage. Android Auto Backup: encryption provided by Android platform (per-user device-bound key). | `[verified]` |
+| **R: Repudiation** | DoseEvent log | n/a (single-user, no claims to repudiate) | `[verified]` |
+| **I: Info disclosure** | backup file leaked; device shared | Backup is encrypted with user passphrase (not stored). Settings warn before enabling Android Auto Backup that data lands in user's Google account. | `[verified]` |
+| **D: Denial of service** | malicious notification flood on boot | RECEIVE_BOOT_COMPLETED handler reschedules only future events inside the 72h horizon; capped at `MAX_PENDING_PER_PET=64`. | `[verified]` |
+| **E: Elevation of privilege** | exported components | All Activities/Receivers explicitly `android:exported="false"` except the NotificationAction receiver (intent-filter-restricted). | `[verified]` |
 
 **Privacy (LINDDUN-lite):** see §5 data classification table. No data collection. No analytics. No transmission.
 

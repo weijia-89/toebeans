@@ -3,11 +3,11 @@
 Date: 2026-05-14
 Status: Accepted
 Deciders: Wei Jia (with Cascade)
-Amended: 2026-05-17 — manual backup posture revised to plain JSON for v1. See ADR-0016 and the inline Amendment note below.
+Amended: 2026-05-17. Manual backup posture revised to plain JSON for v1. See ADR-0016 and the inline Amendment note below.
 
 ## Context
 
-The product plan and the feasibility dossier argue that the trust posture — "your data stays on your device" — is a moat against cloud-default competitors like PetDesk and Great Pet Care. The competitive analysis (`research/00-feasibility-dossier.md` §3.3) identifies trust as one of five defensible moats.
+The product plan and the feasibility dossier argue that the trust posture ("your data stays on your device") is a moat against cloud-default competitors like PetDesk and Great Pet Care. The competitive analysis (`research/00-feasibility-dossier.md` §3.3) identifies trust as one of five defensible moats.
 
 Two questions:
 
@@ -62,7 +62,7 @@ The original posture (encrypted + passphrase) is recoverable verbatim from the d
 
 - **Cloud sync from day 1 (Firebase / Supabase).** Rejected: adds auth, a server cost center, GDPR/CCPA scope, and undermines the moat. Deferred to milestone 6 (Plus tier).
 - **Android Auto Backup default-on (silent).** Rejected: users do not realize their pet data is being uploaded to Google. We require explicit opt-in.
-- **Plaintext export.** ~~Rejected: backup files often end up in cloud drives, on USB sticks, attached to emails. Encryption-at-rest for exports is non-negotiable.~~ (Reversed by ADR-0016 on 2026-05-17. Threat-model reassessment found pet-medication-schedule data does not warrant encryption-at-rest at v1's asset value, and the keyless-encryption options all fail the brief — theater, non-portable, or not actually keyless. Accepted v2 trigger conditions reactivate the encrypted posture; see ADR-0016 §Decision.)
+- **Plaintext export.** ~~Rejected: backup files often end up in cloud drives, on USB sticks, attached to emails. Encryption-at-rest for exports is non-negotiable.~~ (Reversed by ADR-0016 on 2026-05-17. Threat-model reassessment found pet-medication-schedule data does not warrant encryption-at-rest at v1's asset value, and the keyless-encryption options all fail the brief. Each is theater, non-portable, or not actually keyless. Accepted v2 trigger conditions reactivate the encrypted posture; see ADR-0016 §Decision.)
 
 ## Verification
 
@@ -73,4 +73,4 @@ The original posture (encrypted + passphrase) is recoverable verbatim from the d
 ## References
 
 - Internal: `research/00-feasibility-dossier.md` §3.3 (trust as a moat) and §4.5 (regulatory posture).
-- OWASP Mobile Security Top 10 — M9: Insecure Data Storage.
+- OWASP Mobile Security Top 10 (M9: Insecure Data Storage).

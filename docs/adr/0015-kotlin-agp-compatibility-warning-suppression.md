@@ -100,4 +100,4 @@ This ADR moves to **Superseded** if any of the following:
 - `gradle.properties` (where the suppression line lives)
 - `gradle/libs.versions.toml:13` (`agp = "8.7.0"`)
 - 2026-05-17 session calibration entry (under "fix(build, kotlin): suppress KGP/AGP advisory warning per ADR-0015")
-- ADR-0008 (`performance-class-target.md`) — benefits of AGP 8.6/8.7 Compose perf improvements
+- ADR-0008 (`performance-class-target.md`): benefits of AGP 8.6/8.7 Compose perf improvements

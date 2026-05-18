@@ -2,10 +2,10 @@
 
 ADR-0008 performance-budget enforcement. Today this module ships:
 
-- **`StartupBenchmark.startupCompilationNone`** — cold-start of `MainActivity` with no
+- **`StartupBenchmark.startupCompilationNone`**: cold-start of `MainActivity` with no
   AOT compilation (the worst-case path a fresh-install user hits). Budget: **< 2,000 ms
   on Nokia C12 class** (the ADR-0008 lowest-supported device).
-- **`StartupBenchmark.startupCompilationBaselineProfile`** — cold-start with AGP's
+- **`StartupBenchmark.startupCompilationBaselineProfile`**: cold-start with AGP's
   Baseline Profile compilation. Today this is informational only; the actual Baseline
   Profile lands in M1.5.
 
@@ -13,9 +13,9 @@ Pending (tracked in `docs/ROADMAP.md`):
 
 - Reminder-list scroll fps benchmark. Ships alongside the Reminder List screen (M1
   Tier B).
-- `computeScheduledDoses` JVM microbenchmark — ADR-0008 sets a < 50 ms budget for 72h ×
+- `computeScheduledDoses` JVM microbenchmark. ADR-0008 sets a < 50 ms budget for 72h ×
   4 doses × 2 phases. Lives in `:shared` (JVM) rather than here, because Macrobench
-  cannot measure pure-Kotlin performance — only on-device frame/start metrics.
+  cannot measure pure-Kotlin performance, only on-device frame/start metrics.
 
 ## Running locally
 
@@ -44,10 +44,10 @@ self-hosted runners but adds ~5 minutes of wall-clock time per PR and a non-triv
 flake rate. Decision: **manual + nightly trigger** rather than per-PR.
 
 Per the ADR-0008 sequencing:
-- **M1.1** — module exists, manual run on a developer machine before each release.
-- **M1.2** — nightly GitHub Actions workflow on a self-hosted runner; results posted
+- **M1.1**: module exists, manual run on a developer machine before each release.
+- **M1.2**: nightly GitHub Actions workflow on a self-hosted runner; results posted
   to the Issues tab if budget is breached.
-- **M1.5+** — multi-device CI matrix (Nokia C12, Moto G Play, A14, Pixel 7a).
+- **M1.5+**: multi-device CI matrix (Nokia C12, Moto G Play, A14, Pixel 7a).
 
 ## Why a separate Gradle module
 
@@ -58,12 +58,12 @@ gives us a `benchmark` variant of `:androidApp` that the macrobench module targe
 
 ## Files
 
-- `build.gradle.kts` — applies the `com.android.test` + `androidx.benchmark` plugins,
+- `build.gradle.kts`: applies the `com.android.test` + `androidx.benchmark` plugins,
   pins min SDK to 29 (needed for `<profileable>`), points at `:androidApp` as the
   target project, disables non-benchmark variants for build-time savings.
-- `src/main/AndroidManifest.xml` — empty placeholder; the test runner is configured in
+- `src/main/AndroidManifest.xml`: empty placeholder; the test runner is configured in
   `build.gradle.kts`.
-- `src/main/kotlin/app/toebeans/android/macrobench/StartupBenchmark.kt` — the cold-start
+- `src/main/kotlin/app/toebeans/android/macrobench/StartupBenchmark.kt`: the cold-start
   benchmark itself.
 
 ## Vibe-tier

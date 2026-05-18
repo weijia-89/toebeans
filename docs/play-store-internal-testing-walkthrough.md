@@ -1,9 +1,9 @@
-# Play Store internal-testing track — walkthrough
+# Play Store internal-testing track: walkthrough
 
 A step-by-step for getting toebeans onto an internal-testing track so 1–3
 trusted testers (including yourself) can soak-test the app on real
-hardware. The internal track is the fastest one to set up — review is
-usually under 24 hours, sometimes under one — and it does NOT make the
+hardware. The internal track is the fastest one to set up (review is
+usually under 24 hours, sometimes under one) and it does NOT make the
 listing publicly searchable.
 
 This document is action-ordered. Don't reorder steps; the Play Console
@@ -18,7 +18,7 @@ gates some of them behind earlier completions.
 
 ---
 
-## Phase 0 — Prerequisites (do these BEFORE you open Play Console)
+## Phase 0: Prerequisites (do these BEFORE you open Play Console)
 
 You need these artifacts in hand. Building them mid-walkthrough wastes
 time because Play Console will time you out.
@@ -35,16 +35,16 @@ time because Play Console will time you out.
 | Signing keystore | `*.jks` or Play App Signing | file | See "App signing" below. |
 | Release AAB | `androidApp/build/outputs/bundle/release/androidApp-release.aab` | AAB | NOT an APK. Built via `./gradlew :androidApp:bundleRelease`. |
 | Privacy / data-safety answers | This document, "Data safety form" section | n/a | Pre-decide every answer; the form is mechanical once you have them. |
-| Content rating questionnaire answers | This document, "Content rating" section | n/a | Same — pre-decide. |
+| Content rating questionnaire answers | This document, "Content rating" section | n/a | Same, pre-decide. |
 | Tester email list | Plain text, one email per line | text | The Gmail addresses of the 1–3 humans who'll install the app. They must accept the invite link. |
 
-### Privacy policy — minimum viable copy
+### Privacy policy: minimum viable copy
 
 Host this on any free static host (GitHub Pages is fine):
 `https://<your-handle>.github.io/toebeans-privacy/`.
 
 ```
-# toebeans — Privacy Policy
+# toebeans: Privacy Policy
 
 Last updated: <YYYY-MM-DD>
 
@@ -60,8 +60,8 @@ No advertising IDs. No account creation.
 ## Data you can share with us
 
 If you encounter a crash, the app stores a local crash log on your
-device (the stack trace plus your Android version and device model —
-no pet, medication, or dose information). Under Settings → Export
+device (the stack trace plus your Android version and device model,
+with no pet, medication, or dose information). Under Settings → Export
 crash log you can choose to share that file with us; nothing leaves
 your device unless you actively tap "share".
 
@@ -107,7 +107,7 @@ users. This is a vibe-dangerous bag to be holding at the v0.1 stage.
 
 ---
 
-## Phase 1 — Developer account
+## Phase 1: Developer account
 
 1. Go to `https://play.google.com/console`.
 2. Sign in with the dedicated Google account from Phase 0.
@@ -122,9 +122,9 @@ users. This is a vibe-dangerous bag to be holding at the v0.1 stage.
 
 ---
 
-## Phase 2 — Build the release artifact
+## Phase 2: Build the release artifact
 
-Do this BEFORE creating the app entry in Play Console — the entry
+Do this BEFORE creating the app entry in Play Console; the entry
 flow demands an AAB before it'll let you save.
 
 1. Generate the upload keystore (above).
@@ -135,13 +135,13 @@ flow demands an AAB before it'll let you save.
    - Confirm `buildTypes.release.minifyEnabled = true` and a
      `proguard-rules.pro` exists with rules for kotlinx-serialization,
      SQLDelight, Koin (when SQLDelight lands), Compose, kotlinx-datetime,
-     and the LocalCrashLog handler class (don't strip the FQN — it
+     and the LocalCrashLog handler class (don't strip the FQN; it
      needs to be referenceable from the `Thread.UncaughtExceptionHandler`
      interface registration at runtime).
    - Bump `versionCode` to 1 and `versionName` to "0.1.0" (matching
      `APP_VERSION_NAME` in `ToebeansApp.kt`).
 3. Build: `./gradlew :androidApp:bundleRelease` (NOT
-   `assembleRelease` — the .aab is what Play wants).
+   `assembleRelease`; the .aab is what Play wants).
 4. Output is in
    `androidApp/build/outputs/bundle/release/androidApp-release.aab`.
    File size sanity check: a v0.1 toebeans with no images and minify
@@ -152,17 +152,17 @@ flow demands an AAB before it'll let you save.
      emulator: `./gradlew :androidApp:installRelease` (the bundletool
      trick works with `bundletool build-apks` if needed).
    - Walk through the four screens manually, take screenshots, crop
-     to 1080×1920 (or 1080×2400 depending on device aspect ratio —
+     to 1080×1920 (or 1080×2400 depending on device aspect ratio;
      Play accepts a range).
    - Make sure the screenshots show STATE, not empty placeholders.
-     If your seed pets are still showing (Luna and Rufus), keep them
-     — they communicate the app shape better than a fresh empty
+     If your seed pets are still showing (Luna and Rufus), keep them.
+     They communicate the app shape better than a fresh empty
      state. (See M1.2 work item: revisit whether seed is on or off
      for public listing.)
 
 ---
 
-## Phase 3 — Create the app entry
+## Phase 3: Create the app entry
 
 1. Play Console → "Create app".
 2. App name: `toebeans` (with the lowercase 't').
@@ -182,7 +182,7 @@ bottom, but follow this sequence to avoid re-doing steps.
 
 ---
 
-## Phase 4 — App content (the policy gate)
+## Phase 4: App content (the policy gate)
 
 This is where most of the friction lives. Each item below maps to a
 Play Console form section.
@@ -241,15 +241,15 @@ collect nothing. But you have to answer every section.
 | Section | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **No** |
-| Is all of the user data collected by your app encrypted in transit? | **n/a — no data collected or transmitted** |
-| Do you provide a way for users to request that their data be deleted? | **Yes, by uninstalling the app — all data is on-device** |
+| Is all of the user data collected by your app encrypted in transit? | **n/a: no data collected or transmitted** |
+| Do you provide a way for users to request that their data be deleted? | **Yes, by uninstalling the app; all data is on-device** |
 
 If Play makes you check categories anyway:
 
 - Location: no
 - Personal info: no
 - Financial info: no
-- Health and fitness: **HERE BE DRAGONS** — pet medication is not
+- Health and fitness: **HERE BE DRAGONS.** Pet medication is not
   human health data and is NOT in scope of this form, but if you're
   unsure, answer "no" with the rationale "data stays on-device, never
   collected by developer". Document this decision in `ROADMAP.md`
@@ -276,7 +276,7 @@ If Play makes you check categories anyway:
 
 ---
 
-## Phase 5 — Main store listing
+## Phase 5: Main store listing
 
 This is the public-facing copy. It gets shown to your testers (and,
 when you move to closed/open testing later, to real users).
@@ -290,7 +290,7 @@ when you move to closed/open testing later, to real users).
 
 ```
 toebeans helps you keep your pets healthy by reminding you when their
-medications are due — and by remembering that you gave them, so you
+medications are due, and by remembering that you gave them, so you
 don't second-guess yourself at 3 AM.
 
 What it does
@@ -298,7 +298,7 @@ What it does
 • Track multiple pets, each with their own medications and schedules.
 • Handle tapering schedules with multiple phases (e.g. "10mg twice
   daily for 5 days, then 5mg daily for 14 days, then stop").
-• Fire reminders on time using Android exact alarms — even when your
+• Fire reminders on time using Android exact alarms, even when your
   phone is in Doze.
 • Show today's due doses on the home screen with a one-tap "given"
   button.
@@ -340,7 +340,7 @@ Upload the artifacts from Phase 0.
 
 ---
 
-## Phase 6 — Internal testing track
+## Phase 6: Internal testing track
 
 This is the actual gate that gets the app onto a tester's device.
 
@@ -395,15 +395,15 @@ While the review runs:
 
 ---
 
-## Phase 7 — After it's live
+## Phase 7: After it's live
 
 Once Play Console says "Available to testers":
 
 1. Install on your own device via the tester link. Confirm:
    - App opens.
    - Crash log handler is registered (you can prove this by force-stop
-     + relaunch + observing no crash — for an active proof, use a
-     debug build with a deliberate crash injected, not a release).
+     + relaunch + observing no crash). For an active proof, use a
+     debug build with a deliberate crash injected, not a release.
    - Notifications fire when an alarm is due.
    - Settings → Export crash log is disabled (since no crashes
      happened yet on this install).
@@ -412,12 +412,12 @@ Once Play Console says "Available to testers":
    reports.
 4. Set a calendar reminder for **day 14** for a midpoint check-in:
    "are testers still using it?" This is the retention gate per
-   ROADMAP M1.2 — if no one uses it past day 14, M2 cannot proceed
+   ROADMAP M1.2; if no one uses it past day 14, M2 cannot proceed
    regardless of feature progress.
 
 ---
 
-## Phase 8 — Closing the loop
+## Phase 8: Closing the loop
 
 When all testers have submitted their day-30 reports:
 

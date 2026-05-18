@@ -1,4 +1,4 @@
-# Security policy — toebeans
+# Security policy: toebeans
 
 ## Reporting
 
@@ -19,7 +19,7 @@ Please report security vulnerabilities **privately**. Do not open a public issue
 - Issues that require a rooted/jailbroken device.
 - Anything in third-party dependencies that has an existing CVE (please report upstream first, then to us if our usage amplifies the impact).
 
-## Threat model (slice 1 — v0.1)
+## Threat model (slice 1, v0.1)
 
 See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md`](docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md#12-threat-model-stride-code-helper-613) §12. Highlights:
 

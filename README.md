@@ -60,7 +60,7 @@ To run the shared-module tests without an Android SDK:
 ```
 
 The shared-module tests are the test-as-spec contract for the schedule
-calculator — fifteen cases that lock down empty-result fast paths, phase
+calculator. Fifteen cases lock down empty-result fast paths, phase
 concatenation, end-date-inclusive semantics, day-interval (skip-day)
 behavior, the malformed-input throw discipline, and the ADR-0008 bounds
 (window ≤ 30 days, event count ≤ 100,000). All fifteen pass green; the

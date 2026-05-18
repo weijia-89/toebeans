@@ -24,7 +24,7 @@ The following surfaces are classified **vibe-dangerous**:
 For every change to any of these surfaces:
 
 1. **Test-as-spec.** Write the failing test FIRST. Commit it. Open a PR with only the test.
-2. **Human review of the test signature** — the test is itself a spec.
+2. **Human review of the test signature.** The test is itself a spec.
 3. **Implement** in a separate PR.
 4. **Mutation testing** (pitest) is required to pass at ≥80% on the touched code.
 5. **Confidence score** ≥95 per `code-helper` §5, with per-component minima: Test ≥90, Hallucination ≥90, Adversarial ≥85, Reversibility ≥90.

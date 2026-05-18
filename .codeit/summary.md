@@ -1,4 +1,4 @@
-# codeit engagement summary — toebeans v0.1 scaffold
+# codeit engagement summary: toebeans v0.1 scaffold
 
 **Engagement type:** new-app
 **Date:** 2026-05-14 / 2026-05-15
@@ -7,17 +7,17 @@
 
 ## What ran
 
-1. **discovery** — greenfield, no prior code. Project name `toebeans` at `/Users/wjia/Projects/toebeans`.
-2. **planning** — `code-helper plan-new-app` output → design doc + 5 ADRs.
-3. **scoring** — feasibility dossier scored 87/100 (above the vibe-careful floor of 80; below vibe-dangerous floor of 95, which is appropriate for a feasibility report).
-4. **adversarial** — top-3 falsifiers run; mitigations recorded.
-5. **doc-pass** — README, AGENTS, CLAUDE, SECURITY, CHANGELOG, ARCHITECTURE, 5 ADRs.
-6. **summary** — this file.
+1. **discovery**: greenfield, no prior code. Project name `toebeans` at `/Users/wjia/Projects/toebeans`.
+2. **planning**: `code-helper plan-new-app` output → design doc + 5 ADRs.
+3. **scoring**: feasibility dossier scored 87/100 (above the vibe-careful floor of 80; below vibe-dangerous floor of 95, which is appropriate for a feasibility report).
+4. **adversarial**: top-3 falsifiers run; mitigations recorded.
+5. **doc-pass**: README, AGENTS, CLAUDE, SECURITY, CHANGELOG, ARCHITECTURE, 5 ADRs.
+6. **summary**: this file.
 
 ## What did NOT run (and why)
 
-- **deAI-sweep** — skipped at v0.1 because the docs have not been re-edited by a generation pass yet; the voice was authored under operator guidance and stays inside the per-archetype voice rules. To be run before the v0.1.0 release tag.
-- **launch-ready** — not applicable to a `new-app` engagement; runs on `harden` engagements.
+- **deAI-sweep**: skipped at v0.1 because the docs have not been re-edited by a generation pass yet; the voice was authored under operator guidance and stays inside the per-archetype voice rules. To be run before the v0.1.0 release tag.
+- **launch-ready**: not applicable to a `new-app` engagement; runs on `harden` engagements.
 
 ## Artifacts
 
@@ -31,7 +31,7 @@
 - `AGENTS.md` / `CLAUDE.md` (kept in parity by CI fitness function)
 - `SECURITY.md`
 - `.github/workflows/ci.yml` with 5 fitness-function gates
-- `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt` — the failing test-as-spec
+- `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt`, the failing test-as-spec
 
 ## Score detail (feasibility dossier)
 
@@ -41,9 +41,9 @@ See `research/00-feasibility-dossier.md` §9 for the full table. Headline 87/100
 
 Per the design doc §13 and AGENTS.md test-as-spec rules, the **scheduler implementation cannot proceed without a human review** of:
 
-1. `SchedulePhaseRulesTest.kt` — does the human reviewer agree this test is what taper correctness means?
-2. The 5 ADRs — any disagreement with the architecture decisions?
-3. The 5 fitness functions — any additional gate that should be in CI before week 2?
+1. `SchedulePhaseRulesTest.kt`. Does the human reviewer agree this test is what taper correctness means?
+2. The 5 ADRs. Any disagreement with the architecture decisions?
+3. The 5 fitness functions. Any additional gate that should be in CI before week 2?
 
 The next codeit phase to run is a **review** engagement on the implementation PR (when it lands), not a re-run of the new-app phases.
 
