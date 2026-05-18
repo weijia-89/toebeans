@@ -27,7 +27,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -295,8 +294,7 @@ private class InMemoryScheduleRepo : ScheduleRepository {
 
     override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
 
-    override fun observeAllPhases(): Flow<List<SchedulePhase>> =
-        phasesById.asStateFlow().map { it.values.flatten() }
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> = phasesById.asStateFlow().map { it.values.flatten() }
 
     override suspend fun upsert(
         schedule: Schedule,

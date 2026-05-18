@@ -64,6 +64,7 @@ import java.io.File
  * About and What's coming are reference/curiosity surfaces. Putting Display at the top
  * means the most useful thing is the first thing in the user's reading order.
  */
+@Suppress("CyclomaticComplexMethod")
 @Composable
 public fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -72,6 +73,15 @@ public fun SettingsScreen(
     exportViewModel: ExportBackupViewModel = koinViewModel(),
     importViewModel: ImportBackupViewModel = koinViewModel(),
 ) {
+    // CyclomaticComplexMethod suppressed. The composable walks from the
+    // Display card, through the Data card with its two SAF launchers and
+    // several terminal dialog or toast branches across export and import
+    // flows, through Diagnostics and About, and ends with the What's coming
+    // reference list. The complexity comes from rendering fan-out across
+    // visible cards rather than from algorithmic decisions. Splitting into
+    // sub-composables intersects with recomposition-scope decisions because
+    // every section shares state hoisted from the same VMs, which makes the
+    // refactor itself vibe-careful and is deferred per ADR-0016.
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
     val exportState by exportViewModel.state.collectAsStateWithLifecycle()

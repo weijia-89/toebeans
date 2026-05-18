@@ -408,8 +408,7 @@ private class InMemoryScheduleRepo : ScheduleRepository {
 
     override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
 
-    override fun observeAllPhases(): Flow<List<SchedulePhase>> =
-        phasesById.asStateFlow().map { it.values.flatten() }
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> = phasesById.asStateFlow().map { it.values.flatten() }
 
     override suspend fun upsert(
         schedule: Schedule,
@@ -435,7 +434,10 @@ private class InMemoryDoseEventRepo : DoseEventRepository {
     override fun observeForPet(
         petId: String,
         sinceInclusive: Instant,
-    ): Flow<List<DoseEvent>> = state.asStateFlow().map { snap -> snap.values.filter { it.scheduledAt >= sinceInclusive } }
+    ): Flow<List<DoseEvent>> =
+        state.asStateFlow().map { snap ->
+            snap.values.filter { it.scheduledAt >= sinceInclusive }
+        }
 
     override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> =
         state.asStateFlow().map { snap ->

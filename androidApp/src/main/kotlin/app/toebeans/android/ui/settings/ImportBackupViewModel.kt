@@ -67,15 +67,22 @@ public class ImportBackupViewModel(
      * the export VM's [ExportBackupViewModel.exportTo] pattern so the Composable does
      * not need to manage its own coroutine scope for the read.
      */
+    @Suppress("TooGenericExceptionCaught")
     public fun readAndStage(readBytes: suspend () -> ByteArray) {
         viewModelScope.launch {
             val bytes =
                 try {
                     readBytes()
-                } catch (t: Throwable) {
+                } catch (e: Exception) {
+                    // TooGenericExceptionCaught suppressed. readBytes is a
+                    // caller-supplied suspend lambda backed by ContentResolver
+                    // on a SAF URI, so any IO failure here surfaces as one
+                    // recoverable Error state for the user. Catching Exception
+                    // rather than Throwable lets OutOfMemoryError and
+                    // StackOverflowError continue to bubble per detekt guidance.
                     _state.value =
                         ImportBackupUiState.Error(
-                            message = "Could not read the backup file: ${t.message ?: t::class.simpleName}",
+                            message = "Could not read the backup file: ${e.message ?: e::class.simpleName}",
                         )
                     return@launch
                 }
@@ -83,6 +90,7 @@ public class ImportBackupViewModel(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun stageFileInternal(fileBytes: ByteArray) {
         try {
             if (fileBytes.isEmpty()) {
@@ -107,10 +115,16 @@ public class ImportBackupViewModel(
                 ImportBackupUiState.Error(
                     message = e.message ?: "The backup file format is not supported.",
                 )
-        } catch (t: Throwable) {
+        } catch (e: Exception) {
+            // TooGenericExceptionCaught suppressed. Decode and post-parse
+            // checks can raise unexpected deserialization failures beyond the
+            // typed BackupFormatException already caught above. Surfacing them
+            // as one Error message is the documented contract for the
+            // merge-by-id flow; catching Exception rather than Throwable lets
+            // fatal VM errors continue to bubble.
             _state.value =
                 ImportBackupUiState.Error(
-                    message = "Could not read the backup file: ${t.message ?: t::class.simpleName}",
+                    message = "Could not read the backup file: ${e.message ?: e::class.simpleName}",
                 )
         }
     }
@@ -120,6 +134,7 @@ public class ImportBackupViewModel(
      * dialog's primary button. No-op if the current state is not AwaitingConfirm
      * (defensive against double-tap or stale callbacks).
      */
+    @Suppress("TooGenericExceptionCaught")
     public fun confirmImport() {
         val current = _state.value as? ImportBackupUiState.AwaitingConfirm ?: return
         _state.value = ImportBackupUiState.Importing
@@ -127,10 +142,16 @@ public class ImportBackupViewModel(
             try {
                 val summary = importer.import(current.parsed)
                 _state.value = ImportBackupUiState.Success(summary)
-            } catch (t: Throwable) {
+            } catch (e: Exception) {
+                // TooGenericExceptionCaught suppressed. The importer fans in
+                // writes across the pet, medication, schedule, and dose-event
+                // repositories, and any database or serialization failure
+                // surfaces as one recoverable Error state for the user.
+                // Catching Exception rather than Throwable lets fatal VM
+                // errors continue to bubble per detekt guidance.
                 _state.value =
                     ImportBackupUiState.Error(
-                        message = "Import failed: ${t.message ?: t::class.simpleName}",
+                        message = "Import failed: ${e.message ?: e::class.simpleName}",
                     )
             }
         }

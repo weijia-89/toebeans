@@ -244,7 +244,8 @@ private class InMemoryPetRepo : PetRepository {
 private class InMemoryMedRepo : MedicationRepository {
     private val state = MutableStateFlow<Map<String, Medication>>(emptyMap())
 
-    override fun observeForPet(petId: String): Flow<List<Medication>> = state.asStateFlow().map { it.values.filter { m -> m.petId == petId } }
+    override fun observeForPet(petId: String): Flow<List<Medication>> =
+        state.asStateFlow().map { snap -> snap.values.filter { m -> m.petId == petId } }
 
     override fun observeAll(): Flow<List<Medication>> = state.asStateFlow().map { it.values.toList() }
 
@@ -263,11 +264,13 @@ private class InMemoryScheduleRepo : ScheduleRepository {
     private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
     private val phases = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
 
-    override fun observeForMedication(medicationId: String): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.filter { s -> s.medicationId == medicationId } }
+    override fun observeForMedication(medicationId: String): Flow<List<Schedule>> =
+        schedules.asStateFlow().map { snap -> snap.values.filter { s -> s.medicationId == medicationId } }
 
     override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
 
-    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> = phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
+    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
+        phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         schedules.asStateFlow().map { snap ->
@@ -300,9 +303,11 @@ private class InMemoryDoseEventRepo : DoseEventRepository {
         sinceInclusive: Instant,
     ): Flow<List<DoseEvent>> = state.asStateFlow().map { it.values.toList() }
 
-    override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> = state.asStateFlow().map { it.values.firstOrNull { e -> e.medicationId == medicationId } }
+    override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> =
+        state.asStateFlow().map { snap -> snap.values.firstOrNull { e -> e.medicationId == medicationId } }
 
-    override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> = state.asStateFlow().map { it.values.toList() }
+    override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
+        state.asStateFlow().map { it.values.toList() }
 
     override fun observeAll(): Flow<List<DoseEvent>> = state.asStateFlow().map { it.values.toList() }
 

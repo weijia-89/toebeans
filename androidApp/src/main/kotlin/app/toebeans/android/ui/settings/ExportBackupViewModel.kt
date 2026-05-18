@@ -65,7 +65,13 @@ public class ExportBackupViewModel(
      * write to an IO dispatcher inside the callback. Failures inside `writeBytes` are
      * caught and surfaced as [ExportBackupUiState.Error].
      */
+    @Suppress("TooGenericExceptionCaught")
     public fun exportTo(writeBytes: suspend (ByteArray) -> Unit) {
+        // TooGenericExceptionCaught suppressed: the catch fans in three distinct
+        // failure sources (aggregator IO, serializer, caller-supplied writeBytes)
+        // each capable of raising different exception types. Surfacing any of
+        // them as the same recoverable Error state is the documented contract;
+        // a narrower catch would just enumerate the same handling block per type.
         viewModelScope.launch {
             _state.value = ExportBackupUiState.Writing
             try {
@@ -81,12 +87,14 @@ public class ExportBackupViewModel(
                         schedules = backup.schedules.size,
                         doseEvents = backup.doseEvents.size,
                     )
-            } catch (t: Throwable) {
-                // Catch broadly so any failure (aggregator IO, serializer, writeBytes)
-                // surfaces in the UI rather than crashing. The user gets a recoverable
-                // error message; the calibration log captures whether real failures show
-                // up in the wild for the v2 design iteration.
-                _state.value = ExportBackupUiState.Error(t.message ?: "Unknown error")
+            } catch (e: Exception) {
+                // Catch broadly so any non-fatal failure (aggregator IO, serializer,
+                // writeBytes) surfaces in the UI rather than crashing. The user gets a
+                // recoverable error message; the calibration log captures whether real
+                // failures show up in the wild for the v2 design iteration. We let
+                // Error / OutOfMemoryError continue to bubble up by catching Exception
+                // (not Throwable) per detekt's TooGenericExceptionCaught guidance.
+                _state.value = ExportBackupUiState.Error(e.message ?: "Unknown error")
             }
         }
     }
