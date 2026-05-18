@@ -63,10 +63,10 @@ class ImportBackupViewModelTest {
     @Test
     fun `stageFile with valid JSON transitions to AwaitingConfirm with counts`() =
         runTest(dispatcher) {
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val schedRepo = InMemoryScheduleRepo()
-            val doseRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val schedRepo = ImporterScheduleRepo()
+            val doseRepo = ImporterDoseEventRepo()
             val vm = newVm(petRepo, medRepo, schedRepo, doseRepo)
 
             val payload =
@@ -98,10 +98,10 @@ class ImportBackupViewModelTest {
     @Test
     fun `confirmImport applies merge-by-id and transitions to Success`() =
         runTest(dispatcher) {
-            val petRepo = InMemoryPetRepo()
-            val medRepo = InMemoryMedRepo()
-            val schedRepo = InMemoryScheduleRepo()
-            val doseRepo = InMemoryDoseEventRepo()
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val schedRepo = ImporterScheduleRepo()
+            val doseRepo = ImporterDoseEventRepo()
             val vm = newVm(petRepo, medRepo, schedRepo, doseRepo)
 
             // Pre-existing pet on the target device with the same id as one in the file.
@@ -159,7 +159,7 @@ class ImportBackupViewModelTest {
     @Test
     fun `onCancelConfirm returns to Idle without writing`() =
         runTest(dispatcher) {
-            val petRepo = InMemoryPetRepo()
+            val petRepo = ImporterPetRepo()
             val vm = newVm(petRepo)
 
             val payload =
@@ -210,10 +210,10 @@ class ImportBackupViewModelTest {
     // ---- fixtures ---------------------------------------------------------
 
     private fun newVm(
-        petRepo: PetRepository = InMemoryPetRepo(),
-        medRepo: MedicationRepository = InMemoryMedRepo(),
-        schedRepo: ScheduleRepository = InMemoryScheduleRepo(),
-        doseRepo: DoseEventRepository = InMemoryDoseEventRepo(),
+        petRepo: PetRepository = ImporterPetRepo(),
+        medRepo: MedicationRepository = ImporterMedRepo(),
+        schedRepo: ScheduleRepository = ImporterScheduleRepo(),
+        doseRepo: DoseEventRepository = ImporterDoseEventRepo(),
     ): ImportBackupViewModel =
         ImportBackupViewModel(
             serializer = BackupSerializer(),
@@ -238,7 +238,7 @@ class ImportBackupViewModelTest {
 
 // ---- In-test repository fakes (commonTest-equivalent for androidApp tests) -------
 
-private class InMemoryPetRepo : PetRepository {
+private class ImporterPetRepo : PetRepository {
     private val state = MutableStateFlow<Map<String, Pet>>(emptyMap())
 
     override fun observeAll(): Flow<List<Pet>> = state.asStateFlow().map { it.values.toList() }
@@ -256,7 +256,7 @@ private class InMemoryPetRepo : PetRepository {
     }
 }
 
-private class InMemoryMedRepo : MedicationRepository {
+private class ImporterMedRepo : MedicationRepository {
     private val state = MutableStateFlow<Map<String, Medication>>(emptyMap())
 
     override fun observeForPet(petId: String): Flow<List<Medication>> =
@@ -275,7 +275,7 @@ private class InMemoryMedRepo : MedicationRepository {
     }
 }
 
-private class InMemoryScheduleRepo : ScheduleRepository {
+private class ImporterScheduleRepo : ScheduleRepository {
     private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
     private val phasesById = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
 
@@ -310,7 +310,7 @@ private class InMemoryScheduleRepo : ScheduleRepository {
     }
 }
 
-private class InMemoryDoseEventRepo : DoseEventRepository {
+private class ImporterDoseEventRepo : DoseEventRepository {
     private val state = MutableStateFlow<Map<String, DoseEvent>>(emptyMap())
 
     override fun observeForPet(
