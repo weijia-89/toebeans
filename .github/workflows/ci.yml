@@ -27,10 +27,14 @@ jobs:
         run: bash scripts/test_permission_allowlist.sh .
       - name: No-PII-in-crash-log gate (ADR-0009)
         run: bash scripts/test_no_pii_in_crash_log.sh .
+      - name: No-duplicate-private-test-class-names gate (ADR-0017 Lesson 2)
+        run: bash scripts/test_no_duplicate_private_test_class_names.sh .
       - name: AGENTS / CLAUDE parity
         run: bash scripts/agents_claude_parity.sh .
       - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)
         run: bash scripts/test_pre_commit_hook.sh .
+      - name: Duplicate-private fitness-function self-test
+        run: bash scripts/test_test_no_duplicate_private_test_class_names.sh .
 
   vibe-dangerous-gate:
     # Survives `git commit --no-verify`. Enforces the same rule as
