@@ -4,7 +4,7 @@ toebeans is a pet medication tracker for Android. It runs locally and never talk
 
 ## Pre-push gauntlet ordering
 
-The local pre-push gauntlet should run lint and compile-tests as **independent steps** when a JDK is available locally. The reason is mechanical: in CI, the Lint stage short-circuits the Gradle compile step. A push that fails at the Lint stage produces no information about whether compile-tests would pass. If a contributor sees lint fail in CI, fixes the lint findings, and pushes again, any latent compile errors stay invisible until the lint stage finally passes. [ADR-0017](docs/adr/0017-lessons-from-adr-0016-ci-iteration.md) records the four-iteration cleanup that this lesson came from.
+The local pre-push gauntlet **must** run lint and compile-tests as independent steps when a JDK is available locally. The reason is mechanical: in CI, the Lint stage short-circuits the Gradle compile step. A push that fails at the Lint stage produces no information about whether compile-tests would pass. If a contributor sees lint fail in CI, fixes the lint findings, and pushes again, any latent compile errors stay invisible until the lint stage finally passes. [ADR-0017](docs/adr/0017-lessons-from-adr-0016-ci-iteration.md) records the four-iteration cleanup that this lesson came from.
 
 The order to run locally:
 
@@ -20,6 +20,8 @@ Order matters even on a clean repo. A contributor who fixes a lint issue and pus
 
 Until JDK 17 is available locally, CI is the only compile-tests gate. A push that fails at the Lint stage in CI makes no claim about whether the compile-tests would have passed.
 
+The local gauntlet is the per-contributor mitigation, not the whole fix. The CI workflow itself still runs Lint before Gradle compile and short-circuits the latter on the former's failure, so the same inference problem reappears for any contributor without local JDK 17. Reworking `.github/workflows/ci.yml` to run lint and compile-tests as independent gates is tracked in [ADR-0017 § Followups](docs/adr/0017-lessons-from-adr-0016-ci-iteration.md#followups) as a separate, deferred work item.
+
 ## What to read before contributing
 
 - [AGENTS.md](AGENTS.md). The load-bearing contract for any agent or human working on the codebase, including vibe-safety tiers, the permission allowlist, the refusal list, and the CI fitness functions.
@@ -31,9 +33,9 @@ Until JDK 17 is available locally, CI is the only compile-tests gate. A push tha
 ## Commit hygiene
 
 - **Conventional Commits prefix.** Every commit message starts with `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, or `ci:`. The vibe-safety tier of the change appears in trailing brackets when relevant, for example `[vibe-dangerous]` or `[vibe-careful]`.
-- **Calibration-entry pairing for vibe-dangerous paths.** Any commit that touches a vibe-dangerous surface listed in [AGENTS.md § Vibe-safety tiers](AGENTS.md) must also stage a new entry in `.codeit/calibration.jsonl` recording the change's confidence score. The pre-commit hook at `scripts/git-hooks/pre-commit` enforces this mechanically. Install it once per clone with `bash scripts/install-git-hooks.sh`.
-- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in [AGENTS.md § Refusal list](AGENTS.md) applies to commit messages too. No em-dashes, no theatrical phrasing.
+- **Calibration-entry pairing for vibe-dangerous paths.** Any commit that touches a vibe-dangerous surface listed in [AGENTS.md § Vibe-safety tiers](AGENTS.md#vibe-safety-tiers-per-code-helper-5) must also stage a new entry in `.codeit/calibration.jsonl` recording the change's confidence score. The pre-commit hook at `scripts/git-hooks/pre-commit` enforces this mechanically. Install it once per clone with `bash scripts/install-git-hooks.sh`.
+- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in [AGENTS.md § Refusal list](AGENTS.md#refusal-list-will-not-produce-without-justification) applies to commit messages too. No em-dashes, no theatrical phrasing.
 
 ## Tests as specs
 
-The full test-as-spec contract is in [AGENTS.md § Test-as-spec rules](AGENTS.md). For any change to a vibe-dangerous surface, the failing test lands first in its own commit and gets human review before the implementation lands.
+The full test-as-spec contract is in [AGENTS.md § Test-as-spec rules](AGENTS.md#test-as-spec-rules). For any change to a vibe-dangerous surface, the failing test lands first in its own commit and gets human review before the implementation lands.
