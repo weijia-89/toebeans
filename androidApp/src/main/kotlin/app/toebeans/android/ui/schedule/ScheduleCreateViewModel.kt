@@ -101,6 +101,11 @@ public class ScheduleCreateViewModel(
         // false so the user re-confirms after changes. The recomputation is authoritative
         // — even if the caller's transform set nightDoseWarning to a stale value via
         // copy(), the values below overwrite it.
+        //
+        // Additionally recompute the midnight-straddle flag (v0.1-followups #9). Same
+        // authoritative-overwrite pattern as nightDoseWarning. The straddle warning is
+        // informational only — no affirmation flag, no save-time gating — so it does
+        // not need an "affirmed" companion field.
         _state.update { state ->
             state.copy(
                 phases =
@@ -108,9 +113,11 @@ public class ScheduleCreateViewModel(
                         if (i == index) {
                             val transformed = transform(phase).copy(error = null)
                             val hasNightDose = transformed.doseTimes.any { it.isInNightWindow() }
+                            val straddles = MidnightStraddleDetection.crossesMidnight(transformed.doseTimes)
                             transformed.copy(
                                 nightDoseWarning = hasNightDose,
                                 nightDoseAffirmed = false,
+                                crossesMidnight = straddles,
                             )
                         } else {
                             phase
@@ -365,4 +372,15 @@ public data class PhaseDraft(
     public val error: String?,
     public val nightDoseWarning: Boolean = false,
     public val nightDoseAffirmed: Boolean = false,
+    /**
+     * Derived flag, recomputed by [ScheduleCreateViewModel.updatePhase] on every edit,
+     * based on whether [doseTimes] straddles midnight per
+     * [MidnightStraddleDetection.crossesMidnight] (v0.1-followups #9). Independent of
+     * [nightDoseWarning]: a phase can straddle midnight without containing an early-hours
+     * dose (e.g. `[23:00, 01:00]` triggers both; `[23:00, 23:30]` triggers neither;
+     * `[03:00]` triggers night-dose only; `[00:00, 23:00]` triggers straddle only).
+     * Callers do NOT set this directly; passing a value through `copy()` will be
+     * overwritten by the next `updatePhase` call.
+     */
+    public val crossesMidnight: Boolean = false,
 )

@@ -100,6 +100,40 @@ public fun PhaseEditorCard(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // Midnight-straddle informational banner (v0.1-followups #9). Surfaced when
+            // the current dose-time set wraps around the calendar-day boundary in a way
+            // that may confuse the user (per MidnightStraddleDetection.crossesMidnight).
+            // Info-tinted via secondaryContainer to distinguish from the warmer night-dose
+            // warning below (tertiaryContainer) — both banners can fire simultaneously
+            // for a dose set like [23:00, 01:00], so visual differentiation matters.
+            //
+            // Non-blocking. No affirmation action: the spec frames this as a "heads up"
+            // nudge, not a "confirm you meant this" gate. Same accessibility shape as the
+            // formError and nightDoseWarning banners: clearAndSetSemantics + liveRegion
+            // Polite so TalkBack announces once on appearance without focus-stealing.
+            if (draft.crossesMidnight) {
+                val straddleMsg =
+                    "Heads up: your dose times cross midnight. Doses after midnight land on the next calendar day."
+                Surface(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clearAndSetSemantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = straddleMsg
+                            },
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Text(
+                        text = straddleMsg,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
             // Dose times: one TimePickerField per time, plus a "+ add time" button up to
             // MAX_DOSES_PER_DAY. The phase enforces strict ascending order on persistence.
             Text(
