@@ -29,7 +29,8 @@ A copy lives at `CLAUDE.md` for tools that look there first. The two files MUST 
 
 **Vibe-impossible** (refuse and escalate):
 
-- Adding any AI symptom checker, diagnostic content, drug interaction warning, or "is this dose safe?" feature.
+- Adding any AI symptom checker, AI-generated diagnostic content, AI-derived drug interaction warning, AI-derived treatment recommendation, or "is this dose safe?" feature.
+- Adding any LLM-generated or LLM-paraphrased vet-recommended content (the carve-out boundary defined by [ADR-0019](docs/adr/0019-vet-recommended-content-framework.md)). Vet-curated, owner-entered, or vet-record-imported content delivered rule-based under ADR-0019's four conjunctive constraints (source, delivery, framing, refusal scope) is permitted and is NOT vibe-impossible.
 - Pre-generating DoseEvents for an entire phase (write-storm anti-pattern; the design materializes lazily at 72h horizon).
 - Removing the AlarmManager fallback in favor of WorkManager-only.
 - Adding any network library or analytics SDK in v1.
