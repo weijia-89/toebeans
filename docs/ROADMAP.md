@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-16.
+Last updated: 2026-05-19.
 
 ---
 
@@ -129,6 +129,9 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | | "Show next 30 days" schedule view |
 | | Import-from-vet-record flow (manual paste; OCR deferred to milestone 4) |
 | | Caregiver share: read-only invite via QR + E2EE handoff (not cloud sync) |
+| | **Document timeline** (Slice 3 per dossier § 8.2). Owner attaches photos and scans of vet invoices, lab reports, discharge instructions, and prescription labels to the pet profile. Plain storage with manual entry of structured fields where the owner wants them; no OCR yet (OCR is M4). Per ADR-0019, imported vet-written content surfaces verbatim with attribution to the source document; no app paraphrasing. |
+| | **Vet visit and appointment reminders** as first-class domain (new `VetVisit` model; vaccine reminders are a subtype). Owner-entered scheduled followups ("recheck in 6 weeks," "annual rabies booster"). Per ADR-0019: owner-entered or vet-record-imported source, scheduled-reminder delivery, attribution framing. Domain model lands under ADR-0019 Followup F5; UI layers on after. |
+| | **AAHA-2025-aligned referral packet builder** (Moat #3 per dossier § 3.3). Owner-controlled packet (records + reminders + diagnostics + recent dose history) shareable to a specialty clinic via deep-link export; no server, aligns to ADR-0003 local-first. AAHA 2025 § 4 shared-portal model fits the owner-controlled vet-curated posture of ADR-0019. |
 | | History view with adherence stats (local computation only; no analytics) |
 | | Macrobenchmark CI matrix expanded to 4 reference devices |
 | | SLSA L1 provenance (GitHub Actions OIDC) |
@@ -156,8 +159,9 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | Pending | What |
 |---|---|
 | | On-device OCR for prescription labels (ML Kit; ADR-0001 reference) |
-| | Drug-interaction warnings: STRICTLY rule-based, vet-curated, NO LLM (forbidden by AGENTS.md vibe-impossible) |
-| | Vaccination & visit reminders alongside medications |
+| | Drug-interaction warnings: STRICTLY rule-based, vet-curated, NO LLM (forbidden by AGENTS.md vibe-impossible). Now derives from ADR-0019 § Specific application; vet-advisory-board-curated rule pack source. |
+| | Vaccination & visit reminders alongside medications. Note: M2 lands the `VetVisit` domain model and owner-entered/vet-record-imported reminders. M4 work here is the **rule-pack delivery** layer (e.g., regional-regulatory rabies-booster rules per ADR-0019 Followup F3 rule-pack storage). |
+| | **Chronic-condition admin overlays** (Moat #4 per dossier § 3.3; framework per ADR-0019). Per-condition rule-based reminder packs (CKD, diabetes, seizure, atopic dermatitis) curated by a registered veterinary advisory board. Gated on advisory-board ADR (ADR-0019 Followup F2) and rule-pack storage ADR (ADR-0019 Followup F3). |
 
 ---
 
@@ -195,6 +199,26 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 
 ---
 
+## Milestone 7: Revenue tier (claim packets + subscription)
+
+**Ship-ability:** revenue-generating users.
+
+Slice 6 from the feasibility dossier § 8.2. Not gated on M6 cloud sync; claim packets are local-generation-then-shared-by-owner, which fits ADR-0003 local-first. Most likely follows M2 (caregiver share + document timeline) and M4 (chronic-condition overlays) rather than M6.
+
+| Pending | What |
+|---|---|
+| | **Claim packet builder** for top reimbursement insurers (Lemonade Pet, Embrace per dossier § 8.2). Owner-controlled packet generation from `Pet` + `Medication` + `Schedule` + `DoseEvent` + imported vet records (Slice 3); export as PDF or insurer-required format. Per ADR-0019: vet-written content surfaces verbatim from imported documents. |
+| | **Subscription tier (Plus).** Unlocks claim-packet-builder, multi-recipient caregiver-share, multi-device sync (if M6 ships). Free tier retains medication reminders + single-pet + JSON backup + document-timeline storage. |
+| | **Per-insurer adapter map** (Moat #1 per dossier § 3.3). Initial adapters for Lemonade + Embrace; expansion to Healthy Paws, ASPCA, Nationwide as separate sub-tasks. Adapter coverage is the moat; per-insurer reverse-engineering of submission formats is real ongoing work. |
+| | **Denial-recovery playbook content** (Moat #1 supporting). Vet-advisory-board-curated rule packs (per ADR-0019 § 3 source pathway) for common denial reasons + recommended owner responses. Gated on ADR-0019 Followup F2 (advisory board) and F3 (rule-pack storage). |
+
+**Definition of done (milestone 7):**
+- At least one tester has used the claim-packet builder to file a real reimbursement claim and the claim was paid.
+- Subscription tier ships through Play Console with the free-tier feature carve-out enforced.
+- Two insurer adapters (Lemonade + Embrace) are functional; the framework for adding more is documented.
+
+---
+
 ## Vibe-impossible (will not ship in any milestone)
 
 Per `AGENTS.md`:
@@ -214,7 +238,7 @@ These are scheduled chores that don't fit a milestone but must not get lost. Eac
 
 | Item | Act when | Source |
 |---|---|---|
-| **Calibration tier recalibration.** AGENTS.md § Confidence-score rule mandates recalibration of tier thresholds based on score-vs-incident correlation. | Calibration log reaches ~50 entries (currently 34 as of 2026-05-17). At that point: review the 8 sub-floor vibe-dangerous entries to date, correlate against any field/CI incidents, decide whether tier floors should be adjusted up or down. | `AGENTS.md` § Confidence-score rule |
+| **Calibration tier recalibration.** AGENTS.md § Confidence-score rule mandates recalibration of tier thresholds based on score-vs-incident correlation. | **TRIGGER FIRED 2026-05-19**: calibration log at 51+ entries. Routed to meta v1 chat (process-of-the-week review). Review the sub-floor vibe-dangerous entries to date, correlate against any field/CI incidents, decide whether tier floors should be adjusted up or down. Recalibration outcome lands as an ADR amendment. | `AGENTS.md` § Confidence-score rule |
 | **ADR-0014 hook-tightening decision.** Whether to mechanical-block sub-floor commits at the pre-commit hook. | M1.2 day-14 retention gate. Use 30-day soak signal to decide. | `docs/adr/0014-pre-commit-hook-score-floor-enforcement.md` |
 | **ADR-0015 KGP/AGP suppression revisit.** Re-check whether the Kotlin/AGP advisory warning suppression is still safe. | (a) AGP advances to 9.x, OR (b) KGP version-matrix catches up to AGP 8.7+, OR (c) any KMP/CMP-specific CI failure surfaces. | `docs/adr/0015-kotlin-agp-compatibility-warning-suppression.md` |
 | **ADR-0013 Compose UI test deps.** Currently Proposed pending human review of 4 AndroidX deps. | When first Compose-surface regression is shipped (or when v0.1-followups #1 night-dose-banner snapshot test is needed). | `docs/adr/0013-compose-ui-test-adoption.md`, v0.1-followups #1 |
@@ -224,6 +248,8 @@ These are scheduled chores that don't fit a milestone but must not get lost. Eac
 ## Cross-reference
 
 - ADRs: `docs/adr/`
+- ADR-0019 (`docs/adr/0019-vet-recommended-content-framework.md`): the framework all vet-recommended content in M2 (vet visits, AAHA referral, document timeline) and M4 (chronic-condition overlays, drug interactions, vaccination rule packs) derives from. Followups F1-F5 are gating dependencies for those rows.
+- Feasibility dossier (`research/00-feasibility-dossier.md`): the broader product vision (six-slice build order in § 8.2, moat candidates in § 3.3). When this ROADMAP and the dossier diverge, ROADMAP wins for short-horizon planning; the dossier wins for long-horizon strategic posture.
 - v0.1 follow-ups (granular issue tracker): `docs/issues/v0.1-followups.md`
 - Test-as-spec contract: `shared/src/commonTest/kotlin/app/toebeans/core/scheduler/SchedulePhaseRulesTest.kt`
 - Vibe-tier table: `AGENTS.md` (and `CLAUDE.md`, kept in parity)
