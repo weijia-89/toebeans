@@ -244,8 +244,10 @@ class BackupCipherV2Test {
         // (which binds to OpenSSL's EVP_aes_256_gcm) with the key derived from
         // argon2-cffi (which binds to the official phc-winner-argon2 C reference).
         // Both reference impls are independent of BouncyCastle. The Python
-        // cross-check script lives at /tmp/d1_argon2id_kat_crosscheck.py in the
-        // D1 step 3 session log. Length = plaintext(26) + GCM tag(16) = 42 bytes.
+        // cross-check script lives at
+        // `scripts/crypto-crosscheck/argon2id_aes_gcm_kat.py`; run it after any
+        // BouncyCastle version bump to re-validate the bytes below.
+        // Length = plaintext(26) + GCM tag(16) = 42 bytes.
         // If the impl constructs AAD in any order other than magic || salt || iv,
         // the GCM tag check fails and decrypt() throws BackupDecryptException.
         @Suppress("ktlint:standard:property-naming")

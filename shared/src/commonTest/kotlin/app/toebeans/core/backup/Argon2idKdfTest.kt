@@ -109,11 +109,12 @@ class Argon2idKdfTest {
 
         // KAT expected output. Cross-checked against argon2-cffi (which binds to
         // the official phc-winner-argon2 C reference implementation per RFC 9106).
-        // The Python cross-check script lives at /tmp/d1_argon2id_kat_crosscheck.py
-        // in the D1 step 3 session log; the inputs (passphrase, salt, params)
-        // above produce this exact 32-byte output under the reference impl. If
-        // BouncyCastle ever regresses and silently weakens the KDF, this test
-        // catches it byte-for-byte.
+        // The Python cross-check script lives at
+        // `scripts/crypto-crosscheck/argon2id_aes_gcm_kat.py`; run it after any
+        // BouncyCastle version bump to re-validate the bytes below. The inputs
+        // (passphrase, salt, params) above produce this exact 32-byte output
+        // under the reference impl. If BouncyCastle ever regresses and silently
+        // weakens the KDF, this test catches it byte-for-byte.
         @Suppress("ktlint:standard:property-naming")
         val EXPECTED_KAT_OUTPUT: ByteArray =
             byteArrayOf(
