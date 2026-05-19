@@ -174,6 +174,8 @@ These artifacts are proposed by this ADR but NOT created here. Each one is sized
 - **CONTRIBUTING.md pre-push gauntlet addendum.** Per ADR-0017 Lesson 1, the local gauntlet needs an explicit step that verifies the BouncyCastle dependency does not break the `compileTestKotlinJvm` stage. This is a sub-bullet under the existing pre-push ordering doc.
 - **SECURITY.md edit (proposed for D1).** Line 27 currently states the encrypted-backup posture as if it ships in v1. After D1, the line points to ADR-0018 and ADR-0016 jointly: ADR-0016 for the v1 plain-JSON posture and trigger conditions, ADR-0018 for the encrypted-backup design that activates on trigger. The edit cannot land in this ADR's worktree because the worktree is scoped to `docs/adr/` per the vibe-careful protocol.
 
+*§ Followups status, 2026-05-19:* the CONTRIBUTING.md addendum and the SECURITY.md edit landed pre-D1 in commits `f4500f0` and `fd4f18c` (2026-05-18). The D1 implementation (`Argon2idKdf` + `BackupCipherV2` + tests + the BouncyCastle Gradle dep) landed in commits `4c96063`, `f428950`, and `9ba919c` (PRs #18 + #21, 2026-05-19). The PBKDF2-absence fitness function (third bullet above) is still open and tracked as a follow-on.
+
 ## Revisit conditions
 
 This ADR moves to **Superseded** if any of the following:
