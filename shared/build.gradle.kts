@@ -68,6 +68,10 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.android)
                 implementation(libs.sqldelight.driver.android)
                 implementation(libs.androidx.work.runtime.ktx)
+                // BouncyCastle pure-Java provider for Argon2id key derivation in
+                // BackupCipherV2 per ADR-0018 § Decision § Library choice. Mirrored in
+                // jvmMain because KMP sibling source sets do not share classpaths.
+                implementation(libs.bouncycastle.bcprov)
             }
         }
 
@@ -85,6 +89,10 @@ kotlin {
                 // AndroidSqliteDriver via libs.sqldelight.driver.android; this driver
                 // exists strictly for the JVM smoke / unit test surface.
                 implementation(libs.sqldelight.driver.jvm)
+                // BouncyCastle pure-Java provider for Argon2id key derivation in
+                // BackupCipherV2 per ADR-0018 § Decision § Library choice. Mirrored in
+                // androidMain because KMP sibling source sets do not share classpaths.
+                implementation(libs.bouncycastle.bcprov)
             }
         }
 

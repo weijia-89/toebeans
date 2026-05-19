@@ -49,6 +49,14 @@ espresso-core = "3.6.1"
 androidx-benchmark = "1.3.3"
 androidx-test-runner = "1.6.2"
 androidx-uiautomator = "2.3.0"
+# BouncyCastle — pure-Java provider used by :shared backup module for Argon2id key
+# derivation per ADR-0018 § Decision § Library choice. The `bcprov-jdk18on` artifact's
+# package namespace is `org.bouncycastle.*`, which does NOT collide with the Android
+# platform's bundled-and-stripped-down `com.android.org.bouncycastle.*` internal copy.
+# 1.78.1 released 2024-08-25 by org.bouncycastle (canonical maintainer, verified via
+# ADR-0018 references). First-seen for the jdk18on artifact line: 2021-04-22 (>30 days
+# per AGENTS.md § Hallucination vigilance).
+bouncycastle = "1.78.1"
 
 [libraries]
 # kotlinx
@@ -96,6 +104,9 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "androidx-benchmark" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidx-test-runner" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "androidx-uiautomator" }
+
+# BouncyCastle (only consumed by :shared backup module for Argon2id KDF per ADR-0018)
+bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
