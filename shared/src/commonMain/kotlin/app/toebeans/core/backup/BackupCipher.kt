@@ -1,3 +1,4 @@
+// FITNESS-ALLOW-PBKDF2-FILE: TBN1 legacy cipher per ADR-0018 § Implementation footprint. V2 (Argon2id) lives in BackupCipherV2.kt.
 package app.toebeans.core.backup
 
 /**
