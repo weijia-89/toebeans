@@ -12,7 +12,7 @@ The product vision Wei stated in the 2026-05-19 orchestrator session names "a fu
 
 The feasibility dossier (`research/00-feasibility-dossier.md` § 3.3) names "chronic-condition admin overlays" (CKD, diabetes, seizure, derm) as moat candidate #4 and explicitly notes a veterinary advisory board is required. The same dossier § 8.1 hard-refuses any "AI vet" framing in marketing or UI.
 
-The ROADMAP already contains a one-line precedent for the reconciliation at M4 line 159: "Drug-interaction warnings: STRICTLY rule-based, vet-curated, NO LLM (forbidden by AGENTS.md vibe-impossible)." That framing — **rule-based, vet-curated, no LLM** — is the seed of the framework this ADR records, but it lives in a one-bullet milestone entry and is not formalized.
+The ROADMAP already contains a one-line precedent for the reconciliation at M4 line 159: "Drug-interaction warnings: STRICTLY rule-based, vet-curated, NO LLM (forbidden by AGENTS.md vibe-impossible)." That framing (**rule-based, vet-curated, no LLM**) is the seed of the framework this ADR records, but it lives in a one-bullet milestone entry and is not formalized.
 
 Multiple downstream features need a single posture to derive from: vet visit / appointment reminders, vaccine reminders, chronic-condition overlays, document-timeline-driven content surfacing, drug-interaction warnings, AAHA-2025 referral packets. Re-litigating the AI-content question per feature is the failure mode this ADR exists to prevent.
 
