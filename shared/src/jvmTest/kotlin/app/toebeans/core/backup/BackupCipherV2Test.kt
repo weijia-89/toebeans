@@ -240,13 +240,59 @@ class BackupCipherV2Test {
         assertEquals(BackupCipherV2.SALT_BYTES_LENGTH, salt.size, "vector salt must be exactly 16 bytes")
         assertEquals(BackupCipherV2.IV_BYTES_LENGTH, iv.size, "vector iv must be exactly 12 bytes")
 
+        // EXPECTED_CIPHERTEXT_AND_TAG cross-checked against pyca/cryptography
+        // (which binds to OpenSSL's EVP_aes_256_gcm) with the key derived from
+        // argon2-cffi (which binds to the official phc-winner-argon2 C reference).
+        // Both reference impls are independent of BouncyCastle. The Python
+        // cross-check script lives at /tmp/d1_argon2id_kat_crosscheck.py in the
+        // D1 step 3 session log. Length = plaintext(26) + GCM tag(16) = 42 bytes.
+        // If the impl constructs AAD in any order other than magic || salt || iv,
+        // the GCM tag check fails and decrypt() throws BackupDecryptException.
         @Suppress("ktlint:standard:property-naming")
         val EXPECTED_CIPHERTEXT_AND_TAG: ByteArray =
             byteArrayOf(
-                // TODO(D1): replace with the AES-256-GCM ciphertext+tag bytes that an
-                //   independent reference produces for (key, iv, plaintext, AAD) above,
-                //   where AAD is constructed in the order magic || salt || iv. The
-                //   length is plaintext.size + 16 (GCM tag) = 26 + 16 = 42 bytes.
+                0x8e.toByte(),
+                0x84.toByte(),
+                0xf9.toByte(),
+                0xb7.toByte(),
+                0xc0.toByte(),
+                0xc4.toByte(),
+                0xc1.toByte(),
+                0xe9.toByte(),
+                0x2c.toByte(),
+                0xe9.toByte(),
+                0x11.toByte(),
+                0x87.toByte(),
+                0x6a.toByte(),
+                0xed.toByte(),
+                0xd7.toByte(),
+                0x89.toByte(),
+                0xb4.toByte(),
+                0xda.toByte(),
+                0x61.toByte(),
+                0x14.toByte(),
+                0x79.toByte(),
+                0x8d.toByte(),
+                0x16.toByte(),
+                0x1c.toByte(),
+                0xe1.toByte(),
+                0xb4.toByte(),
+                0x93.toByte(),
+                0xe2.toByte(),
+                0xe7.toByte(),
+                0x24.toByte(),
+                0x3f.toByte(),
+                0xcc.toByte(),
+                0xc6.toByte(),
+                0x97.toByte(),
+                0x98.toByte(),
+                0x42.toByte(),
+                0x3f.toByte(),
+                0x83.toByte(),
+                0x6f.toByte(),
+                0x17.toByte(),
+                0xff.toByte(),
+                0x30.toByte(),
             )
 
         val envelope =
@@ -271,6 +317,53 @@ class BackupCipherV2Test {
             expectedPlaintext,
             recovered,
             "AAD construction order must be magic || salt || iv per ADR-0018 § Decision § Authentication",
+        )
+    }
+
+    @Test
+    fun `wrong passphrase and tampered ciphertext throw indistinguishable BackupDecryptException messages`() {
+        // ADR-0018 § Followups: "The wrong-passphrase failure must be
+        // indistinguishable from the tampered-ciphertext failure at the API
+        // boundary, per the existing BackupDecryptException rationale."
+        //
+        // V1 enforces this by funneling both failure modes into a single
+        // try/catch that throws BackupDecryptException("Backup could not be
+        // decrypted.") regardless of which JCA exception fired underneath. V2
+        // MUST preserve the same byte-for-byte indistinguishability so an
+        // attacker who submits candidate passphrases gains no oracle from
+        // observing the exception message.
+        //
+        // This test pins the contract by comparing the two messages directly.
+        // The existing `wrong passphrase fails decryption` and `tampered
+        // ciphertext fails decryption` tests verify the exception TYPE; they
+        // do NOT pin the message equality.
+        val pp = "indistinguishability-pp".toCharArray()
+        val envelope = cipher.encrypt("secret".toByteArray(), pp.copyOf())
+
+        val tampered = envelope.copyOf()
+        val ciphertextStart =
+            BackupCipherV2.MAGIC_BYTES_LENGTH +
+                BackupCipherV2.SALT_BYTES_LENGTH +
+                BackupCipherV2.IV_BYTES_LENGTH
+        tampered[ciphertextStart] = (tampered[ciphertextStart].toInt() xor 0x01).toByte()
+
+        val wrongPassphraseEx =
+            assertFailsWith<BackupDecryptException> {
+                cipher.decrypt(envelope, "wrong-passphrase".toCharArray())
+            }
+        val tamperedCiphertextEx =
+            assertFailsWith<BackupDecryptException> {
+                cipher.decrypt(tampered, pp.copyOf())
+            }
+
+        assertEquals(
+            wrongPassphraseEx.message,
+            tamperedCiphertextEx.message,
+            "wrong-passphrase and tampered-ciphertext must surface byte-for-byte identical " +
+                "BackupDecryptException messages per ADR-0018 \u00a7 Followups. A distinct message " +
+                "in either path leaks an oracle to an attacker submitting candidate passphrases. " +
+                "Got: wrong-passphrase='${wrongPassphraseEx.message}' vs " +
+                "tampered-ciphertext='${tamperedCiphertextEx.message}'",
         )
     }
 }

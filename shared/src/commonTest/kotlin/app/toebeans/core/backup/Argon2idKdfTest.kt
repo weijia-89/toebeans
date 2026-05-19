@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+import kotlin.time.measureTime
 
 /**
  * Test-as-spec for [Argon2idKdf].
@@ -105,21 +107,48 @@ class Argon2idKdfTest {
         val passphrase = "argon2id-kat-passphrase".toCharArray()
         val salt = "argon2id-kat-salt-16b".toByteArray(Charsets.US_ASCII).copyOf(16)
 
-        // KAT expected output. D1 fills this in after running the live BC
-        // derivation against (passphrase, salt, params) above AND cross-checking
-        // the result against a second independent Argon2id implementation. The
-        // failing-test commit deliberately leaves this empty so the test fails
-        // visibly at the assertion (not at NotImplementedError) once the actual
-        // derivation works.
+        // KAT expected output. Cross-checked against argon2-cffi (which binds to
+        // the official phc-winner-argon2 C reference implementation per RFC 9106).
+        // The Python cross-check script lives at /tmp/d1_argon2id_kat_crosscheck.py
+        // in the D1 step 3 session log; the inputs (passphrase, salt, params)
+        // above produce this exact 32-byte output under the reference impl. If
+        // BouncyCastle ever regresses and silently weakens the KDF, this test
+        // catches it byte-for-byte.
         @Suppress("ktlint:standard:property-naming")
         val EXPECTED_KAT_OUTPUT: ByteArray =
             byteArrayOf(
-                // TODO(D1): replace with the 32-byte derivation BC produces for
-                // the inputs above, after verifying against an independent
-                // Argon2id reference (phc-winner-argon2 reference implementation
-                // OR libsodium's crypto_pwhash). Leaving empty causes the
-                // assertion below to fail loudly once derive() returns a real
-                // 32-byte array.
+                0xb8.toByte(),
+                0xd6.toByte(),
+                0x6e.toByte(),
+                0xd9.toByte(),
+                0x90.toByte(),
+                0x07.toByte(),
+                0x1d.toByte(),
+                0x40.toByte(),
+                0xf5.toByte(),
+                0x7e.toByte(),
+                0xf8.toByte(),
+                0x8c.toByte(),
+                0x12.toByte(),
+                0x1f.toByte(),
+                0x2f.toByte(),
+                0xb0.toByte(),
+                0x8e.toByte(),
+                0xb3.toByte(),
+                0x1e.toByte(),
+                0xbd.toByte(),
+                0x58.toByte(),
+                0xc2.toByte(),
+                0xa3.toByte(),
+                0xed.toByte(),
+                0x02.toByte(),
+                0x71.toByte(),
+                0xe2.toByte(),
+                0x28.toByte(),
+                0xd1.toByte(),
+                0x69.toByte(),
+                0x13.toByte(),
+                0xb6.toByte(),
             )
 
         val derived = kdf.derive(passphrase, salt)
@@ -129,5 +158,59 @@ class Argon2idKdfTest {
             "KAT expected output is the D1 TODO; the assertion below must be wired in by D1",
         )
         assertContentEquals(EXPECTED_KAT_OUTPUT, derived, "derivation must match the cross-checked reference vector")
+    }
+
+    @Test
+    fun `derive does not mutate the passphrase or salt input arrays`() {
+        // The JVM actual wipes its own intermediate UTF-8 byte buffer in finally,
+        // but MUST NOT mutate the caller's CharArray passphrase or ByteArray salt.
+        // The caller owns those arrays and is responsible for their lifecycle;
+        // a hidden mutation here would surprise callers who pass `passphrase.copyOf()`
+        // expecting the original buffer to survive (the pattern in every other
+        // test in this file).
+        val passphrase = "no-mutate-test".toCharArray()
+        val passphraseSnapshot = passphrase.copyOf()
+        val salt = ByteArray(16) { (it * 7 + 3).toByte() }
+        val saltSnapshot = salt.copyOf()
+
+        kdf.derive(passphrase, salt)
+
+        assertContentEquals(
+            passphraseSnapshot,
+            passphrase,
+            "derive() must not mutate the caller's passphrase array",
+        )
+        assertContentEquals(
+            saltSnapshot,
+            salt,
+            "derive() must not mutate the caller's salt array",
+        )
+    }
+
+    @Test
+    fun `derive completes within 8 seconds on reference hardware`() {
+        // ADR-0018 § Followups: "Performance budget test: derive-key time on the
+        // jvmTest reference hardware is below 8 seconds (an upper bound that
+        // catches an order-of-magnitude regression; the real-device measurement
+        // happens at M1.2 internal beta)."
+        //
+        // The 8-second ceiling is intentionally loose. A Pixel 7 derives in
+        // ~1.5-3s per the ADR; a CI runner or developer Mac with more memory and
+        // wider cores derives faster. The test catches a regression that pushes
+        // wall-clock into the 8+ s territory (e.g. a parameter typo bumping
+        // memory cost or iterations beyond what ADR-0018 pins). It does NOT
+        // pin a tight latency contract because that would flake under shared CI.
+        val passphrase = "perf-budget-test".toCharArray()
+        val salt = ByteArray(16) { 0x42 }
+
+        val elapsed =
+            measureTime {
+                kdf.derive(passphrase, salt)
+            }
+
+        assertTrue(
+            elapsed.inWholeMilliseconds < 8_000,
+            "derive() took ${elapsed.inWholeMilliseconds}ms; budget is 8000ms per ADR-0018 \u00a7 Followups",
+        )
     }
 }

@@ -188,10 +188,12 @@ kover {
                 // Stubs and data classes (auto-generated copy/hashCode are not interesting to cover).
                 classes("*\$Companion")
                 classes("*Kt")
-                // Android-platform expect/actual implementation. Tested by androidUnitTest in
-                // :androidApp via Robolectric, not by :shared:jvmTest. Including it here
-                // double-counts uncovered lines because :shared can never exercise it.
+                // Android-platform expect/actual implementations. Tested by androidUnitTest
+                // in :androidApp via Robolectric, not by :shared:jvmTest. Including them
+                // here double-counts uncovered lines because :shared can never exercise
+                // them.
                 classes("app.toebeans.core.backup.AndroidBackupCipher")
+                classes("app.toebeans.core.backup.AndroidBackupCipherV2")
             }
         }
         verify {
