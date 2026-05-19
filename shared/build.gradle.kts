@@ -68,6 +68,10 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.android)
                 implementation(libs.sqldelight.driver.android)
                 implementation(libs.androidx.work.runtime.ktx)
+                // BouncyCastle pure-Java provider for Argon2id key derivation in
+                // BackupCipherV2 per ADR-0018 § Decision § Library choice. Mirrored in
+                // jvmMain because KMP sibling source sets do not share classpaths.
+                implementation(libs.bouncycastle.bcprov)
             }
         }
 
@@ -85,6 +89,10 @@ kotlin {
                 // AndroidSqliteDriver via libs.sqldelight.driver.android; this driver
                 // exists strictly for the JVM smoke / unit test surface.
                 implementation(libs.sqldelight.driver.jvm)
+                // BouncyCastle pure-Java provider for Argon2id key derivation in
+                // BackupCipherV2 per ADR-0018 § Decision § Library choice. Mirrored in
+                // androidMain because KMP sibling source sets do not share classpaths.
+                implementation(libs.bouncycastle.bcprov)
             }
         }
 
@@ -180,10 +188,12 @@ kover {
                 // Stubs and data classes (auto-generated copy/hashCode are not interesting to cover).
                 classes("*\$Companion")
                 classes("*Kt")
-                // Android-platform expect/actual implementation. Tested by androidUnitTest in
-                // :androidApp via Robolectric, not by :shared:jvmTest. Including it here
-                // double-counts uncovered lines because :shared can never exercise it.
+                // Android-platform expect/actual implementations. Tested by androidUnitTest
+                // in :androidApp via Robolectric, not by :shared:jvmTest. Including them
+                // here double-counts uncovered lines because :shared can never exercise
+                // them.
                 classes("app.toebeans.core.backup.AndroidBackupCipher")
+                classes("app.toebeans.core.backup.AndroidBackupCipherV2")
             }
         }
         verify {
