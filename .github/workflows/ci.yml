@@ -35,6 +35,13 @@ jobs:
         # decrypt path. See scripts/test_no_pbkdf2_in_backup_after_tbn2.sh
         # header for allow-marker syntax.
         run: bash scripts/test_no_pbkdf2_in_backup_after_tbn2.sh .
+      - name: No-em-dash-in-docs fitness function (Wei voice MEMORY[39c0f94f])
+        # Enforces the em-dash iron rule: U+2014 is banned from *.md / *.txt
+        # documentation. Allow-list opt-out via EMDASH-ALLOWED token in the
+        # first 5 lines of a file (use sparingly; name in calibration). The
+        # paired pre-commit hook at scripts/git-hooks/pre-commit runs the
+        # same logic against staged files only for fast local feedback.
+        run: bash scripts/test_no_em_dash_in_docs.sh .
       - name: No-duplicate-private-test-class-names gate (ADR-0017 Lesson 2)
         run: bash scripts/test_no_duplicate_private_test_class_names.sh .
       - name: AGENTS / CLAUDE parity
@@ -45,6 +52,8 @@ jobs:
         run: bash scripts/test_test_no_duplicate_private_test_class_names.sh .
       - name: No-PBKDF2-after-TBN2 fitness-function self-test
         run: bash scripts/test_test_no_pbkdf2_in_backup_after_tbn2.sh .
+      - name: No-em-dash-in-docs fitness-function self-test
+        run: bash scripts/test_test_no_em_dash_in_docs.sh .
 
   vibe-dangerous-gate:
     # Survives `git commit --no-verify`. Enforces the same rule as

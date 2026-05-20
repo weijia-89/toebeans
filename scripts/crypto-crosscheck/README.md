@@ -4,10 +4,10 @@ Independent-second-source reproducibility for the crypto vectors pinned in the t
 
 ## Purpose
 
-The Kotlin tests for `Argon2idKdf` and `BackupCipherV2` pin specific output bytes as known-answer tests (KATs). Pinning gives byte-for-byte regression detection if BouncyCastle ever silently weakens its implementation. But pinning alone doesn't prove the bytes are *correct* — only that they're *stable*. The pinned bytes are correct because the original D1 session derived them against TWO unrelated reference implementations and confirmed agreement:
+The Kotlin tests for `Argon2idKdf` and `BackupCipherV2` pin specific output bytes as known-answer tests (KATs). Pinning gives byte-for-byte regression detection if BouncyCastle ever silently weakens its implementation. But pinning alone doesn't prove the bytes are *correct*, only that they're *stable*. The pinned bytes are correct because the original D1 session derived them against TWO unrelated reference implementations and confirmed agreement:
 
-- **`argon2-cffi`** — Python wrapper around `phc-winner-argon2`, the C reference implementation referenced by RFC 9106. Used as the Argon2id source-of-truth.
-- **`cryptography`** (pyca/cryptography) — Python wrapper around OpenSSL's `EVP_aes_256_gcm`. Used as the AES-GCM source-of-truth.
+- **`argon2-cffi`**: Python wrapper around `phc-winner-argon2`, the C reference implementation referenced by RFC 9106. Used as the Argon2id source-of-truth.
+- **`cryptography`** (pyca/cryptography): Python wrapper around OpenSSL's `EVP_aes_256_gcm`. Used as the AES-GCM source-of-truth.
 
 Neither library is BouncyCastle. Agreement between BouncyCastle and these two libraries means the BouncyCastle path is cross-validated against two independent references.
 

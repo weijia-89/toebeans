@@ -1,4 +1,4 @@
-# Dependabot triage — 2026-05-18
+# Dependabot triage, 2026-05-18
 
 Branch: `chore/dependabot-triage`
 Worktree: `.worktrees/dependabot-triage/`
@@ -168,21 +168,21 @@ Full log: `/tmp/toebeans-baseline.log`.
 
 ## Files referenced (this worktree)
 
-* `gradle/libs.versions.toml` — version catalog (no listed package
+* `gradle/libs.versions.toml`: version catalog (no listed package
   matches a vulnerable transitive; toebeans does not directly depend
   on any of them)
-* `settings.gradle.kts` — Dependabot's reported "manifest" for every
+* `settings.gradle.kts`: Dependabot's reported "manifest" for every
   alert; contains no dependency declarations, only plugin and repo
   configuration
-* `SECURITY.md` — threat model. Amended in the same branch
+* `SECURITY.md`: threat model. Amended in the same branch
   (`chore/dependabot-triage`) with a new subsection under Supply chain
   posture that names the buildscript-transitive vs. app-runtime split
   and documents the `not_used` dismissal policy.
-* `AGENTS.md` — vibe-safety classification for Gradle dep changes
+* `AGENTS.md`: vibe-safety classification for Gradle dep changes
 
 ## Execution log
 
-* `2026-05-18T19:36Z` — Dismissed all 43 alerts via
+* `2026-05-18T19:36Z`: dismissed all 43 alerts via
   `gh api PATCH /repos/weijia-89/toebeans/dependabot/alerts/<N>` with
   `state=dismissed`, `dismissed_reason=not_used`, and the policy
   comment below. Verified post-dismiss: `state=open` query returns 0
@@ -198,7 +198,7 @@ Full log: `/tmp/toebeans-baseline.log`.
   Audit trail on each alert preserves dismisser, timestamp, reason,
   and comment.
 
-* `2026-05-18` — `.github/dependabot.yml` deferred. Investigated as
+* `2026-05-18`: `.github/dependabot.yml` deferred. Investigated as
   part of Path A. The `ignore` block in a Dependabot config file
   prevents Dependabot from opening *update PRs* for matched packages,
   and does **not** suppress security alerts on those packages.
