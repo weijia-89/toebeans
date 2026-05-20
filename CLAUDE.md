@@ -84,6 +84,12 @@ Apply [`code-helper` §5](https://github.com/wei/code-helper.skill) to every cha
 | 8 | Blast radius | 7 | Scoped via `grep` over `import` graph |
 | 9 | Threat model | 5 | STRIDE applied to changed surface |
 
+### Note on the test_verif component and the local-JDK17 deficit
+
+When `test_verif` scores below the structural maximum (20) because the operator's local environment lacks the JDK toolchain to run the full Robolectric plus Kover gauntlet, name the constraint explicitly in the calibration notes (`test_verif=X because no JDK17 locally; CI is the verification gate`). This is a known environmental headwind, not a discipline failure, but it does mean CI green is the load-bearing verification rather than local green. Eight or more calibration entries through 2026-05-19 cite this exact pattern; future readers should not interpret sub-floor `test_verif` scores as a methodology gap when the named constraint applies.
+
+Source: meta-v1 calibration recalibration report 2026-05-19, Wei directive D4.
+
 Log every scored change to `.codeit/calibration.jsonl`. After ~50 entries, recalibrate tier thresholds based on score-vs-incident correlation.
 
 ## Fitness functions (enforced in CI)
@@ -119,6 +125,18 @@ Per [`code-helper` §1](https://github.com/wei/code-helper.skill) and Spracklen 
 3. Re-score.
 4. **No score-bumping without new evidence.**
 5. After 2 iterations without crossing the floor, escalate with a gap report.
+
+### When score is below 80
+
+When a calibration entry's `score` is below 80 (any tier; in practice this triggers when vibe-safe drops below floor, e.g., methodology-failure entries), the orchestrator MUST run an adversarial brutally honest review of the plan and the just-shipped work BEFORE the next commit on the same surface. The review names what was actually verified versus claimed, which assumptions were not falsified, and the cheapest fix.
+
+The review lands as a Markdown file under `docs/reviews/YYYY-MM-DD-<short-name>.md`. A follow-on calibration entry scores the review itself. The procedural rule is self-enforced (no pre-commit hook blocks it); the discipline is the orchestrator naming the trigger in-session and producing the review file before continuing.
+
+The form-check skill is the recommended protocol for the adversarial review. The review is empirical-before-opinion, graded-confidence, falsifiable-per-item.
+
+Rationale: a score below 80 indicates the change shipped with severe component-level deficits in adversarial review, hallucination defense, or bug-class coverage. Continuing past such a score without explicit adversarial reconsideration risks compounding the methodology gap. The retroactive B6 / B7 / B8 trio at scores 60 / 58 / 64 are the load-bearing precedent for this rule.
+
+Source: meta-v1 calibration recalibration report 2026-05-19, Wei directive D3-extension.
 
 ## Operator wisdom
 
