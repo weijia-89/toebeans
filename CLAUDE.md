@@ -92,6 +92,22 @@ Source: meta-v1 calibration recalibration report 2026-05-19, Wei directive D4.
 
 Log every scored change to `.codeit/calibration.jsonl`. After ~50 entries, recalibrate tier thresholds based on score-vs-incident correlation.
 
+### Entry types (added 2026-05-20)
+
+Each row in `.codeit/calibration.jsonl` carries a `kind` field. Five values; cap at 7 long-term. New kinds require a `localonly/meta/` justification artefact AND an addendum to this section before they may appear in the ledger.
+
+| `kind` | Use | Schema |
+|---|---|---|
+| `commit` | Code change that produced a git commit. | Full 9-component rubric. Default when `kind` is missing (lazy migration of pre-2026-05-20 entries). |
+| `observation` | Process pattern noticed during work. No score. | Slim: `{date, kind, source_chat, note}` |
+| `violation` | Iron-law breach (em-dash slip, wrap-bypass, scope-isolation breach, dispatch-manifest skip, etc.). No score. | Slim: `{date, kind, source_chat, rule, evidence}` |
+| `dispatch_event` | Worker dispatched, completed, or cancelled. | Slim: `{date, kind, worker, status, parent_chat}` |
+| `recalibration` | Trigger fired (50, 100, 150, ... entries). | Slim: `{date, kind, trigger, entry_count}` |
+
+The recalibration analyzer computes score statistics on `kind == "commit"` rows only. Other kinds are queryable history (e.g. `grep '"kind":"violation"' .codeit/calibration.jsonl`).
+
+Source: meta-v1 process-debt entry-type proposal 2026-05-19, Option C.
+
 ## Fitness functions (enforced in CI)
 
 See `.github/workflows/ci.yml`. The six gates:
