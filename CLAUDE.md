@@ -14,7 +14,7 @@ The full contract begins on the next line; everything below this divider is a ve
 
 - **Anti-enterprise default.** Boring tech. Modular monolith (KMP shared + Android app). No microservices, no event bus, no k8s. Adding any of these requires a forcing-constraint ADR per [`code-helper` §3](https://github.com/wei/code-helper.skill).
 - **Local-only.** No network calls from v1 code. No analytics. No crash telemetry. No "phone home." A fitness function (`scripts/test_no_network.sh`) fails the build if a network library appears in the dependency graph or source tree.
-- **No AI features.** No symptom checker. No diagnostic content. No treatment recommendations. This is a **vibe-impossible** refusal — not a deferred feature.
+- **No AI features.** No symptom checker. No diagnostic content. No treatment recommendations. This is a **vibe-impossible** refusal, not a deferred feature.
 
 ## Vibe-safety tiers (per [`code-helper` §5](https://github.com/wei/code-helper.skill))
 
@@ -96,12 +96,12 @@ Log every scored change to `.codeit/calibration.jsonl`. After ~50 entries, recal
 
 See `.github/workflows/ci.yml`. The six gates:
 
-1. **No-network** — fail if any class in `commonMain/` or `androidMain/` imports a network library.
-2. **No-analytics** — fail if Firebase, GA, Mixpanel, Segment, etc. appear in the Gradle classpath.
-3. **Scheduler purity** — fail if any function in `shared/.../scheduler/` references a platform clock other than the injected `Clock`.
-4. **Permission whitelist** — fail if AndroidManifest declares a permission not on the allowlist above.
-5. **No-PII-in-crash-log** — fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009). Enforces the no-PII claim mechanically rather than by reviewer attention.
-6. **Scheduler test coverage** — fail if `shared/.../scheduler/` line coverage < 85% (Kover-enforced).
+1. **No-network**: fail if any class in `commonMain/` or `androidMain/` imports a network library.
+2. **No-analytics**: fail if Firebase, GA, Mixpanel, Segment, etc. appear in the Gradle classpath.
+3. **Scheduler purity**: fail if any function in `shared/.../scheduler/` references a platform clock other than the injected `Clock`.
+4. **Permission whitelist**: fail if AndroidManifest declares a permission not on the allowlist above.
+5. **No-PII-in-crash-log**: fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009). Enforces the no-PII claim mechanically rather than by reviewer attention.
+6. **Scheduler test coverage**: fail if `shared/.../scheduler/` line coverage < 85% (Kover-enforced).
 
 ## Hallucination vigilance
 

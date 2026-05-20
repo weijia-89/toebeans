@@ -78,6 +78,55 @@ if [[ -n "$STAGED_DIFF" ]]; then
     fi
 fi
 
+# ===== em-dash check =====
+# Per the em-dash iron rule (Wei voice MEMORY[39c0f94f]), U+2014 is banned
+# from toebeans documentation. This check runs BEFORE the vibe-dangerous
+# early-exit below so it fires on every commit that stages a doc file, not
+# only on vibe-dangerous commits (most doc edits live in docs/ and ADRs,
+# which are not in the vibe-dangerous regex). The CI fitness function at
+# scripts/test_no_em_dash_in_docs.sh runs the same logic against the full
+# tree on every push.
+#
+# Scope here: staged-only via `git diff --cached`. Allow-list opt-out:
+# EMDASH-ALLOWED in the first 5 lines of the file. The fitness function
+# script reads the working-tree copy of each file, which is fine for
+# normal "edit then add then commit" flows; the CI gate catches any
+# divergence between index and working tree.
+EMDASH_STAGED=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E '\.(md|txt)$' || true)
+if [[ -n "$EMDASH_STAGED" ]]; then
+    EMDASH_BYTES=$(printf '\xe2\x80\x94')
+    EMDASH_HITS=""
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        [[ ! -f "$f" ]] && continue
+        # Allow-list opt-out: EMDASH-ALLOWED in first 5 lines.
+        if head -n 5 "$f" 2>/dev/null \
+            | LC_ALL=C grep -qF -- 'EMDASH-ALLOWED'; then
+            continue
+        fi
+        if hits=$(LC_ALL=C grep -nF --binary-files=without-match \
+                -- "$EMDASH_BYTES" "$f" 2>/dev/null); then
+            EMDASH_HITS+="${f}:"$'\n'"${hits}"$'\n'
+        fi
+    done <<< "$EMDASH_STAGED"
+    if [[ -n "$EMDASH_HITS" ]]; then
+        echo -e "${RED}BLOCKED${NC} em-dash (U+2014) detected in staged docs:"
+        echo "$EMDASH_HITS" | sed 's/^/  /'
+        echo ""
+        echo "  Per the em-dash iron rule (Wei voice MEMORY[39c0f94f]),"
+        echo "  em-dashes are banned from toebeans documentation. Repair:"
+        echo "    1. Replace each with a colon, period, comma, or parens."
+        echo "    2. Rewrite the sentence to drop the parenthetical aside."
+        echo "    3. If the file legitimately needs to discuss em-dashes,"
+        echo "       add the literal token EMDASH-ALLOWED to the first 5"
+        echo "       lines and name the exception in the calibration entry."
+        echo ""
+        echo "  See scripts/test_no_em_dash_in_docs.sh for the CI gate."
+        exit 1
+    fi
+fi
+
 # Vibe-dangerous path patterns (regex, anchored to repo root).
 # KEEP IN SYNC with scripts/ci-vibe-dangerous-check.sh PATTERNS array.
 VIBE_DANGEROUS=(
