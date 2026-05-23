@@ -4,7 +4,6 @@ import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
-import app.toebeans.android.data.FakeScheduleRepository
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.home.HomeViewModel
@@ -25,8 +24,12 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.SqlDelightScheduleRepository
+import app.toebeans.core.data.db.DatabaseFactory
+import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
+import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -38,18 +41,25 @@ import org.koin.dsl.module
  */
 public val appModule =
     module {
-        // Repositories, all in-memory fakes for the scaffold milestone. Each one will be
-        // swapped for an SQLDelight-backed impl in one edit when the persistence layer
-        // lands.
+        // Repositories. M1 Decision 4a Phase 6 wires [ScheduleRepository] to SQLDelight;
+        // Pet, Medication, and DoseEvent remain in-memory fakes until their SqlDelight
+        // impls land (Phases 2–4 and 7). The hybrid is intentional: UI and backup tests
+        // exercise the real schedule persistence path while sibling repos catch up.
         //
-        // **When SQLDelight wires up (milestone 1):** the driver construction MUST include
+        // **When the full four-repo cutover lands:** the driver construction MUST include
         // an AndroidSqliteDriver.Callback that enables foreign-key enforcement via
         // `PRAGMA foreign_keys=ON`. SQLite has FKs off by default and SQLDelight does not
         // enable them automatically. See `docs/adr/0010-sqlite-foreign-keys.md` for the
         // canonical pattern and the test contract that gates the wire-up PR.
+        single { DatabaseFactory(androidContext()).create() }
         single<PetRepository> { FakePetRepository() }
         single<MedicationRepository> { FakeMedicationRepository() }
-        single<ScheduleRepository> { FakeScheduleRepository() }
+        single<ScheduleRepository> {
+            SqlDelightScheduleRepository(
+                database = get<ToebeansDatabase>(),
+                dispatcher = Dispatchers.IO,
+            )
+        }
         single<DoseEventRepository> { FakeDoseEventRepository() }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.

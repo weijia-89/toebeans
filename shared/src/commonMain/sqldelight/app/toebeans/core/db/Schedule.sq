@@ -112,3 +112,8 @@ SELECT * FROM SchedulePhase;
 upsertSchedulePhase:
 INSERT OR REPLACE INTO SchedulePhase(id, schedule_id, phase_order, duration_days, doses_per_day, dose_times_local, dose_amount)
 VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- Backs SqlDelightScheduleRepository.upsert: replace the full phase list atomically
+-- (delete orphans before re-inserting the caller's dense 0..N-1 set).
+deletePhasesForSchedule:
+DELETE FROM SchedulePhase WHERE schedule_id = ?;
