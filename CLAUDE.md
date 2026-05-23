@@ -166,24 +166,26 @@ Source: meta-v1 calibration recalibration report 2026-05-19, Wei directive D3-ex
 
 ### Network/egress restrictions
 
-The Cloud Agent VM blocks HTTPS to `services.gradle.org`, `plugins.gradle.org`, `repo1.maven.org`, `maven.google.com`, and most Maven registries. The following are accessible:
+The Cloud Agent VM blocks HTTPS to `plugins-artifacts.gradle.org`, `repo1.maven.org`, `maven.google.com`, and most Maven registries. The following are accessible:
 
 | Domain | Purpose |
 |--------|---------|
 | `repo.maven.apache.org` | Maven Central mirror (dependencies) |
 | `dl.google.com` | Google Maven (Android/AndroidX artifacts) |
 | `github.com` | Source + Gradle distribution ZIP |
+| `services.gradle.org` | Gradle wrapper distribution (redirects to GitHub) |
+| `plugins.gradle.org` | Plugin Portal UI (artifact downloads redirect to blocked `plugins-artifacts.gradle.org`) |
 
-Three Gradle init scripts in `~/.gradle/init.d/` handle this:
+Two Gradle init scripts in `~/.gradle/init.d/` handle this:
 
-1. `mirror-repos.gradle.kts` - Redirects plugin and dependency resolution to accessible mirrors. Includes a local file repo (`~/.gradle/local-plugin-repo/`) for the ktlint-gradle plugin stub.
+1. `mirror-repos.gradle.kts` - Redirects plugin and dependency resolution to accessible mirrors. Includes a local file repo (`~/.gradle/local-plugin-repo/`) with a ktlint-gradle stub, plus `gradlePluginPortal()` for other plugins.
 2. `robolectric-repo.gradle.kts` - Points Robolectric's runtime JAR fetcher at `repo.maven.apache.org`.
 
 ### Running builds and tests
 
 Standard commands per `CONTRIBUTING.md`. Key caveats:
 
-- **ktlintCheck**: Not functional in Cloud Agent. The stub plugin resolves (so the build configures) but does not register tasks. The real ktlint plugin requires `plugins.gradle.org` which is blocked. Use `detekt` for lint.
+- **ktlintCheck**: Not functional in Cloud Agent. The stub plugin resolves (so the build configures) but does not register tasks. The real ktlint plugin downloads from `plugins-artifacts.gradle.org` which is blocked. Use `detekt` for lint.
 - **StubScheduleRepositoryContractTest**: 11 tests intentionally fail (Phase 5 test-as-spec stubs; see the test file's Javadoc). Exclude with `--tests "!*StubScheduleRepository*"` if needed.
 - **Kover verify** depends on all tests passing. Since the 11 stub tests are expected-RED, `koverVerify` cannot pass without excluding them.
 
