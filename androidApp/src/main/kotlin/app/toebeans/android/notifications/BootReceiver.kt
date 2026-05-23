@@ -4,14 +4,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import app.toebeans.android.ToebeansApp
+import kotlinx.datetime.Clock
 
 /**
  * BroadcastReceiver for device reboot. Rehydrates the 72-hour dose-alarm horizon after
- * [Intent.ACTION_BOOT_COMPLETED].
+ * [Intent.ACTION_BOOT_COMPLETED] by delegating to [ToebeansApp.rehydrateBootAlarms].
  *
- * Vibe-dangerous: alarms lost across reboot are a medication-critical failure mode. Phase 1 is
- * manifest + no-op scaffold only; full SQLDelight replay lands in phase 2 per test-as-spec in
- * [BootReceiverTest].
+ * Vibe-dangerous: alarms lost across reboot are a medication-critical failure mode. The
+ * SQLDelight query path is still a stub (zero alarms until persistence lands in the receiver
+ * process); see [BootReceiverTest] for the full contract and follow-on slices.
  */
 public class BootReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -21,9 +23,13 @@ public class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) {
             return
         }
-        // Phase 1 scaffold: survive empty DB without scheduling. Phase 2 will query DoseEvents
-        // and call AndroidNotificationActuator.schedule for the 72h window.
-        Log.d(TAG, "BOOT_COMPLETED received; 72h alarm rehydration not yet implemented")
+        val scheduledCount = ToebeansApp.rehydrateBootAlarms(context.applicationContext)
+        // ADR-0012 specifies a LocalCrashLog BOOT_REPLAY_OK marker; wiring that append path
+        // is deferred until LocalCrashLog gains a non-crash write API (separate slice).
+        Log.i(
+            TAG,
+            "BOOT_REPLAY_OK reminders=$scheduledCount at=${Clock.System.now()}",
+        )
     }
 
     private companion object {
