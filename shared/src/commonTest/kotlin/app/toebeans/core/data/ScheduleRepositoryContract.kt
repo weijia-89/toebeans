@@ -244,12 +244,13 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `observeActiveWithPhases includes schedules with endDate equal to onOrAfter`() =
         runTest {
-            val endsToday = schedule(
-                "s-today",
-                "m1",
-                startDate = LocalDate(2026, 5, 1),
-                endDate = LocalDate(2026, 5, 19),
-            )
+            val endsToday =
+                schedule(
+                    "s-today",
+                    "m1",
+                    startDate = LocalDate(2026, 5, 1),
+                    endDate = LocalDate(2026, 5, 19),
+                )
             repo.upsert(endsToday, listOf(phase("s-today", 0)))
 
             val emitted = repo.observeActiveWithPhases(LocalDate(2026, 5, 19)).first()

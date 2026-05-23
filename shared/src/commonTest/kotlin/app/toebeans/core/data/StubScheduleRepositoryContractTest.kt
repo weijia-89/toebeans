@@ -51,8 +51,7 @@ private class StubScheduleRepository : ScheduleRepository {
 
     override fun observeById(id: String): Flow<Schedule?> = notImplemented("observeById")
 
-    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
-        notImplemented("observePhases")
+    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> = notImplemented("observePhases")
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         notImplemented("observeActiveWithPhases")
