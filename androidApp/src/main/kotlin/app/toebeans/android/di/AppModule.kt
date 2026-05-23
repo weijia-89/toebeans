@@ -3,8 +3,7 @@ package app.toebeans.android.di
 import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.FakeMedicationRepository
-import app.toebeans.android.data.FakePetRepository
-import app.toebeans.android.data.FakeScheduleRepository
+import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.home.HomeViewModel
@@ -25,31 +24,38 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.SqlDelightPetRepository
+import app.toebeans.core.data.SqlDelightScheduleRepository
+import app.toebeans.core.data.db.DatabaseFactory
+import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
+import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
  * Koin DI module. Wires repositories as singletons and ViewModels with their factory
- * scope. Fake repositories are bound for the scaffold milestone; SQLDelight-backed
- * implementations will replace them via a milestone-1 swap (single-line edits).
+ * scope. Pet and Schedule use SQLDelight-backed persistence (M1 step 3→4 bridge);
+ * Medication and DoseEvent remain in-memory fakes until follow-on M1 jobs land their
+ * SqlDelight implementations.
  */
 public val appModule =
     module {
-        // Repositories, all in-memory fakes for the scaffold milestone. Each one will be
-        // swapped for an SQLDelight-backed impl in one edit when the persistence layer
-        // lands.
-        //
-        // **When SQLDelight wires up (milestone 1):** the driver construction MUST include
-        // an AndroidSqliteDriver.Callback that enables foreign-key enforcement via
-        // `PRAGMA foreign_keys=ON`. SQLite has FKs off by default and SQLDelight does not
-        // enable them automatically. See `docs/adr/0010-sqlite-foreign-keys.md` for the
-        // canonical pattern and the test contract that gates the wire-up PR.
-        single<PetRepository> { FakePetRepository() }
+        // SQLDelight database singleton. Driver construction MUST include the ADR-0010
+        // callback so ON DELETE CASCADE clauses in toebeans.sq are enforced at runtime.
+        single<ToebeansDatabase> {
+            DatabaseFactory(
+                context = androidContext(),
+                callback = SqliteForeignKeysCallback(),
+            ).create()
+        }
+
+        // Repositories — Pet + Schedule are SQLDelight-backed; Med + DoseEvent stay fake.
+        single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
         single<MedicationRepository> { FakeMedicationRepository() }
-        single<ScheduleRepository> { FakeScheduleRepository() }
+        single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
         single<DoseEventRepository> { FakeDoseEventRepository() }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
