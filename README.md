@@ -6,7 +6,7 @@ third-party services.
 Status: `v0.1.0-dev`, pre-MVP scaffold. The dose-log surface works end-to-end.
 The reminder-firing path lands in the next milestone.
 
-**SDK weekend (2026-05-23):** BootReceiver phase 1 on `main` ([PR #39](https://github.com/weijia-89/toebeans/pull/39)). Phase 2 [PR #40](https://github.com/weijia-89/toebeans/pull/40) @ `2b6af8a` (72h rehydration stub, empty schedule lookup).
+**SDK weekend (2026-05-23):** BootReceiver phase 1 ([PR #39](https://github.com/weijia-89/toebeans/pull/39)). Phase 2 merged ([PR #40](https://github.com/weijia-89/toebeans/pull/40) → `main` @ `b5da01b`): 72h rehydration stub. **Next SDK slice:** M1 SQLDelight repositories or `DoseAlarmReceiver` DB lookup (ROADMAP steps 3–4).
 
 <p align="center">
   <img src="docs/screenshots/01-home-today.png" alt="Today screen with two pets and two pending Methimazole doses for Luna" width="280">
