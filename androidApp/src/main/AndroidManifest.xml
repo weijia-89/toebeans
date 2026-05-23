@@ -9,12 +9,7 @@
     POST_NOTIFICATIONS         (declared)
     SCHEDULE_EXACT_ALARM       (declared)
     USE_EXACT_ALARM            (declared)
-    RECEIVE_BOOT_COMPLETED     (allowlisted but NOT declared yet, wait for a BootReceiver)
-
-  RECEIVE_BOOT_COMPLETED is intentionally absent from the declarations below: declaring a
-  permission with no consumer is privacy noise and a yellow flag for store reviewers and
-  end users ("why does this app need this?"). The allowlist permits it for the moment the
-  BootReceiver lands in M1.
+    RECEIVE_BOOT_COMPLETED     (declared; consumed by BootReceiver — phase 1 scaffold, phase 2 rehydration)
 
   Why both SCHEDULE_EXACT_ALARM and USE_EXACT_ALARM are declared (API-level matrix):
     minSdk 24, targetSdk 34.
@@ -35,6 +30,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- v0.1: no launcher icon resource yet; Android falls back to the system default.
          A real ic_launcher (adaptive icon) is a slice-1 UI work item. -->
@@ -68,6 +64,17 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="app.toebeans.action.DOSE_FIRE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Phase 1 scaffold: manifest registration + no-op onReceive. Phase 2 adds 72h-horizon
+             SQLDelight replay and ADR-0012 disabled-by-default lifecycle. -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
     </application>
