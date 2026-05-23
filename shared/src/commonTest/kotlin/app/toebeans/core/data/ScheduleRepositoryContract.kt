@@ -147,11 +147,12 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             // Insertion order is deliberately not the expected emission order. The contract
             // pins observePhases as the ordering authority (sorted ascending by phaseOrder),
             // matching the KDoc on ScheduleRepository.observePhases.
-            val phases = listOf(
-                phase("s1", 2),
-                phase("s1", 0),
-                phase("s1", 1),
-            )
+            val phases =
+                listOf(
+                    phase("s1", 2),
+                    phase("s1", 0),
+                    phase("s1", 1),
+                )
             repo.upsert(schedule("s1", "m1"), phases)
 
             val emittedOrders = repo.observePhases("s1").first().map { it.phaseOrder }
@@ -226,12 +227,13 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `observeActiveWithPhases excludes schedules whose endDate is strictly before onOrAfter`() =
         runTest {
-            val expired = schedule(
-                "s-expired",
-                "m1",
-                startDate = LocalDate(2026, 5, 1),
-                endDate = LocalDate(2026, 5, 18),
-            )
+            val expired =
+                schedule(
+                    "s-expired",
+                    "m1",
+                    startDate = LocalDate(2026, 5, 1),
+                    endDate = LocalDate(2026, 5, 18),
+                )
             repo.upsert(expired, listOf(phase("s-expired", 0)))
 
             val emitted = repo.observeActiveWithPhases(LocalDate(2026, 5, 19)).first()
