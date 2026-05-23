@@ -112,3 +112,8 @@ SELECT * FROM SchedulePhase;
 upsertSchedulePhase:
 INSERT OR REPLACE INTO SchedulePhase(id, schedule_id, phase_order, duration_days, doses_per_day, dose_times_local, dose_amount)
 VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- Backs ScheduleRepository.upsert replace semantics: remove stale phases before re-inserting
+-- the full dense 0..N-1 set (matches FakeScheduleRepository's full-list replacement).
+deletePhasesForSchedule:
+DELETE FROM SchedulePhase WHERE schedule_id = ?;

@@ -8,6 +8,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
+* **SqlDelight `ScheduleRepository`** (M1 step 3): `SqlDelightScheduleRepository` satisfies `ScheduleRepositoryContract`; green `SqlDelightScheduleRepositoryContractTest` on JVM. `AppModule` still uses `FakeScheduleRepository` (DI swap is a follow-up queue row).
 * **BootReceiver phase 2** ([PR #40](https://github.com/weijia-89/toebeans/pull/40), merge `b5da01b`): on `RECEIVE_BOOT_COMPLETED`, replays alarm rehydration within a 72-hour horizon via `ToebeansApp.rehydrateBootAlarms`; schedule lookup remains stubbed (empty schedule → zero alarms, no crash).
 * Dose-log surface on the Pet Detail screen. Each medication row gets a
   **Log dose now** button when an active schedule exists, plus a `Last dose:
