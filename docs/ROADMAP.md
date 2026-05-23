@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-19.
+Last updated: 2026-05-23.
 
 ---
 
@@ -41,7 +41,10 @@ Last updated: 2026-05-19.
 
 | Pending | What | Source |
 |---|---|---|
-| | SQLDelight repositories (`PetRepository`, `MedicationRepository`, `ScheduleRepository`, `DoseEventRepository`) | Persistence layer |
+| ✓ | **ScheduleRepository** SqlDelight impl + contract tests | [PR #42](https://github.com/weijia-89/toebeans/pull/42) merged 2026-05-23 @ `c917228` |
+| ✓ | **PetRepository** SqlDelight impl + contract tests | Prior merge (Phase 2) |
+| | **AppModule DI swap** (Pet + Schedule on SqlDelight; ADR-0010 FK callback; Med/DoseEvent stay fake) | M1 step 3→4 bridge; SDK prompt `toebeans_appmodule_di` |
+| | `MedicationRepository`, `DoseEventRepository` SqlDelight | M1 step 3 remainder |
 | ✓ | **Schedule delete affordance.** Top-bar Delete action on the new Schedule Detail screen (B7) wires through to `ScheduleRepository.delete`, with the same confirmation-dialog pattern as the pet + medication delete flows (no undo snackbar, since delete-with-phases is destructive enough to warrant a hard confirm). The dialog mirrors the error-tinted Delete button + "this can't be undone" body copy. Hard-delete via fake repo today; **hard-delete with FK cascade once SQLDelight lands**, per ADR-0010 (`Schedule.medication_id` ON DELETE CASCADE, `SchedulePhase.schedule_id` ON DELETE CASCADE, `DoseEvent.schedule_id` ON DELETE CASCADE). The previous draft of this entry incorrectly described a soft-delete via `endDate` plan; `endDate` is the schedule's intended last dosing day, not a deletion tombstone. Corrected during B8 self-review. | Cold review, P2 |
 | | Real `DoseAlarmReceiver` DB lookup (replaces `ScheduledReminder(scheduleId = "", ...)` placeholder) | v0.1-followups #3 |
 | | `BootReceiver` declared in manifest + rehydrate 72h-horizon alarms in `ToebeansApp` boot path. Until this lands, the `RECEIVE_BOOT_COMPLETED` permission is consumer-less. | v0.1-followups #4 |
