@@ -2,6 +2,7 @@ package app.toebeans.core.notifications
 
 import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -100,6 +101,16 @@ abstract class ReminderLookupContract {
 
     protected open fun removeSeededSchedule(scheduleId: String) {
         // Default no-op; SQLDelight subclass deletes the schedule row to exercise FK CASCADE.
+    }
+
+    /**
+     * ADR-0011 write path: stamp [DoseEvent.fired_at] before [NotificationActuator.show].
+     * M1.3 ships the SQLDelight read path only; this test documents the deferred assertion.
+     */
+    @Test
+    @Ignore
+    fun `ADR-0011 fired_at is written before notification show`() {
+        error("Implement in ADR-0011 slice once receiver can UPDATE dose rows before show")
     }
 }
 

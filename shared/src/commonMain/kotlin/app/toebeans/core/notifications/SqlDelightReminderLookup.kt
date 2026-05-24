@@ -21,9 +21,8 @@ public class SqlDelightReminderLookup(
     override fun lookup(reminderId: String): ScheduledReminder? {
         val row =
             database.doseEventQueries
-                .selectAllDoseEvents()
-                .executeAsList()
-                .find { it.id == reminderId }
+                .selectDoseEventById(reminderId)
+                .executeAsOneOrNull()
                 ?: return null
 
         // Defense in depth: confirm the parent schedule row still exists so scheduleId is
