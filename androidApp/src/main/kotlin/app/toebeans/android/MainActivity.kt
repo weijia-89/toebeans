@@ -12,6 +12,9 @@ import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.ToebeansAppShell
 import app.toebeans.android.ui.firstlaunch.FirstLaunchDialogHost
 import app.toebeans.android.ui.theme.ToebeansTheme
+import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
+import app.toebeans.core.data.ScheduleRepository
 import org.koin.android.ext.android.inject
 
 /**
@@ -30,6 +33,9 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
     private val themePrefs: ThemePreferences by inject()
     private val firstLaunchPrefs: FirstLaunchPreferences by inject()
+    private val petRepository: PetRepository by inject()
+    private val medicationRepository: MedicationRepository by inject()
+    private val scheduleRepository: ScheduleRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +53,12 @@ class MainActivity : ComponentActivity() {
                 // Layered on top of the shell so it sits above whichever tab is active.
                 // The host short-circuits when the seen-flag is true, so this is a
                 // ~free no-op after the first launch is acknowledged.
-                FirstLaunchDialogHost(prefs = firstLaunchPrefs)
+                FirstLaunchDialogHost(
+                    prefs = firstLaunchPrefs,
+                    petRepository = petRepository,
+                    medicationRepository = medicationRepository,
+                    scheduleRepository = scheduleRepository,
+                )
             }
         }
     }

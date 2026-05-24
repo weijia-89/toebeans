@@ -162,16 +162,15 @@ internal val phasesByScheduleId = MutableStateFlow<Map<String, List<SchedulePhas
 internal val doseEvents = MutableStateFlow<Map<String, app.toebeans.core.model.DoseEvent>>(emptyMap())
 
 /**
- * Idempotently populate the in-memory fakes with the Luna + Rufus demo data. Called from
- * the first-launch dialog when the user taps "Load demo data". Safe to call repeatedly —
- * each call replaces the existing entries for the same demo IDs and leaves any
- * user-created entries alone.
- *
- * Luna has hyperthyroidism in the fictional canon, hence the Methimazole BID schedule.
- * The schedule is anchored at 2024-01-01 with no end so the Today screen renders future
- * doses regardless of when the app is first launched.
+ * Idempotently populate demo data through repository contracts (SQLite when AppModule binds
+ * SqlDelight repos). Called from the first-launch dialog when the user taps "Load demo data".
+ * Safe to call repeatedly — upserts replace the same demo IDs and leave other rows alone.
  */
-public fun loadDemoData() {
+public suspend fun loadDemoData(
+    petRepository: PetRepository,
+    medicationRepository: MedicationRepository,
+    scheduleRepository: ScheduleRepository,
+) {
     val rufus =
         Pet(
             id = "pet-rufus",
@@ -194,7 +193,8 @@ public fun loadDemoData() {
             createdAt = seedCreatedAt,
             archivedAt = null,
         )
-    pets.update { it + (rufus.id to rufus) + (luna.id to luna) }
+    petRepository.upsert(rufus)
+    petRepository.upsert(luna)
 
     val methimazole =
         Medication(
@@ -206,7 +206,7 @@ public fun loadDemoData() {
             createdAt = seedCreatedAt,
             discontinuedAt = null,
         )
-    medications.update { it + (methimazole.id to methimazole) }
+    medicationRepository.upsert(methimazole)
 
     val methSchedule =
         Schedule(
@@ -216,8 +216,6 @@ public fun loadDemoData() {
             endDate = null,
             createdAt = seedCreatedAt,
         )
-    schedules.update { it + (methSchedule.id to methSchedule) }
-
     val methPhase =
         SchedulePhase(
             id = "phase-luna-methimazole-0",
@@ -229,7 +227,7 @@ public fun loadDemoData() {
             doseAmount = null,
             dayInterval = 1,
         )
-    phasesByScheduleId.update { it + (methSchedule.id to listOf(methPhase)) }
+    scheduleRepository.upsert(methSchedule, listOf(methPhase))
 }
 
 /** Utility for forms that need to display "now" in the device's local zone. */

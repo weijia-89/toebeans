@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -16,10 +17,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.data.loadDemoData
 import app.toebeans.android.preferences.FirstLaunchPreferences
+import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
+import app.toebeans.core.data.ScheduleRepository
+import kotlinx.coroutines.launch
 
 /**
  * First-launch onboarding prompt. Shown once on app first open; offers to populate the
- * in-memory fake repositories with the Luna + Rufus demo data (useful for reviewers who
+ * repository layer with the Luna + Rufus demo data (useful for reviewers who
  * want to see the populated UI immediately) or start with an empty state (the path real
  * caregivers will take).
  *
@@ -34,13 +39,21 @@ import app.toebeans.android.preferences.FirstLaunchPreferences
  * buttons), so there is no ambiguity about how to proceed.
  */
 @Composable
-public fun FirstLaunchDialogHost(prefs: FirstLaunchPreferences) {
+public fun FirstLaunchDialogHost(
+    prefs: FirstLaunchPreferences,
+    petRepository: PetRepository,
+    medicationRepository: MedicationRepository,
+    scheduleRepository: ScheduleRepository,
+) {
     val seen by prefs.firstLaunchSeen.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     if (seen) return
     FirstLaunchDialog(
         onLoadDemoData = {
-            loadDemoData()
-            prefs.markSeen()
+            scope.launch {
+                loadDemoData(petRepository, medicationRepository, scheduleRepository)
+                prefs.markSeen()
+            }
         },
         onStartEmpty = { prefs.markSeen() },
     )
