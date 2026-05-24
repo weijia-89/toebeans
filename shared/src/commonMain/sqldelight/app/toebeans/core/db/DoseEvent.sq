@@ -74,6 +74,11 @@ LIMIT 1;
 selectAllDoseEvents:
 SELECT * FROM DoseEvent ORDER BY scheduled_at DESC;
 
+-- Receiver fire path (M1.3): indexed lookup by primary key. Replaces full-table scan
+-- in SqlDelightReminderLookup.lookup until materializer volume grows.
+selectDoseEventById:
+SELECT * FROM DoseEvent WHERE id = ? LIMIT 1;
+
 -- Backs FakeDoseEventRepository.observeAllRecent. status = GIVEN only, scheduled_at
 -- since-filtered, DESC. Powers the Home "Logged today" surface. The fake does not
 -- apply a LIMIT — the interface KDoc suggests "LIMIT 50 and matching ORDER BY index"

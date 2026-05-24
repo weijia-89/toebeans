@@ -56,13 +56,10 @@ public class MedicationEditViewModel(
      * **What this does NOT do:** the Schedule rows that reference this medication remain in
      * the repository, and their existing AlarmManager registrations are NOT cancelled. v0.1
      * relies on Home's discontinuedAt filter to keep reminders out of view; if a phase is
-     * still actively materializing, its alarms would still fire and the resulting
-     * `DoseAlarmReceiver` invocation would look up the medication (currently a placeholder
-     * lookup per v0.1-followups #3, M1 SQLDelight lookup post-M1 Tier C) and could either
-     * silently drop the fire (if the lookup filters by isActive) or render a reminder for
-     * a discontinued med (if it doesn't). This is a known v0.1 gap tracked alongside
-     * v0.1-followups #3; the M1 SQLDelight + receiver implementation will route through
-     * `Medication.isActive` to drop discontinued-med firings.
+     * still actively materializing, its alarms would still fire and [DoseAlarmReceiver]
+     * resolves the dose via [app.toebeans.core.notifications.SqlDelightReminderLookup]
+     * (M1.3). That lookup does not yet filter on [Medication.isActive], so discontinued-med
+     * firings can still render until a follow-on slice joins the medication row at fire time.
      *
      * @param now Instant to record as discontinuedAt. Injectable so tests can pin time.
      *     Default `Clock.System.now()` for production callers.

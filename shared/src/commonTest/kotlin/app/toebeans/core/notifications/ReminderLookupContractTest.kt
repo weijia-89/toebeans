@@ -23,8 +23,8 @@ import kotlin.test.assertNull
  * **Phase 1 (this PR):** [InMemoryReminderLookupContractTest] exercises the contract against an
  * in-memory fake so reviewers can approve assertions before SQLDelight lands.
  *
- * **Phase 2 (M1.3 SQLDelight):** ship `SqlDelightReminderLookupContractTest` whose factory
- * returns a driver-backed impl and delete [StubReminderLookupContractTest] once green.
+ * **Phase 2 (M1.3 SQLDelight):** [SqlDelightReminderLookupContractTest] in `:shared:jvmTest`
+ * exercises the driver-backed impl.
  */
 abstract class ReminderLookupContract {
     protected abstract fun createLookup(): ReminderLookup
@@ -78,8 +78,39 @@ abstract class ReminderLookupContract {
         )
     }
 
+    @Test
+    fun `lookup returns null after parent schedule delete cascades dose event`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-cascade-gone",
+                scheduleId = "sched-cascade",
+                scheduledAt = Instant.parse("2026-05-23T11:00:00Z"),
+            )
+        seedReminder(reminder)
+        removeSeededSchedule(reminder.scheduleId)
+
+        assertNull(
+            lookup.lookup("evt-cascade-gone"),
+            "schedule delete must CASCADE to dose event (ADR-0010 row-gone race at fire time)",
+        )
+    }
+
     protected open fun removeSeededReminder(reminderId: String) {
         // Default no-op for lookups that cannot simulate deletion yet (stub-throws path).
+    }
+
+    protected open fun removeSeededSchedule(scheduleId: String) {
+        // Default no-op; SQLDelight subclass deletes the schedule row to exercise FK CASCADE.
+    }
+
+    /**
+     * ADR-0011 write path: stamp [DoseEvent.fired_at] before [NotificationActuator.show].
+     * M1.3 ships the SQLDelight read path only; this test documents the deferred assertion.
+     */
+    @Test
+    @Ignore
+    fun `ADR-0011 fired_at is written before notification show`() {
+        error("Implement in ADR-0011 slice once receiver can UPDATE dose rows before show")
     }
 }
 
@@ -102,28 +133,8 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
     override fun removeSeededReminder(reminderId: String) {
         store.remove(reminderId)
     }
-}
 
-/**
- * RED stub subclass for human review of the contract surface before M1.3. Every inherited test
- * fails with [NotImplementedError] until `SqlDelightReminderLookup` ships.
- *
- * Local reviewers run this class explicitly after removing [@Ignore]; CI keeps it ignored until
- * M1.3 ships [SqlDelightReminderLookup].
- */
-@Ignore("awaiting SQLDelight M1.3")
-class StubReminderLookupContractTest : ReminderLookupContract() {
-    override fun createLookup(): ReminderLookup = StubReminderLookup()
-
-    override fun seedReminder(reminder: ScheduledReminder): Unit =
-        throw UnsupportedOperationException(
-            "StubReminderLookupContractTest cannot seed rows until M1.3 SQLDelight lookup lands",
-        )
-}
-
-private class StubReminderLookup : ReminderLookup {
-    override fun lookup(reminderId: String): ScheduledReminder? =
-        throw NotImplementedError(
-            "StubReminderLookup.lookup: not implemented (M1.3 ships SqlDelightReminderLookup)",
-        )
+    override fun removeSeededSchedule(scheduleId: String) {
+        store.entries.removeIf { (_, reminder) -> reminder.scheduleId == scheduleId }
+    }
 }

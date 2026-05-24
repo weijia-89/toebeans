@@ -4,11 +4,16 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import app.toebeans.android.ToebeansApp
+import app.toebeans.android.data.SqliteForeignKeysCallback
+import app.toebeans.core.data.db.DatabaseFactory
+import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.ReminderLookup
 import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,7 +23,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * Test-as-spec for [DoseAlarmReceiver] reminder lookup (M1 ROADMAP item 4 prep).
+ * Test-as-spec for [DoseAlarmReceiver] reminder lookup (M1 ROADMAP item 4).
  *
  * **Contract (followups § 3):**
  * - Happy path: [ReminderLookup] returns a [ScheduledReminder] → [AndroidNotificationActuator.show]
@@ -38,6 +43,8 @@ class DoseAlarmReceiverLookupTest {
     private lateinit var context: Context
     private lateinit var alarmManager: AlarmManager
     private lateinit var systemNotificationManager: NotificationManager
+    private lateinit var database: ToebeansDatabase
+    private val dbName = "dose-receiver-lookup-test.db"
 
     @Before
     fun setUp() {
@@ -51,11 +58,22 @@ class DoseAlarmReceiverLookupTest {
         systemNotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.resetReceiverDatabaseCacheForTests()
+        context.deleteDatabase(dbName)
+        database =
+            DatabaseFactory(
+                context = context,
+                databaseName = dbName,
+                callback = SqliteForeignKeysCallback(),
+            ).create()
+        ToebeansApp.receiverDatabaseFactory = { database }
     }
 
     @After
     fun tearDown() {
         DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.resetReceiverDatabaseCacheForTests()
+        context.deleteDatabase(dbName)
     }
 
     @Test
@@ -147,15 +165,95 @@ class DoseAlarmReceiverLookupTest {
     }
 
     @Test
-    fun `placeholder lookup preserves pre-SQLDelight scheduleId until M1_3`() {
-        // Documents current production default: separate-process receiver cannot see fakes;
-        // PlaceholderReminderLookup keeps legacy empty scheduleId rather than crashing.
-        val lookup = DoseAlarmReceiver.defaultReminderLookup()
-        val found =
-            lookup.lookup("evt-placeholder") ?: error("placeholder lookup must return a row")
+    fun `default lookup resolves persisted dose event with non-empty scheduleId`() {
+        seedDoseEvent(
+            eventId = "evt-sqldelight",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+        )
 
-        assertEquals("evt-placeholder", found.id)
-        assertEquals("", found.scheduleId)
+        val found = DoseAlarmReceiver.defaultReminderLookup(context).lookup("evt-sqldelight")
+
+        assertEquals(
+            ScheduledReminder(
+                id = "evt-sqldelight",
+                scheduleId = "sched-luna-methimazole",
+                scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+            ),
+            found,
+        )
+    }
+
+    @Test
+    fun `onReceive uses SQLDelight lookup to post notification for persisted dose event`() {
+        seedDoseEvent(
+            eventId = "evt-on-receive",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T10:00:00Z"),
+        )
+
+        dispatchDoseFire("evt-on-receive")
+
+        val active = shadowOf(systemNotificationManager).activeNotifications
+        assertEquals(1, active.size)
+    }
+
+    @Test
+    fun `default lookup returns null after schedule delete cascades dose event`() {
+        seedDoseEvent(
+            eventId = "evt-cascade-gone",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T11:00:00Z"),
+        )
+        database.scheduleQueries.deleteSchedule("sched-luna-methimazole")
+
+        val found = DoseAlarmReceiver.defaultReminderLookup(context).lookup("evt-cascade-gone")
+
+        assertNull(found)
+    }
+
+    private fun seedDoseEvent(
+        eventId: String,
+        scheduleId: String,
+        scheduledAt: Instant,
+    ) {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        database.petQueries.upsertPet(
+            id = "pet-luna",
+            name = "Luna",
+            species = "cat",
+            birthdate_iso = null,
+            weight_kg = 4.0,
+            notes = null,
+            created_at = createdAt,
+            archived_at = null,
+        )
+        database.medicationQueries.upsertMedication(
+            id = "med-luna-methimazole",
+            pet_id = "pet-luna",
+            name = "Methimazole",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = createdAt,
+            discontinued_at = null,
+        )
+        database.scheduleQueries.upsertSchedule(
+            id = scheduleId,
+            medication_id = "med-luna-methimazole",
+            start_date_iso = "2026-05-01",
+            end_date_iso = null,
+            created_at = createdAt,
+        )
+        database.doseEventQueries.insertDoseEvent(
+            id = eventId,
+            schedule_id = scheduleId,
+            medication_id = "med-luna-methimazole",
+            scheduled_at = scheduledAt.toEpochMilliseconds(),
+            fired_at = null,
+            resolved_at = null,
+            status = "pending",
+            note = null,
+        )
     }
 
     private fun dispatchDoseFire(reminderId: String) {

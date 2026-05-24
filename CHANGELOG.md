@@ -16,6 +16,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 * **AppModule SQLDelight DI swap** ([PR #43](https://github.com/weijia-89/toebeans/pull/43), merge `951ac09`): `ToebeansDatabase` singleton with ADR-0010 `SqliteForeignKeysCallback`; `PetRepository`, `MedicationRepository`, and `ScheduleRepository` bind to SQLDelight impls. `DoseEventRepository` remains in-memory fake until its SqlDelight implementation lands.
 * **SqlDelight `MedicationRepository`** (M1 step 3, option B): `SqlDelightMedicationRepository` satisfies `MedicationRepositoryContract`; green `SqlDelightMedicationRepositoryContractTest` on JVM. First-launch demo seeding upserts pets, meds, and schedules via repositories (no module-level fake maps).
+* **SqlDelight `ReminderLookup`** (M1.3): `SqlDelightReminderLookup` resolves dose-event ids to
+  `ScheduledReminder` snapshots for the receiver fire path; `DoseAlarmReceiver` default lookup
+  opens SQLDelight outside Koin. `selectDoseEventById` indexed query (sdk-review F2). Contract
+  suite includes schedule-delete CASCADE row-gone case (F3). Green
+  `SqlDelightReminderLookupContractTest` + Robolectric `DoseAlarmReceiverLookupTest`.
+  ADR-0011 `fired_at` write-before-show deferred (`@Ignore` spec in contract).
 * **SqlDelight `ScheduleRepository`** (M1 step 3): `SqlDelightScheduleRepository` satisfies `ScheduleRepositoryContract`; green `SqlDelightScheduleRepositoryContractTest` on JVM.
 * **BootReceiver phase 2** ([PR #40](https://github.com/weijia-89/toebeans/pull/40), merge `b5da01b`): on `RECEIVE_BOOT_COMPLETED`, replays alarm rehydration within a 72-hour horizon via `ToebeansApp.rehydrateBootAlarms`; schedule lookup remains stubbed (empty schedule → zero alarms, no crash).
 * Dose-log surface on the Pet Detail screen. Each medication row gets a
