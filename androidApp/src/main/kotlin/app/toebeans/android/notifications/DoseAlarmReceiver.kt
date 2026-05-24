@@ -5,9 +5,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
+import app.toebeans.android.ToebeansApp
 import app.toebeans.core.notifications.ReminderLookup
-import app.toebeans.core.notifications.ScheduledReminder
-import kotlinx.datetime.Clock
 
 /**
  * BroadcastReceiver fired by AlarmManager when a dose's scheduled time arrives.
@@ -17,7 +16,7 @@ import kotlinx.datetime.Clock
  *
  * Lifecycle:
  *  1. AlarmManager triggers this receiver's [onReceive] at the wall-clock instant.
- *  2. [ReminderLookup.lookup] re-fetches authoritative reminder data (SQLDelight in M1.3).
+ *  2. [ReminderLookup.lookup] re-fetches authoritative reminder data from SQLDelight.
  *  3. We delegate to [AndroidNotificationActuator.show], which populates the visible notification.
  *  4. We mark the DoseEvent.fired_at in the database (ADR-0011 slice; requires SQLDelight here).
  */
@@ -33,7 +32,8 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
             intent.getStringExtra(AndroidNotificationActuator.EXTRA_REMINDER_ID)
                 ?: return
 
-        dispatchDoseFire(context.applicationContext, reminderId, reminderLookupFor())
+        val appContext = context.applicationContext
+        dispatchDoseFire(appContext, reminderId, reminderLookupFor(appContext))
     }
 
     public companion object {
@@ -44,14 +44,14 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
         @JvmField
         public var lookupOverride: ReminderLookup? = null
 
-        internal fun reminderLookupFor(): ReminderLookup = lookupOverride ?: defaultReminderLookup()
+        internal fun reminderLookupFor(context: Context): ReminderLookup =
+            lookupOverride ?: defaultReminderLookup(context)
 
         /**
-         * Production lookup until M1.3 wires SQLDelight in the receiver process. Preserves the
-         * legacy placeholder row (empty [ScheduledReminder.scheduleId]) so alarms keep firing
-         * without crashing while persistence is still fake-only in the foreground app.
+         * Production lookup: opens SQLDelight directly in the receiver process (outside Koin).
          */
-        internal fun defaultReminderLookup(): ReminderLookup = PlaceholderReminderLookup()
+        internal fun defaultReminderLookup(context: Context): ReminderLookup =
+            ToebeansApp.reminderLookupForReceiver(context)
 
         /**
          * Shared dispatch entry for Robolectric tests and production [onReceive].
@@ -80,17 +80,4 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
             )
         }
     }
-}
-
-/**
- * Pre-M1.3 lookup: returns a synthetic [ScheduledReminder] with empty [ScheduledReminder.scheduleId].
- * Replaced by driver-backed lookup once SQLDelight is reachable from the receiver process.
- */
-private class PlaceholderReminderLookup : ReminderLookup {
-    override fun lookup(reminderId: String): ScheduledReminder =
-        ScheduledReminder(
-            id = reminderId,
-            scheduleId = "",
-            scheduledAt = Clock.System.now(),
-        )
 }

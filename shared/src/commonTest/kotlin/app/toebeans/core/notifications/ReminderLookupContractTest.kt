@@ -2,7 +2,6 @@ package app.toebeans.core.notifications
 
 import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -23,8 +22,8 @@ import kotlin.test.assertNull
  * **Phase 1 (this PR):** [InMemoryReminderLookupContractTest] exercises the contract against an
  * in-memory fake so reviewers can approve assertions before SQLDelight lands.
  *
- * **Phase 2 (M1.3 SQLDelight):** ship `SqlDelightReminderLookupContractTest` whose factory
- * returns a driver-backed impl and delete [StubReminderLookupContractTest] once green.
+ * **Phase 2 (M1.3 SQLDelight):** [SqlDelightReminderLookupContractTest] in `:shared:jvmTest`
+ * exercises the driver-backed impl.
  */
 abstract class ReminderLookupContract {
     protected abstract fun createLookup(): ReminderLookup
@@ -102,28 +101,4 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
     override fun removeSeededReminder(reminderId: String) {
         store.remove(reminderId)
     }
-}
-
-/**
- * RED stub subclass for human review of the contract surface before M1.3. Every inherited test
- * fails with [NotImplementedError] until `SqlDelightReminderLookup` ships.
- *
- * Local reviewers run this class explicitly after removing [@Ignore]; CI keeps it ignored until
- * M1.3 ships [SqlDelightReminderLookup].
- */
-@Ignore("awaiting SQLDelight M1.3")
-class StubReminderLookupContractTest : ReminderLookupContract() {
-    override fun createLookup(): ReminderLookup = StubReminderLookup()
-
-    override fun seedReminder(reminder: ScheduledReminder): Unit =
-        throw UnsupportedOperationException(
-            "StubReminderLookupContractTest cannot seed rows until M1.3 SQLDelight lookup lands",
-        )
-}
-
-private class StubReminderLookup : ReminderLookup {
-    override fun lookup(reminderId: String): ScheduledReminder? =
-        throw NotImplementedError(
-            "StubReminderLookup.lookup: not implemented (M1.3 ships SqlDelightReminderLookup)",
-        )
 }

@@ -2,12 +2,18 @@ package app.toebeans.android
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.crash.LocalCrashLog
+import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.di.appModule
 import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
+import app.toebeans.core.data.db.DatabaseFactory
+import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.notifications.ReminderLookup
 import app.toebeans.core.notifications.ScheduledReminder
+import app.toebeans.core.notifications.SqlDelightReminderLookup
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -94,6 +100,37 @@ class ToebeansApp : Application() {
                 notificationManager = NotificationManagerCompat.from(context),
                 requestCodeAllocator = RequestCodeAllocator.fromContext(context),
             )
+        }
+
+        /**
+         * Test seam so Robolectric can inject an isolated in-memory database without touching
+         * the on-disk `toebeans.db` file used in production receiver lookups.
+         */
+        @VisibleForTesting
+        @JvmField
+        var receiverDatabaseFactory: ((Context) -> ToebeansDatabase)? = null
+
+        private var cachedReceiverDatabase: ToebeansDatabase? = null
+
+        /**
+         * Opens (or reuses) the SQLDelight database for BroadcastReceiver entry points that
+         * run outside the Koin graph. Uses the same ADR-0010 FK callback as [appModule].
+         */
+        internal fun openReceiverDatabase(context: Context): ToebeansDatabase {
+            receiverDatabaseFactory?.let { factory -> return factory(context) }
+            return cachedReceiverDatabase ?: DatabaseFactory(
+                context = context.applicationContext,
+                callback = SqliteForeignKeysCallback(),
+            ).create().also { cachedReceiverDatabase = it }
+        }
+
+        internal fun reminderLookupForReceiver(context: Context): ReminderLookup =
+            SqlDelightReminderLookup(openReceiverDatabase(context))
+
+        @VisibleForTesting
+        fun resetReceiverDatabaseCacheForTests() {
+            cachedReceiverDatabase = null
+            receiverDatabaseFactory = null
         }
 
         // Mirrors the value rendered in Settings → About. When versioning gains a build
