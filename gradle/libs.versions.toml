@@ -47,6 +47,8 @@ espresso-core = "3.6.1"
 # main app's classpath. Versions pinned per the same policy as the rest of the catalog
 # (bumps require a human-reviewed PR per AGENTS.md).
 androidx-benchmark = "1.3.3"
+# Wire — forced to 6.3.0+ via settings.gradle.kts (CVE-2026-45799). :macrobench only.
+wire = "6.3.0"
 androidx-test-runner = "1.6.2"
 androidx-uiautomator = "2.3.0"
 # BouncyCastle — pure-Java provider used by :shared backup module for Argon2id key

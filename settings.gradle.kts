@@ -31,6 +31,32 @@ dependencyResolutionManagement {
     }
 }
 
+// CVE-2026-45799 (GHSA-7xpr-hc2w-34m9): androidx.benchmark pulls wire-runtime 4.9.7 on
+// :macrobench only. wire-runtime-jvm has no patched release; unify on wire-runtime 6.3.0+.
+val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:6.3.0"
+
+gradle.beforeProject {
+    configurations.configureEach {
+        resolutionStrategy {
+            force(wireRuntimeCoordinate)
+            eachDependency {
+                if (requested.group == "com.squareup.wire") {
+                    when (requested.name) {
+                        "wire-runtime-jvm" -> {
+                            useTarget(wireRuntimeCoordinate)
+                            because("CVE-2026-45799: wire-runtime-jvm discontinued")
+                        }
+                        "wire-runtime" -> {
+                            useVersion("6.3.0")
+                            because("CVE-2026-45799")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 rootProject.name = "toebeans"
 
 include(":shared")
