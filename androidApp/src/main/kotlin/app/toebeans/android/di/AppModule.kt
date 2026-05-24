@@ -55,7 +55,12 @@ public val appModule =
         single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
         single<MedicationRepository> { SqlDelightMedicationRepository(get(), Dispatchers.IO) }
         single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
-        single<DoseEventRepository> { FakeDoseEventRepository() }
+        single<DoseEventRepository> {
+            FakeDoseEventRepository(
+                medicationRepository = get(),
+                scheduleRepository = get(),
+            )
+        }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.

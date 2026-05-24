@@ -1,18 +1,22 @@
 package app.toebeans.android.data
 
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Instant
 
 /**
- * In-memory [DoseEventRepository] for the UI-scaffold milestone. Joins through the
- * in-memory `medications` and `schedules` maps held in [FakeRepositories.kt] to scope
- * dose events to a pet, mirroring the SQLDelight `selectDoseEventsForPetSince` query.
+ * In-memory [DoseEventRepository] for the UI-scaffold milestone. Pet and medication scoping
+ * reads through the bound [MedicationRepository] (SqlDelight in production DI) instead of the
+ * legacy in-memory maps in [FakeRepositories.kt], so "Last dose" and pet-scoped history stay
+ * correct when Pet/Med/Schedule persist in SQLite.
  *
  * **Not production-grade.** The SQLDelight-backed implementation will land alongside
  * the schedule materializer in a follow-up commit. This fake exists to let the UI
@@ -22,7 +26,10 @@ import kotlinx.datetime.Instant
  * State survives within the process but is lost on process death — fine for scaffold
  * review since the absent SQLDelight schema would be no different.
  */
-public class FakeDoseEventRepository : DoseEventRepository {
+public class FakeDoseEventRepository(
+    private val medicationRepository: MedicationRepository,
+    private val scheduleRepository: ScheduleRepository,
+) : DoseEventRepository {
     override fun observeForPet(
         petId: String,
         sinceInclusive: Instant,
@@ -31,34 +38,20 @@ public class FakeDoseEventRepository : DoseEventRepository {
         // OR doses change. Using combine() over StateFlow yields synchronous emission of
         // the current value on each subscription — Compose sees the data immediately, no
         // initial-emission flicker.
-        combine(medications, schedules, doseEvents) { meds, scheds, events ->
-            val petMedIds =
-                meds.values
-                    .filter { it.petId == petId }
-                    .map { it.id }
-                    .toSet()
-            val petSchedIds =
-                scheds.values
-                    .filter { it.medicationId in petMedIds }
-                    .map { it.id }
-                    .toSet()
+        combine(medicationRepository.observeForPet(petId), doseEvents) { meds, events ->
+            val petMedIds = meds.map { it.id }.toSet()
             events.values
                 .asSequence()
-                .filter { it.scheduleId in petSchedIds && it.scheduledAt >= sinceInclusive }
+                .filter { it.medicationId in petMedIds && it.scheduledAt >= sinceInclusive }
                 .sortedByDescending { it.scheduledAt }
                 .toList()
         }
 
     override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> =
-        combine(schedules, doseEvents) { scheds, events ->
-            val medSchedIds =
-                scheds.values
-                    .filter { it.medicationId == medicationId }
-                    .map { it.id }
-                    .toSet()
+        doseEvents.map { events ->
             events.values
                 .asSequence()
-                .filter { it.scheduleId in medSchedIds && it.status == DoseStatus.GIVEN }
+                .filter { it.medicationId == medicationId && it.status == DoseStatus.GIVEN }
                 .maxByOrNull { it.scheduledAt }
         }
 
@@ -146,12 +139,11 @@ public class FakeDoseEventRepository : DoseEventRepository {
      * (passing the wrong medicationId) fails loud here rather than producing a silently
      * orphan-looking dose event.
      */
-    private fun assertScheduleMedicationConsistent(
+    private suspend fun assertScheduleMedicationConsistent(
         scheduleId: String,
         medicationId: String,
     ) {
-        // Unknown schedule — caller's problem; SQLDelight FK will catch it in M1.
-        val schedule = schedules.value[scheduleId] ?: return
+        val schedule = scheduleRepository.observeById(scheduleId).first() ?: return
         require(schedule.medicationId == medicationId) {
             "recordGiven* called with medicationId=$medicationId but schedule $scheduleId belongs to " +
                 "medication ${schedule.medicationId}. Caller passed the wrong medicationId."
