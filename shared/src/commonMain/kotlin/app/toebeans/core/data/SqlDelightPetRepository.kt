@@ -42,9 +42,8 @@ import app.toebeans.core.db.Pet as PetRow
  * `DatabaseFactory` enables `PRAGMA foreign_keys=ON` so dependents (Medication, Schedule,
  * SchedulePhase, DoseEvent) cascade-delete when the parent Pet is removed. The cascade
  * behavior is NOT asserted in this repository's contract; it is asserted in the dependent
- * repository contracts (Phases 3, 5, 7). The Android `AppModule` is responsible for wiring
- * the FK callback when the SQLDelight binding swaps from [FakePetRepository] in a future
- * change (still pending as of Phase 2; this PR only adds the class).
+ * repository contracts (Phases 3, 5, 7). The Android `AppModule` wires the FK callback and
+ * binds this class at runtime.
  *
  * Schema row to domain mapping:
  *   - `created_at` (INTEGER epoch ms UTC) ↔ [Pet.createdAt] (Instant)

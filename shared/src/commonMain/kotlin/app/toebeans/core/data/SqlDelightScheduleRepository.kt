@@ -26,9 +26,9 @@ import app.toebeans.core.db.SchedulePhase as SchedulePhaseRow
  * Backs every query against the generated `scheduleQueries` API from `Schedule.sq`.
  * `SqlDelightScheduleRepositoryContractTest` in `:shared:jvmTest` proves contract satisfaction.
  *
- * **AppModule wiring:** still on [app.toebeans.android.data.FakeScheduleRepository] as of this
- * PR — the Koin DI swap is a follow-up queue row after merge. Do not bind this class in
- * [app.toebeans.android.di.AppModule] until that follow-up lands.
+ * **AppModule wiring:** bound in [app.toebeans.android.di.AppModule] together with
+ * [SqlDelightPetRepository] and [SqlDelightMedicationRepository] so schedule FKs to
+ * `Medication` resolve at runtime.
  *
  * Threading matches [SqlDelightPetRepository]: suspending writes on [dispatcher]; Flow reads
  * via SQLDelight coroutine extensions with the same dispatcher.

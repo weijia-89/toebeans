@@ -2,7 +2,6 @@ package app.toebeans.android.di
 
 import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.FakeDoseEventRepository
-import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
@@ -24,6 +23,7 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.SqlDelightMedicationRepository
 import app.toebeans.core.data.SqlDelightPetRepository
 import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
@@ -37,9 +37,8 @@ import org.koin.dsl.module
 
 /**
  * Koin DI module. Wires repositories as singletons and ViewModels with their factory
- * scope. Pet and Schedule use SQLDelight-backed persistence (M1 step 3→4 bridge);
- * Medication and DoseEvent remain in-memory fakes until follow-on M1 jobs land their
- * SqlDelight implementations.
+ * scope. Pet, Medication, and Schedule use SQLDelight-backed persistence (M1 step 3→4
+ * bridge); DoseEvent remains in-memory fake until its SqlDelight implementation lands.
  */
 public val appModule =
     module {
@@ -52,9 +51,9 @@ public val appModule =
             ).create()
         }
 
-        // Repositories — Pet + Schedule are SQLDelight-backed; Med + DoseEvent stay fake.
+        // Repositories — Pet + Med + Schedule are SQLDelight-backed; DoseEvent stays fake.
         single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
-        single<MedicationRepository> { FakeMedicationRepository() }
+        single<MedicationRepository> { SqlDelightMedicationRepository(get(), Dispatchers.IO) }
         single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
         single<DoseEventRepository> { FakeDoseEventRepository() }
 
