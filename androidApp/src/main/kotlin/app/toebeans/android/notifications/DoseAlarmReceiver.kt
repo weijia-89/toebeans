@@ -49,6 +49,9 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
 
         /**
          * Production lookup: opens SQLDelight directly in the receiver process (outside Koin).
+         *
+         * sdk-review F1: requires a persisted SQLDelight dose row; [AppModule] still binds
+         * FakeDoseEventRepository — alarms must be scheduled only after DB materialization.
          */
         internal fun defaultReminderLookup(context: Context): ReminderLookup =
             ToebeansApp.reminderLookupForReceiver(context)

@@ -77,8 +77,29 @@ abstract class ReminderLookupContract {
         )
     }
 
+    @Test
+    fun `lookup returns null after parent schedule delete cascades dose event`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-cascade-gone",
+                scheduleId = "sched-cascade",
+                scheduledAt = Instant.parse("2026-05-23T11:00:00Z"),
+            )
+        seedReminder(reminder)
+        removeSeededSchedule(reminder.scheduleId)
+
+        assertNull(
+            lookup.lookup("evt-cascade-gone"),
+            "schedule delete must CASCADE to dose event (ADR-0010 row-gone race at fire time)",
+        )
+    }
+
     protected open fun removeSeededReminder(reminderId: String) {
         // Default no-op for lookups that cannot simulate deletion yet (stub-throws path).
+    }
+
+    protected open fun removeSeededSchedule(scheduleId: String) {
+        // Default no-op; SQLDelight subclass deletes the schedule row to exercise FK CASCADE.
     }
 }
 
@@ -100,5 +121,9 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
 
     override fun removeSeededReminder(reminderId: String) {
         store.remove(reminderId)
+    }
+
+    override fun removeSeededSchedule(scheduleId: String) {
+        store.entries.removeIf { (_, reminder) -> reminder.scheduleId == scheduleId }
     }
 }

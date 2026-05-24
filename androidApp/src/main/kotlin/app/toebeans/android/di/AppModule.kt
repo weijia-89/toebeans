@@ -55,6 +55,8 @@ public val appModule =
         single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
         single<MedicationRepository> { SqlDelightMedicationRepository(get(), Dispatchers.IO) }
         single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
+        // sdk-review F1: DoseAlarmReceiver reads dose rows from SQLDelight only; fake writes
+        // here do not feed the fire path — materializer must INSERT into toebeans.db before schedule().
         single<DoseEventRepository> {
             FakeDoseEventRepository(
                 medicationRepository = get(),

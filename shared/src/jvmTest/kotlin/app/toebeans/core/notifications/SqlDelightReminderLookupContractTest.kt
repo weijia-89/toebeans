@@ -41,6 +41,11 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
         database.doseEventQueries.deleteDoseEvent(reminderId)
     }
 
+    // sdk-review F3: production row-gone race is schedule delete → FK CASCADE, not direct delete.
+    override fun removeSeededSchedule(scheduleId: String) {
+        database.scheduleQueries.deleteSchedule(scheduleId)
+    }
+
     private fun seedParentChain(scheduleId: String) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
         database.petQueries.upsertPet(

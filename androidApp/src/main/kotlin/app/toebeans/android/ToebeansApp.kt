@@ -25,7 +25,8 @@ import org.koin.core.logger.Level
  *
  * Still pending (milestone 1 vibe-dangerous work):
  *   - NotificationChannel("medication-critical") registration.
- *   - Replacement of FakePetRepository et al. with SQLDelight-backed implementations.
+ *   - [app.toebeans.android.di.appModule] DoseEventRepository swap (Pet/Med/Schedule already
+ *     SQLDelight-backed; receiver lookup reads dose rows from the same DB file).
  *   - Boot rehydration SQLDelight query path (stub schedules zero alarms until persistence
  *     lands in the receiver process; see [rehydrateBootAlarms]).
  *
