@@ -21,9 +21,10 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * Hybrid integration: SqlDelight Pet/Med/Schedule repos (production DI) + in-memory
- * [FakeDoseEventRepository]. Guards against split-brain where dose queries join through
- * empty legacy in-memory maps after AppModule option B.
+ * Fake-impl regression: [FakeDoseEventRepository] with SqlDelight parent repos (Pet/Med/Schedule).
+ *
+ * sdk-review F3: production DI now binds [SqlDelightDoseEventRepository]; this test keeps
+ * fake+SqlDelight coverage for in-memory dose semantics, not the obsolete AppModule split-brain.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

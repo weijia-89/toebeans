@@ -20,17 +20,20 @@ import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 
 /**
- * Application entry point. Initializes the Koin DI container with the UI scaffold's
- * fake-repository wiring, and installs the local crash-log handler (ADR-0009).
+ * Application entry point. Initializes the Koin DI container with SQLDelight-backed
+ * repositories via [app.toebeans.android.di.appModule], and installs the local crash-log
+ * handler (ADR-0009).
+ *
+ * sdk-review F1: all four repository contracts bind SQLDelight impls on `toebeans.db`
+ * ([app.toebeans.core.data.SqlDelightDoseEventRepository] for doses); alarm dispatch in the
+ * receiver process reads the same file via [reminderLookupForReceiver].
  *
  * Still pending (milestone 1 vibe-dangerous work):
  *   - NotificationChannel("medication-critical") registration.
- *   - [app.toebeans.android.di.appModule] DoseEventRepository swap (Pet/Med/Schedule already
- *     SQLDelight-backed; receiver lookup reads dose rows from the same DB file).
- *   - Boot rehydration SQLDelight query path (stub schedules zero alarms until persistence
- *     lands in the receiver process; see [rehydrateBootAlarms]).
+ *   - Boot rehydration horizon query ([loadPendingRemindersInHorizon] stub → zero alarms;
+ *     see [rehydrateBootAlarms]).
  *
- * Each of those lands in its own test-as-spec PR per AGENTS.md.
+ * Each pending item lands in its own test-as-spec PR per AGENTS.md.
  */
 class ToebeansApp : Application() {
     override fun onCreate() {

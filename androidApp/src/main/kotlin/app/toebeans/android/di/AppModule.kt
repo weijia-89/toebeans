@@ -1,7 +1,6 @@
 package app.toebeans.android.di
 
 import app.toebeans.android.BuildConfig
-import app.toebeans.android.data.FakeDoseEventRepository
 import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
@@ -23,6 +22,7 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.SqlDelightDoseEventRepository
 import app.toebeans.core.data.SqlDelightMedicationRepository
 import app.toebeans.core.data.SqlDelightPetRepository
 import app.toebeans.core.data.SqlDelightScheduleRepository
@@ -37,8 +37,8 @@ import org.koin.dsl.module
 
 /**
  * Koin DI module. Wires repositories as singletons and ViewModels with their factory
- * scope. Pet, Medication, and Schedule use SQLDelight-backed persistence (M1 step 3→4
- * bridge); DoseEvent remains in-memory fake until its SqlDelight implementation lands.
+ * scope. Pet, Medication, Schedule, and DoseEvent use SQLDelight-backed persistence
+ * (M1 step 3; ADR-0010 FK callback on the shared `toebeans.db` driver).
  */
 public val appModule =
     module {
@@ -51,18 +51,12 @@ public val appModule =
             ).create()
         }
 
-        // Repositories — Pet + Med + Schedule are SQLDelight-backed; DoseEvent stays fake.
+        // Repositories — all four entities persist in toebeans.db (split-brain resolved).
         single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
         single<MedicationRepository> { SqlDelightMedicationRepository(get(), Dispatchers.IO) }
         single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
-        // sdk-review F1: DoseAlarmReceiver reads dose rows from SQLDelight only; fake writes
-        // here do not feed the fire path — materializer must INSERT into toebeans.db before schedule().
-        single<DoseEventRepository> {
-            FakeDoseEventRepository(
-                medicationRepository = get(),
-                scheduleRepository = get(),
-            )
-        }
+        // v0.1-followups §3: dose rows must land here before NotificationActuator.schedule().
+        single<DoseEventRepository> { SqlDelightDoseEventRepository(get(), Dispatchers.IO) }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
