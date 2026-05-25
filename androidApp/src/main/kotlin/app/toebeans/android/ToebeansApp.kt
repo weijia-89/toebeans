@@ -25,10 +25,11 @@ import org.koin.core.logger.Level
  *
  * Still pending (milestone 1 vibe-dangerous work):
  *   - NotificationChannel("medication-critical") registration.
- *   - [app.toebeans.android.di.appModule] DoseEventRepository swap (Pet/Med/Schedule already
- *     SQLDelight-backed; receiver lookup reads dose rows from the same DB file).
  *   - Boot rehydration SQLDelight query path (stub schedules zero alarms until persistence
  *     lands in the receiver process; see [rehydrateBootAlarms]).
+ *
+ * sdk-review F1: [app.toebeans.android.di.appModule] already binds SqlDelightDoseEventRepository;
+ * dose rows persist in toebeans.db alongside Pet/Med/Schedule (receiver lookup reads same file).
  *
  * Each of those lands in its own test-as-spec PR per AGENTS.md.
  */
