@@ -14,7 +14,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
-* **AppModule SQLDelight DI swap** ([PR #43](https://github.com/weijia-89/toebeans/pull/43), merge `951ac09`): `ToebeansDatabase` singleton with ADR-0010 `SqliteForeignKeysCallback`; `PetRepository`, `MedicationRepository`, and `ScheduleRepository` bind to SQLDelight impls. `DoseEventRepository` remains in-memory fake until its SqlDelight implementation lands.
+* **AppModule SQLDelight DI swap** ([PR #43](https://github.com/weijia-89/toebeans/pull/43), merge `951ac09`): `ToebeansDatabase` singleton with ADR-0010 `SqliteForeignKeysCallback`; `PetRepository`, `MedicationRepository`, `ScheduleRepository`, and `DoseEventRepository` bind to SQLDelight impls on the shared `toebeans.db` file.
+* **SqlDelight `DoseEventRepository`** (M1 step 3): `SqlDelightDoseEventRepository` persists dose rows for UI quick-log, backup import, and receiver lookup (`selectDoseEventById`); green `SqlDelightDoseEventRepositoryContractTest` on JVM. Production DI no longer uses `FakeDoseEventRepository`.
 * **SqlDelight `MedicationRepository`** (M1 step 3, option B): `SqlDelightMedicationRepository` satisfies `MedicationRepositoryContract`; green `SqlDelightMedicationRepositoryContractTest` on JVM. First-launch demo seeding upserts pets, meds, and schedules via repositories (no module-level fake maps).
 * **SqlDelight `ReminderLookup`** (M1.3): `SqlDelightReminderLookup` resolves dose-event ids to
   `ScheduledReminder` snapshots for the receiver fire path; `DoseAlarmReceiver` default lookup

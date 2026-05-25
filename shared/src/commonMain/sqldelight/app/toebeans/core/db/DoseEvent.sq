@@ -96,6 +96,13 @@ countExistingDoseEventsForScheduleInRange:
 SELECT COUNT(*) FROM DoseEvent
 WHERE schedule_id = ? AND scheduled_at >= ? AND scheduled_at < ?;
 
+-- Backs SqlDelightDoseEventRepository.recordGivenForSlot idempotence: find an
+-- existing GIVEN row for the same (schedule_id, scheduled_at) slot before upsert.
+selectGivenForScheduleSlot:
+SELECT * FROM DoseEvent
+WHERE schedule_id = ? AND scheduled_at = ? AND status = 'given'
+LIMIT 1;
+
 -- Backs FakeDoseEventRepository.recordGivenNow and recordGivenForSlot (initial
 -- insert path; the idempotent replace-by-existing-id path uses upsertDoseEvent).
 -- Unique-id INSERT; will fail loudly on duplicate id (intentional — duplicate ids
