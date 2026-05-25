@@ -42,14 +42,15 @@ import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Home / Today screen. Shows the user's tracked pets as tappable chips and a placeholder
- * for "today's doses" until SQLDelight + DoseEventRepository are wired in the next
- * milestone.
+ * Home / Today screen. Shows the user's tracked pets as tappable chips and today's
+ * dose surfaces ("Logged today" + due-today cards). Dose rows persist via
+ * [SqlDelightDoseEventRepository][app.toebeans.core.data.SqlDelightDoseEventRepository]
+ * (AppModule DI); 72h materializer and boot rehydration remain deferred.
  *
  * Three states:
  *   - Loading: nothing (the parent suppresses recompositions while loading).
  *   - No pets:  one-CTA empty state inviting the user to add their first pet.
- *   - Has pets: Today header → "Your pets" tappable row → "Today's doses" placeholder.
+ *   - Has pets: Today header → "Your pets" tappable row → today's dose cards.
  *
  * The pet chips are the only tappable surface on this screen so far. They route to the
  * pet's detail (which is also reachable from the Pets tab) — Today is a fast-path home

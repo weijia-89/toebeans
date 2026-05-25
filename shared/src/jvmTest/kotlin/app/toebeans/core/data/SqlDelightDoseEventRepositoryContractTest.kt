@@ -199,6 +199,93 @@ class SqlDelightDoseEventRepositoryContractTest {
         }
 
     @Test
+    fun `observeAllRecent filters GIVEN since midnight and caps at 50 for Home Logged today`() =
+        runTest {
+            // sdk-review F2: HomeViewModel drives "Logged today" via observeAllRecent(localMidnightToday()).
+            val since = Instant.parse("2026-05-24T00:00:00Z")
+            val givenBeforeSince = Instant.parse("2026-05-23T20:00:00Z")
+            val pendingAfterSince = Instant.parse("2026-05-24T07:00:00Z")
+            val givenMorning = Instant.parse("2026-05-24T08:00:00Z")
+            val givenNoon = Instant.parse("2026-05-24T12:00:00Z")
+
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-given-before-since",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = givenBeforeSince,
+                    firedAt = givenBeforeSince,
+                    resolvedAt = givenBeforeSince,
+                    status = DoseStatus.GIVEN,
+                    note = null,
+                ),
+            )
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-pending-after-since",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = pendingAfterSince,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-given-morning",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = givenMorning,
+                    firedAt = givenMorning,
+                    resolvedAt = givenMorning,
+                    status = DoseStatus.GIVEN,
+                    note = "morning",
+                ),
+            )
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-given-noon",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = givenNoon,
+                    firedAt = givenNoon,
+                    resolvedAt = givenNoon,
+                    status = DoseStatus.GIVEN,
+                    note = "noon",
+                ),
+            )
+
+            val recent = repo.observeAllRecent(since).first()
+            assertEquals(2, recent.size, "only GIVEN rows on/after sinceInclusive")
+            assertEquals(
+                listOf("dose-given-noon", "dose-given-morning"),
+                recent.map { it.id },
+                "DESC by scheduledAt matches selectAllGivenSince ORDER BY",
+            )
+
+            repeat(51) { index ->
+                val at = Instant.parse("2026-05-24T13:${index.toString().padStart(2, '0')}:00Z")
+                repo.upsert(
+                    DoseEvent(
+                        id = "dose-limit-$index",
+                        scheduleId = SCHEDULE_ID,
+                        medicationId = MED_ID,
+                        scheduledAt = at,
+                        firedAt = at,
+                        resolvedAt = at,
+                        status = DoseStatus.GIVEN,
+                        note = null,
+                    ),
+                )
+            }
+
+            val capped = repo.observeAllRecent(since).first()
+            assertEquals(50, capped.size, "OBSERVE_ALL_RECENT_LIMIT caps Home read path")
+        }
+
+    @Test
     fun `delete removes row from selectDoseEventById`() =
         runTest {
             val at = Instant.parse("2026-05-24T10:00:00Z")
