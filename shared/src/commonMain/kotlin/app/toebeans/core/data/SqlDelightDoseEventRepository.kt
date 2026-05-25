@@ -57,16 +57,13 @@ public class SqlDelightDoseEventRepository(
             .mapToOneOrNull(dispatcher)
             .map { it?.toDomain() }
 
+    // F5: cap in SQL (selectAllGivenSinceLimited) — Home "Logged today" must not scan full GIVEN history.
     override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
         queries
-            .selectAllGivenSince(sinceInclusive.toEpochMilliseconds())
+            .selectAllGivenSinceLimited(sinceInclusive.toEpochMilliseconds())
             .asFlow()
             .mapToList(dispatcher)
-            .map { rows ->
-                rows
-                    .map(DoseEventRow::toDomain)
-                    .take(OBSERVE_ALL_RECENT_LIMIT)
-            }
+            .map { rows -> rows.map(DoseEventRow::toDomain) }
 
     override fun observeAll(): Flow<List<DoseEvent>> =
         queries
@@ -165,8 +162,6 @@ public class SqlDelightDoseEventRepository(
             )
         }
 }
-
-private const val OBSERVE_ALL_RECENT_LIMIT = 50
 
 internal fun DoseEventRow.toDomain(): DoseEvent =
     DoseEvent(

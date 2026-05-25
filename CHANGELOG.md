@@ -16,6 +16,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 * **ToebeansApp KDoc** (sdk-review F1): startup docs now match AppModule SqlDelight
   DoseEvent DI; removed stale fake-repository wording.
+* **Codereview P4 pass** (F1/F3/F4/F5): `FakeDoseEventRepository` KDoc reflects SqlDelight DI;
+  `DoseEventRepositoryContract` + SqlDelight subclass; `selectAllGivenSinceLimited` (SQL `LIMIT 50`);
+  AppModule/receiver ordering comments; ROADMAP date 2026-05-25.
 
 ### Added
 

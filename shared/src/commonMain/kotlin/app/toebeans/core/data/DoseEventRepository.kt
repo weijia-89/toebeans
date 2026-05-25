@@ -54,9 +54,8 @@ public interface DoseEventRepository {
      * `today at 00:00 local`, but the API accepts any window so future surfaces
      * ("last 7 days") can share the same query.
      *
-     * Implementations should bound the returned list to a reasonable size if the
-     * underlying store could be very large. For v0.1 the in-memory store is small;
-     * the SQLDelight impl will add a `LIMIT 50` and matching ORDER BY index.
+     * Implementations should bound the returned list (SQLDelight: `LIMIT 50` in
+     * `selectAllGivenSinceLimited`; fake: in-memory `.take(50)`).
      */
     public fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>>
 

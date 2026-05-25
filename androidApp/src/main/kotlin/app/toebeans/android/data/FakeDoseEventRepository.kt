@@ -18,10 +18,10 @@ import kotlinx.datetime.Instant
  * legacy in-memory maps in [FakeRepositories.kt], so "Last dose" and pet-scoped history stay
  * correct when Pet/Med/Schedule persist in SQLite.
  *
- * **Not production-grade.** The SQLDelight-backed implementation will land alongside
- * the schedule materializer in a follow-up commit. This fake exists to let the UI
- * surface (log-dose button, last-dose indicator) be shipped and reviewed today instead
- * of being blocked on the materializer.
+ * **Not production DI.** [app.toebeans.android.di.AppModule] binds
+ * [app.toebeans.core.data.SqlDelightDoseEventRepository] on `toebeans.db`. This fake
+ * remains for hybrid/unit tests and scaffold-era callers. The 72h schedule materializer
+ * is still a separate milestone item.
  *
  * State survives within the process but is lost on process death — fine for scaffold
  * review since the absent SQLDelight schema would be no different.

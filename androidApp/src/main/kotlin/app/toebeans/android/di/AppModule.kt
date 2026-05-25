@@ -55,7 +55,8 @@ public val appModule =
         single<PetRepository> { SqlDelightPetRepository(get(), Dispatchers.IO) }
         single<MedicationRepository> { SqlDelightMedicationRepository(get(), Dispatchers.IO) }
         single<ScheduleRepository> { SqlDelightScheduleRepository(get(), Dispatchers.IO) }
-        // v0.1-followups §3: dose rows must land here before NotificationActuator.schedule().
+        // F3: dose rows must exist in toebeans.db before NotificationActuator.schedule()
+        // (receiver SqlDelightReminderLookup reads the same file at fire time).
         single<DoseEventRepository> { SqlDelightDoseEventRepository(get(), Dispatchers.IO) }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.

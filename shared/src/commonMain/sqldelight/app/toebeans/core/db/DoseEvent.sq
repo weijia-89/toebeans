@@ -79,15 +79,18 @@ SELECT * FROM DoseEvent ORDER BY scheduled_at DESC;
 selectDoseEventById:
 SELECT * FROM DoseEvent WHERE id = ? LIMIT 1;
 
--- Backs FakeDoseEventRepository.observeAllRecent. status = GIVEN only, scheduled_at
--- since-filtered, DESC. Powers the Home "Logged today" surface. The fake does not
--- apply a LIMIT — the interface KDoc suggests "LIMIT 50 and matching ORDER BY index"
--- as the SQLDelight-impl posture, but we keep the query LIMIT-free here so the
--- caller (C1d) can choose the limit. The scheduled_at index covers the ORDER BY.
+-- Backs FakeDoseEventRepository.observeAllRecent (in-memory cap). status = GIVEN only.
 selectAllGivenSince:
 SELECT * FROM DoseEvent
 WHERE status = 'given' AND scheduled_at >= ?
 ORDER BY scheduled_at DESC;
+
+-- SqlDelightDoseEventRepository.observeAllRecent: SQL-level LIMIT 50 for Home "Logged today".
+selectAllGivenSinceLimited:
+SELECT * FROM DoseEvent
+WHERE status = 'given' AND scheduled_at >= ?
+ORDER BY scheduled_at DESC
+LIMIT 50;
 
 -- Count existing dose events for a schedule in a time window. Used by the
 -- scheduler to deduplicate when materializing the next 72h horizon. No direct
