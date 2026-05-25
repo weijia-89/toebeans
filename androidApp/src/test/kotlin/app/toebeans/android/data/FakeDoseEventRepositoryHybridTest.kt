@@ -23,8 +23,8 @@ import org.robolectric.annotation.Config
 /**
  * Fake-impl regression: [FakeDoseEventRepository] with SqlDelight parent repos (Pet/Med/Schedule).
  *
- * sdk-review F3: production DI now binds [SqlDelightDoseEventRepository]; this test keeps
- * fake+SqlDelight coverage for in-memory dose semantics, not the obsolete AppModule split-brain.
+ * F1: production DI binds [SqlDelightDoseEventRepository]; this test keeps fake+SqlDelight
+ * parent repos for in-memory dose semantics (not the production dose binding).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

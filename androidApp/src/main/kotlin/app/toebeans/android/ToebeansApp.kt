@@ -24,8 +24,8 @@ import org.koin.core.logger.Level
  * repositories via [app.toebeans.android.di.appModule], and installs the local crash-log
  * handler (ADR-0009).
  *
- * sdk-review F1: all four repository contracts bind SQLDelight impls on `toebeans.db`
- * ([app.toebeans.core.data.SqlDelightDoseEventRepository] for doses); alarm dispatch in the
+ * All four repository contracts bind SQLDelight impls on `toebeans.db`
+ * ([app.toebeans.core.data.SqlDelightDoseEventRepository] for doses). Alarm dispatch in the
  * receiver process reads the same file via [reminderLookupForReceiver].
  *
  * Still pending (milestone 1 vibe-dangerous work):

@@ -59,7 +59,7 @@ import kotlin.test.BeforeTest
  *       ↳ SqlDelightMedicationRepositoryContractTest  (Phase 4; concrete; real impl)
  *       ↳ StubMedicationRepositoryContractTest        (Phase 3; concrete; RED)
  *   ↳ ScheduleRepositoryContract                  (Phase 5; same shape)
- *   ↳ DoseEventRepositoryContract                 (Phase 7; same shape)
+ *   ↳ DoseEventRepositoryContract                 (shipped; SqlDelight subclass in jvmTest)
  * ```
  */
 abstract class MedicalRepositoryContract {
