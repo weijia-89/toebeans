@@ -2,6 +2,7 @@ package app.toebeans.core.data
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.notifications.SqlDelightReminderLookup
 import kotlinx.coroutines.Dispatchers
@@ -114,6 +115,87 @@ class SqlDelightDoseEventRepositoryContractTest {
 
             val all = repo.observeAll().first()
             assertEquals(1, all.size, "idempotent slot replace must not duplicate rows")
+        }
+
+    @Test
+    fun `upsert round-trips pending and given rows via observeAll for backup import`() =
+        runTest {
+            // sdk-review F2: backup import calls upsert verbatim; must round-trip all statuses.
+            val pendingAt = Instant.parse("2026-05-24T07:00:00Z")
+            val givenAt = Instant.parse("2026-05-24T08:00:00Z")
+            val resolvedAt = Instant.parse("2026-05-24T08:05:00Z")
+
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-pending-import",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = pendingAt,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-given-import",
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = givenAt,
+                    firedAt = givenAt,
+                    resolvedAt = resolvedAt,
+                    status = DoseStatus.GIVEN,
+                    note = "imported",
+                ),
+            )
+
+            val all = repo.observeAll().first()
+            assertEquals(2, all.size)
+            val pending = all.single { it.id == "dose-pending-import" }
+            assertEquals(DoseStatus.PENDING, pending.status)
+            assertEquals(pendingAt, pending.scheduledAt)
+            val given = all.single { it.id == "dose-given-import" }
+            assertEquals(DoseStatus.GIVEN, given.status)
+            assertEquals("imported", given.note)
+            assertEquals(resolvedAt, given.resolvedAt)
+        }
+
+    @Test
+    fun `upsert overwrites existing row by id`() =
+        runTest {
+            val slot = Instant.parse("2026-05-24T11:00:00Z")
+            repo.upsert(
+                DoseEvent(
+                    id = DOSE_ID,
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = slot,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = "before",
+                ),
+            )
+            val resolvedAt = Instant.parse("2026-05-24T11:30:00Z")
+            repo.upsert(
+                DoseEvent(
+                    id = DOSE_ID,
+                    scheduleId = SCHEDULE_ID,
+                    medicationId = MED_ID,
+                    scheduledAt = slot,
+                    firedAt = slot,
+                    resolvedAt = resolvedAt,
+                    status = DoseStatus.GIVEN,
+                    note = "after",
+                ),
+            )
+
+            val all = repo.observeAll().first()
+            assertEquals(1, all.size)
+            assertEquals(DoseStatus.GIVEN, all.single().status)
+            assertEquals("after", all.single().note)
+            assertEquals(resolvedAt, all.single().resolvedAt)
         }
 
     @Test
