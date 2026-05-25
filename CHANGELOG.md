@@ -12,6 +12,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
   substitute discontinued `wire-runtime-jvm` on the `:macrobench` benchmark
   classpath (Dependabot alerts #44, #45). No app-runtime classpath change.
 
+### Fixed
+
+* **ToebeansApp KDoc** (sdk-review F1): startup docs now match AppModule SqlDelight
+  DoseEvent DI; removed stale fake-repository wording.
+
 ### Added
 
 * **AppModule SQLDelight DI swap** ([PR #43](https://github.com/weijia-89/toebeans/pull/43), merge `951ac09`): `ToebeansDatabase` singleton with ADR-0010 `SqliteForeignKeysCallback`; `PetRepository`, `MedicationRepository`, `ScheduleRepository`, and `DoseEventRepository` bind to SQLDelight impls on the shared `toebeans.db` file.
