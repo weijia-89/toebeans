@@ -6,13 +6,20 @@ third-party services.
 Status: `v0.1.0-dev`, pre-MVP. Pets and their medications live in SQLDelight
 (`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
 tab lists schedules and opens read-only schedule detail. After reboot,
-`BootReceiver` replays alarms for the next 72 hours (stub path today; receiver
-DB lookup still landing). Notification firing remains on the ROADMAP.
+`BootReceiver` replays alarms for the next 72 hours by querying pending rows from
+SQLDelight in the receiver process. Notification firing remains on the ROADMAP.
 
 **SDK (2026-05):** BootReceiver scaffold ([PR #39](https://github.com/weijia-89/toebeans/pull/39)),
-72h rehydration stub ([PR #40](https://github.com/weijia-89/toebeans/pull/40)),
+72h rehydration ([PR #40](https://github.com/weijia-89/toebeans/pull/40), receiver SQLDelight lookup in [PR #52](https://github.com/weijia-89/toebeans/pull/52)),
 SQLDelight repositories ([PR #46](https://github.com/weijia-89/toebeans/pull/46)),
 reminder rescheduler slice ([PR #48](https://github.com/weijia-89/toebeans/pull/48)).
+
+
+## Design review
+
+Static HTML/CSS previews for visual sign-off only. They do **not** reflect shipped UI yet.
+
+- [Style lab](docs/style-lab/index.html): toggle variant packs (terracotta-warm, sage-calm, high-contrast) and record the choice in [DECISIONS.md](docs/style-lab/DECISIONS.md).
 
 <p align="center">
   <img src="docs/screenshots/01-home-today.png" alt="Today screen with Luna and Rufus pet chips and two pending Methimazole dose rows" width="280">
@@ -71,8 +78,7 @@ models plus repository contracts; the schedule calculator (pure function from
 `Schedule` phases to `ScheduledDose` values for a window) ships there too, with
 fifteen green test-as-spec cases. SQLDelight backs on-device
 storage. DI is via Koin. Reminder firing uses AlarmManager; boot replay
-re-schedules the 72-hour horizon via `BootReceiver` (receiver-side DB wiring
-still in progress).
+re-schedules the 72-hour horizon via `BootReceiver` (`ToebeansApp.loadPendingRemindersInHorizon` in the receiver process).
 
 The Android app targets API 24 (Android 7.0) and up.
 
