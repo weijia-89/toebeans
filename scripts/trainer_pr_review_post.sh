@@ -6,7 +6,7 @@
 #   bash scripts/trainer_pr_review_post.sh <pr_num> <verdict> <round> <body.md>
 #
 # verdict: APPROVE | REQUEST_CHANGES | BLOCK
-# body.md must include ### Findings and ### Pedagogy (trainer-github-pr-commentary.md).
+# body.md must include ### Findings and ### Trainer notes (trainer-github-pr-commentary.md).
 
 set -euo pipefail
 
