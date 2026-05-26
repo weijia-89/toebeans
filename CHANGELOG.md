@@ -32,7 +32,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
   `SqlDelightReminderLookupContractTest` + Robolectric `DoseAlarmReceiverLookupTest`.
   ADR-0011 `fired_at` write-before-show deferred (`@Ignore` spec in contract).
 * **SqlDelight `ScheduleRepository`** (M1 step 3): `SqlDelightScheduleRepository` satisfies `ScheduleRepositoryContract`; green `SqlDelightScheduleRepositoryContractTest` on JVM.
-* **BootReceiver phase 2** ([PR #40](https://github.com/weijia-89/toebeans/pull/40), merge `b5da01b`): on `RECEIVE_BOOT_COMPLETED`, replays alarm rehydration within a 72-hour horizon via `ToebeansApp.rehydrateBootAlarms`; schedule lookup remains stubbed (empty schedule → zero alarms, no crash).
+* **BootReceiver phase 3:** on `RECEIVE_BOOT_COMPLETED`, `ToebeansApp.loadPendingRemindersInHorizon`
+  queries pending `DoseEvent` rows inside the 72-hour window via SQLDelight and re-schedules
+  AlarmManager entries (empty DB still schedules zero alarms).
+* **BootReceiver phase 2** ([PR #40](https://github.com/weijia-89/toebeans/pull/40), merge `b5da01b`): on `RECEIVE_BOOT_COMPLETED`, replays alarm rehydration within a 72-hour horizon via `ToebeansApp.rehydrateBootAlarms`; schedule lookup was stubbed until phase 3.
 * Dose-log surface on the Pet Detail screen. Each medication row gets a
   **Log dose now** button when an active schedule exists, plus a `Last dose:
   X ago` subtitle once a dose has been recorded.
