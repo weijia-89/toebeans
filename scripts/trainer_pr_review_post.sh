@@ -51,8 +51,8 @@ COMMENT_ID=$(gh api "repos/${GH_REPO}/issues/${PR_NUM}/comments" --paginate \
   --jq ".[] | select(.body | contains(\"trainer-codereview-${REPO_SLUG}-${BRANCH_SLUG}\")) | .id" 2>/dev/null | head -1)
 
 if [[ -n "$COMMENT_ID" ]]; then
-  gh api -X PATCH "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" \
-    -f body=@"$OUT" >/dev/null
+  jq -n --rawfile b "$OUT" '{body: $b}' \
+    | gh api -X PATCH "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --input - >/dev/null
   echo "PATCHED comment id=${COMMENT_ID} on PR #${PR_NUM} (${GH_REPO}) head=${HEAD_SHORT} verdict=${VERDICT}"
 else
   gh pr comment "$PR_NUM" --repo "$GH_REPO" --body-file "$OUT"
