@@ -13,6 +13,8 @@ import kotlin.test.assertNull
 /**
  * M1.3 concrete subclass of [ReminderLookupContract]. Proves [SqlDelightReminderLookup]
  * satisfies the contract approved in Phase 1 against an isolated in-memory JDBC driver.
+ * ADR-0011 write-before-show ordering is integration-tested in
+ * [app.toebeans.android.notifications.DoseAlarmReceiverLookupTest].
  */
 class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
     private lateinit var database: ToebeansDatabase
@@ -51,7 +53,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
         database.scheduleQueries.deleteSchedule(scheduleId)
     }
 
-    override fun assertAdr0011FiredAtBeforeShow() {
+    override fun assertAdr0011MarkFiredPersists() {
         val reminder =
             ScheduledReminder(
                 id = "evt-adr-sqldelight",
@@ -64,15 +66,12 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
                 .selectDoseEventById(reminder.id)
                 .executeAsOne()
                 .fired_at,
-            "pending row must not be stamped before the receiver write",
+            "pending row must not be stamped before markFired",
         )
-        val steps = mutableListOf<String>()
         lookup.lookup(reminder.id)
         val firedAt = Instant.parse("2026-05-26T09:00:01Z")
+        // sdk-review F3: persistence only; ordering falsifier is DoseAlarmReceiverLookupTest.
         SqlDelightDoseEventRepository(database, Dispatchers.Unconfined).markFired(reminder.id, firedAt)
-        steps.add("markFired")
-        steps.add("show")
-        assertEquals(listOf("markFired", "show"), steps)
         assertEquals(
             firedAt.toEpochMilliseconds(),
             database.doseEventQueries

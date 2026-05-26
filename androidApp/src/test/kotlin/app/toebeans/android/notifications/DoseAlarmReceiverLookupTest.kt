@@ -253,11 +253,20 @@ class DoseAlarmReceiverLookupTest {
             scheduleId = "sched-luna-methimazole",
             scheduledAt = Instant.parse("2026-05-23T09:15:00Z"),
         )
-        database.scheduleQueries.deleteSchedule("sched-luna-methimazole")
+        // sdk-review F1: keep row in DB so fired_at null falsifies stamp-before-lookup regressions.
+        DoseAlarmReceiver.lookupOverride =
+            object : ReminderLookup {
+                override fun lookup(reminderId: String): ScheduledReminder? = null
+            }
 
         dispatchDoseFire("evt-no-fired-at")
 
         assertEquals(0, shadowOf(systemNotificationManager).activeNotifications.size)
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById("evt-no-fired-at")
+                .executeAsOne()
+        assertNull(row.fired_at)
     }
 
     @Test
