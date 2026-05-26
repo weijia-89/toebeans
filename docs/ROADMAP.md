@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-25.
+Last updated: 2026-05-26.
 
 ---
 
@@ -48,7 +48,7 @@ Last updated: 2026-05-25.
 | ✓ | **DoseEventRepository** SqlDelight impl + contract tests | M1 step 3 remainder |
 | ✓ | **Schedule delete affordance.** Top-bar Delete action on the new Schedule Detail screen (B7) wires through to `ScheduleRepository.delete`, with the same confirmation-dialog pattern as the pet + medication delete flows (no undo snackbar, since delete-with-phases is destructive enough to warrant a hard confirm). The dialog mirrors the error-tinted Delete button + "this can't be undone" body copy. Hard-delete via fake repo today; **hard-delete with FK cascade once SQLDelight lands**, per ADR-0010 (`Schedule.medication_id` ON DELETE CASCADE, `SchedulePhase.schedule_id` ON DELETE CASCADE, `DoseEvent.schedule_id` ON DELETE CASCADE). The previous draft of this entry incorrectly described a soft-delete via `endDate` plan; `endDate` is the schedule's intended last dosing day, not a deletion tombstone. Corrected during B8 self-review. | Cold review, P2 |
 | ✓ | Real `DoseAlarmReceiver` DB lookup (replaces `ScheduledReminder(scheduleId = "", ...)` placeholder) | v0.1-followups #3 |
-| | `BootReceiver` declared in manifest + rehydrate 72h-horizon alarms in `ToebeansApp` boot path. Until this lands, the `RECEIVE_BOOT_COMPLETED` permission is consumer-less. | v0.1-followups #4 |
+| ✓ (PR [#52](https://github.com/weijia-89/toebeans/pull/52), merged) | `BootReceiver` + 72h-horizon SQLDelight rehydration in receiver process (`ToebeansApp.loadPendingRemindersInHorizon`, `rehydrateBootAlarms`). On `main`. | v0.1-followups #4 · SDK T4 |
 | ✓ | PendingIntent collision mitigation via `RequestCodeAllocator` (SharedPreferences-backed, strictly monotonic Int), replacing `reminderId.hashCode()` in `AndroidNotificationActuator`. Regression test uses the canonical Java "Aa" / "BB" hash-collision pair to prove independent scheduling. 10 unit tests on the allocator + 1 actuator regression case. | v0.1-followups #5 |
 | | Compose UI: Add Medication (with anchor-mode prompt per ADR-0007). Effectively blocked on M1.5 because the underlying `Schedule.anchorMode` enum lives in that milestone (gated on ADR-0007 G1/G2/G3). The Medication-edit screen and VM are in place; the anchor-mode prompt itself layers on once the enum lands. | ADR-0007 |
 | ✓ | **Reminder List screen.** New `Reminders` bottom-nav tab between Today and Pets, between-tab state preserved by androidx.navigation's saveState/restoreState. Pure projection in `ReminderListViewModel.joinToUiState` (Pet × Medication × ScheduleWithPhases → `ReminderRowUi`, sorted by pet/med name, case-insensitive). Phase summary collapses 3+ phases into `(+N more)`; end-date label branches today / tomorrow / N-days / dated / ended. Stale-row hazards funnel through `StaleEventGuard` (Tier A #4 contract). Tap target navigates to Schedule Detail (B7). LazyColumn with stable keys ready for the deferred scroll macrobench. 11 new unit tests on the ViewModel projection + helpers; `AppModuleSmokeTest` updated. |
@@ -80,6 +80,27 @@ Each item ends with: full gate green + calibration entry + ADR amendment if it t
 
 ---
 
+## Track: Design system sign-off + style lab (P1, docs-only)
+
+**Ship-ability:** none (planning artifact). Does not block M1 alarm correctness; **does** block an intentional Compose theme polish pass.
+
+**Goal:** same workflow as buds [Track C style lab](https://github.com/weijia-89/buds/blob/main/docs/ROADMAP.md): compare variants in a browser, record **fresh** decisions in `docs/style-lab/DECISIONS.md`, then align Kotlin theme in a follow-up PR.
+
+| Done | What |
+|---|---|
+| ✓ | `docs/style-lab/` static lab (`index.html`, `style.css`, `tokens-snapshot.json`, `DECISIONS.md`): Today row, settings card, three variant packs |
+| ✓ | README **Design review** link + `bash scripts/manual_qa_boot.sh fresh --open-style-lab` |
+| ✓ | **Wei review + sign-off:** `Chosen: terracotta-warm` (2026-05-26); Given = keep sage tertiary; Material You = no new work (toggle already shipped, default off) |
+| ✓ | **Compose alignment PR:** Today Log dose → filled pill (match lab); `darkColorScheme` terracotta-warm tune; Given ✓ uses tertiary sage | 2026-05-26 |
+
+**Gates:**
+
+- Style lab renders offline (`open docs/style-lab/index.html`; no build step)
+- No `Color.kt` / theme diff on `main` until `DECISIONS.md` records a chosen pack
+- Theme PR: `./gradlew ktlintCheck detekt :shared:jvmTest` + visual pass on Today + Settings on device
+
+---
+
 ## Milestone 1.2: Internal beta + decision gate
 
 **Ship-ability:** the developer and 1–3 trusted testers, distributed via Play Store internal-testing track. NOT public.
@@ -88,6 +109,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 
 | Pending | What | Source |
 |---|---|---|
+| ✓ | **Style lab review + design sign-off.** `docs/style-lab/DECISIONS.md` records **terracotta-warm** + resolved open decisions (2026-05-26). | Track: Design system |
 | | Play Store internal-testing track set up with 1–3 testers (developer + close circle). **Walkthrough doc shipped at `docs/play-store-internal-testing-walkthrough.md` (8 phases, ~3-5 hours wall-clock + 1-3 day ID verification wait). Execution is a human task; Cascade cannot click through Play Console.** | Cold review |
 | ✓ | Written soak-test protocol for testers: 30-day run on a Pixel a-series device, daily log + weekly snapshots + day-30 structured report; alarm-fire reliability + crash-log capture + retention gate at day 14 (M1.2 definition-of-done). Shipped at `docs/soak-test-protocol.md`. | Cold review |
 | | Adoption metric (read by the developer, NOT analytics): does at least one tester continue to use the app past day 14? If not, we have a retention problem upstream of feature work and M2 cannot proceed. | Cold review |
@@ -100,6 +122,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 - License decision is made and the LICENSE file reflects it.
 - Distribution wedge is named and a M2 work item exists for it.
 - Crash log export has been exercised by at least one tester (proves ADR-0009 works in the field).
+- Style lab **`Chosen:`** recorded in `docs/style-lab/DECISIONS.md` (or explicitly waived with reason in that file).
 
 ---
 

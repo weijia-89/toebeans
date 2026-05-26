@@ -64,6 +64,20 @@ The first failing test (taper correctness for the scheduler) lives at `shared/sr
 - Any change to `.github/workflows/`.
 - Any change to `AGENTS.md` or `CLAUDE.md` themselves.
 
+## Trainer PR review gate (mechanical, CI-enforced)
+
+Every open PR to `main` **must** have a canonical GitHub issue comment before CI passes:
+
+1. Marker: `<!-- trainer-codereview-toebeans-{branch-with-slashes-as-dashes} -->` (SDK marker also accepted).
+2. Meta: `<!-- head={7-char-sha} verdict=APPROVE|REQUEST_CHANGES|BLOCK round={N} -->` matching **current PR HEAD**.
+3. Body includes `### Trainer notes` with **Program notes**, **Your form**, **Next session** (never `### Pedagogy`) per `~/Projects/trainer.skill/references/trainer-github-pr-commentary.md` and `trainer-codereview.md`.
+
+**CI:** `scripts/ci-trainer-pr-review-gate.sh` (job `Trainer PR review comment gate`). Fails merge if missing or stale.
+
+**Post / PATCH:** `bash scripts/trainer_pr_review_post.sh <pr_num> <verdict> <round> review.md` from repo root on the PR branch.
+
+Agents: route trainer → form-check `code-review` **before** claiming PR ready; posting the comment is not optional.
+
 ## Confidence-score rule
 
 Apply [`code-helper` §5](https://github.com/wei/code-helper.skill) to every change. Components:
