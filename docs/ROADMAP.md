@@ -21,7 +21,7 @@ Last updated: 2026-05-25.
 | ✓ | `ScheduleCalculator` interface + `DefaultScheduleCalculator` full impl |
 | ✓ | `SchedulePhaseRulesTest` test-as-spec, **15 cases**, all green |
 | ✓ | Backup codec (`BackupCipher` PBKDF2 + AES-256-GCM, expect/actual JVM+Android) + 15 tests |
-| ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. **Boot receiver not yet wired; see M1.** |
+| ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. Boot replay wired via `BootReceiver` (M1); notification firing UI still on ROADMAP. |
 | ✓ | 6 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, no-PII-in-crash-log per ADR-0009, AGENTS/CLAUDE parity) |
 | ✓ | GitHub Actions CI (fitness + lint + tests + Android assemble) |
 | ✓ | **9 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class, local-crash-log-no-telemetry) |
