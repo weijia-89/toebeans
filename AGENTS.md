@@ -70,7 +70,7 @@ Every open PR to `main` **must** have a canonical GitHub issue comment before CI
 
 1. Marker: `<!-- trainer-codereview-toebeans-{branch-with-slashes-as-dashes} -->` (SDK marker also accepted).
 2. Meta: `<!-- head={7-char-sha} verdict=APPROVE|REQUEST_CHANGES|BLOCK round={N} -->` matching **current PR HEAD**.
-3. Body includes `### Trainer notes` with **Program notes**, **Your form**, **Next session** (never `### Pedagogy`) per `~/Projects/trainer.skill/references/trainer-github-pr-commentary.md`.
+3. Body includes `### Trainer notes` with **Program notes**, **Your form**, **Next session** (never `### Pedagogy`) per `~/Projects/trainer.skill/references/trainer-github-pr-commentary.md` and `trainer-codereview.md`.
 
 **CI:** `scripts/ci-trainer-pr-review-gate.sh` (job `Trainer PR review comment gate`). Fails merge if missing or stale.
 
