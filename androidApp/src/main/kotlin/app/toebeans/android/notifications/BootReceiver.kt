@@ -12,8 +12,8 @@ import kotlinx.datetime.Clock
  * [Intent.ACTION_BOOT_COMPLETED] by delegating to [ToebeansApp.rehydrateBootAlarms].
  *
  * Vibe-dangerous: alarms lost across reboot are a medication-critical failure mode. The
- * SQLDelight query path is still a stub (zero alarms until persistence lands in the receiver
- * process); see [BootReceiverTest] for the full contract and follow-on slices.
+ * receiver process uses SQLDelight directly; see [BootReceiverTest] for the contract and
+ * follow-on slices.
  */
 public class BootReceiver : BroadcastReceiver() {
     override fun onReceive(
