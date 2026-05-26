@@ -4,9 +4,6 @@
 
 Please report security vulnerabilities **privately**. Do not open a public issue.
 
-- Email: `security@toebeans.local` *(placeholder; replace before publishing the repo)*
-- We will acknowledge within 5 business days and triage within 10.
-
 ## In scope
 
 - Anything in this repository.
