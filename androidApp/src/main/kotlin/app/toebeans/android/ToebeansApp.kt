@@ -14,10 +14,13 @@ import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.ReminderLookup
 import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.notifications.SqlDelightReminderLookup
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Application entry point. Initializes the Koin DI container with SQLDelight-backed
@@ -30,8 +33,6 @@ import org.koin.core.logger.Level
  *
  * Still pending (milestone 1 vibe-dangerous work):
  *   - NotificationChannel("medication-critical") registration.
- *   - Boot rehydration horizon query ([loadPendingRemindersInHorizon] stub → zero alarms;
- *     see [rehydrateBootAlarms]).
  *
  * Each pending item lands in its own test-as-spec PR per AGENTS.md.
  */
@@ -65,15 +66,14 @@ class ToebeansApp : Application() {
          * [android.content.Intent.ACTION_BOOT_COMPLETED]. Runs outside Koin because
          * BroadcastReceivers execute in a separate process where in-memory fakes are empty.
          *
-         * **Phase 2 stub:** the SQLDelight lookup is not wired yet; [loadPendingRemindersInHorizon]
-         * returns an empty list so fresh installs and pre-persistence builds schedule zero alarms
-         * without crashing. A follow-on slice replaces the stub with a direct DB query once all
-         * four repositories are swapped in the receiver process.
+         * Queries pending [ScheduledReminder] rows inside the 72-hour horizon via SQLDelight
+         * ([loadPendingRemindersInHorizon]) and re-registers each with AlarmManager. Does not
+         * materialize new dose rows; schedule-create → dose-row projection is a separate slice.
          *
          * @return count of reminders passed to [AndroidNotificationActuator.schedule].
          */
         public fun rehydrateBootAlarms(context: Context): Int {
-            val reminders = loadPendingRemindersInHorizon()
+            val reminders = loadPendingRemindersInHorizon(context)
             if (reminders.isEmpty()) {
                 return 0
             }
@@ -85,15 +85,28 @@ class ToebeansApp : Application() {
         }
 
         /**
-         * Stub until SQLDelight is reachable from the boot receiver process. Returns every
-         * pending [ScheduledReminder] whose [ScheduledReminder.scheduledAt] falls in
+         * Returns every pending [ScheduledReminder] whose [ScheduledReminder.scheduledAt] falls in
          * `[now, now + REHYDRATE_HORIZON_HOURS)`.
+         *
+         * Opens the receiver-process SQLDelight database directly (ADR-0010 FK callback); in-memory
+         * fakes from the UI process are not visible here.
          */
-        internal fun loadPendingRemindersInHorizon(): List<ScheduledReminder> {
-            // Separate-process receiver cannot see FakeDoseEventRepository state. Real impl
-            // opens the SQLDelight driver directly (ADR-0010 FK callback) and queries unfired
-            // rows inside the horizon window.
-            return emptyList()
+        internal fun loadPendingRemindersInHorizon(context: Context): List<ScheduledReminder> {
+            val now = Clock.System.now()
+            val horizonEnd = now + REHYDRATE_HORIZON_HOURS.hours
+            val database = openReceiverDatabase(context)
+            return database.doseEventQueries
+                .selectPendingDoseEventsInRange(
+                    scheduled_at = now.toEpochMilliseconds(),
+                    scheduled_at_ = horizonEnd.toEpochMilliseconds(),
+                ).executeAsList()
+                .map { row ->
+                    ScheduledReminder(
+                        id = row.id,
+                        scheduleId = row.schedule_id,
+                        scheduledAt = Instant.fromEpochMilliseconds(row.scheduled_at),
+                    )
+                }
         }
 
         internal fun notificationActuatorFor(context: Context): AndroidNotificationActuator {
