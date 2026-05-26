@@ -61,8 +61,7 @@ private class InMemoryContractScheduleRepository : ScheduleRepository {
 
     override fun observeAll(): Flow<List<Schedule>> = schedules.map { it.values.toList() }
 
-    override fun observeAllPhases(): Flow<List<SchedulePhase>> =
-        phasesByScheduleId.map { it.values.flatten() }
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> = phasesByScheduleId.map { it.values.flatten() }
 
     override suspend fun upsert(
         schedule: Schedule,
@@ -80,7 +79,10 @@ private class InMemoryContractScheduleRepository : ScheduleRepository {
 
     // sdk-review F4: app-level cascade simulation; SqlDelight path proves ADR-0010 FK CASCADE.
     suspend fun deleteAllForMedication(medicationId: String) {
-        val ids = schedules.value.values.filter { it.medicationId == medicationId }.map { it.id }
+        val ids =
+            schedules.value.values
+                .filter { it.medicationId == medicationId }
+                .map { it.id }
         ids.forEach { delete(it) }
     }
 }
