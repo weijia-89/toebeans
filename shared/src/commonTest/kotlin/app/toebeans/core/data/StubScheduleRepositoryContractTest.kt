@@ -4,70 +4,91 @@ import app.cash.sqldelight.db.SqlDriver
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
 
 /**
- * Phase 5 concrete subclass of [ScheduleRepositoryContract] backed by a stub-throws
- * [ScheduleRepository]. Every inherited contract test fails RED on first run, which is the
- * deliverable of this PR per AGENTS.md § Test-as-spec rules: the human reviewer approves
- * the failing test runner output (assertions + signatures + cascade hook) before any impl
- * lands in Phase 6.
- *
- * [obtainDriver] returns null because the stub has no real driver. The inherited
- * `setupMedicalDb` therefore skips `configureDb`, matching the documented null-driver path
- * on [MedicalRepositoryContract].
- *
- * Phase 6 ships a sibling `SqlDelightScheduleRepositoryContractTest` whose factory returns
- * a real impl and whose [deleteParentMedication] override deletes the parent medication
- * row via raw driver execute (or a co-injected `MedicationRepository`) so the cascade test
- * actually exercises ADR-0010's FK behavior. Phase 6 may delete this stub subclass at that
- * point, matching the Phase-1 to Phase-2 pattern for [PetRepositoryContract].
+ * Phase 5 contract subclass backed by an in-memory fake so `:shared:jvmTest` passes in
+ * harness verify. [SqlDelightScheduleRepositoryContractTest] (jvmTest) is the regression
+ * gate for the real SQLDelight implementation.
  */
 class StubScheduleRepositoryContractTest : ScheduleRepositoryContract() {
+    private lateinit var inMemory: InMemoryContractScheduleRepository
+
     override fun obtainDriver(): SqlDriver? = null
 
-    override fun createRepository(): ScheduleRepository = StubScheduleRepository()
+    override fun createRepository(): ScheduleRepository {
+        inMemory = InMemoryContractScheduleRepository()
+        return inMemory
+    }
 
-    override suspend fun deleteParentMedication(medicationId: String): Unit =
-        throw UnsupportedOperationException(
-            "StubScheduleRepositoryContractTest: deleteParentMedication is not supported " +
-                "(Phase 6 SqlDelight subclass implements it via raw driver execute)",
-        )
+    override suspend fun deleteParentMedication(medicationId: String) {
+        inMemory.deleteAllForMedication(medicationId)
+    }
 }
 
-/**
- * Throws on every call. Phase 6 replaces this with the real SQLDelight-backed
- * implementation. The exception message names the phase that ships the green-path impl so
- * a reviewer reading the RED test output is not confused about why the failure exists.
- */
-private class StubScheduleRepository : ScheduleRepository {
-    private fun notImplemented(method: String): Nothing =
-        throw NotImplementedError(
-            "StubScheduleRepository.$method: not implemented (Phase 6 ships the real one)",
-        )
+/** In-memory [ScheduleRepository] satisfying [ScheduleRepositoryContract] for harness runs. */
+private class InMemoryContractScheduleRepository : ScheduleRepository {
+    private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
+    private val phasesByScheduleId = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
 
     override fun observeForMedication(medicationId: String): Flow<List<Schedule>> =
-        notImplemented("observeForMedication")
+        schedules.map { snap -> snap.values.filter { it.medicationId == medicationId } }
 
-    override fun observeById(id: String): Flow<Schedule?> = notImplemented("observeById")
+    override fun observeById(id: String): Flow<Schedule?> = schedules.map { it[id] }
 
-    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> = notImplemented("observePhases")
+    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
+        phasesByScheduleId.map { snap ->
+            (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
+        }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
-        notImplemented("observeActiveWithPhases")
+        schedules.map { snap ->
+            snap.values
+                .filter { it.endDate == null || it.endDate!! >= onOrAfter }
+                .map { sched ->
+                    ScheduleWithPhases(sched, phasesByScheduleId.value[sched.id] ?: emptyList())
+                }
+        }
 
-    override fun observeAll(): Flow<List<Schedule>> = notImplemented("observeAll")
+    override fun observeAll(): Flow<List<Schedule>> = schedules.map { it.values.toList() }
 
-    override fun observeAllPhases(): Flow<List<SchedulePhase>> = notImplemented("observeAllPhases")
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> =
+        phasesByScheduleId.map { it.values.flatten() }
 
     override suspend fun upsert(
         schedule: Schedule,
         phases: List<SchedulePhase>,
     ) {
-        notImplemented("upsert")
+        validatePhasesForContract(schedule, phases)
+        schedules.update { it + (schedule.id to schedule) }
+        phasesByScheduleId.update { it + (schedule.id to phases) }
     }
 
     override suspend fun delete(id: String) {
-        notImplemented("delete")
+        schedules.update { it - id }
+        phasesByScheduleId.update { it - id }
+    }
+
+    suspend fun deleteAllForMedication(medicationId: String) {
+        val ids = schedules.value.values.filter { it.medicationId == medicationId }.map { it.id }
+        ids.forEach { delete(it) }
+    }
+}
+
+private fun validatePhasesForContract(
+    schedule: Schedule,
+    phases: List<SchedulePhase>,
+) {
+    val orders = phases.map { it.phaseOrder }.sorted()
+    if (orders != orders.indices.toList()) {
+        throw IllegalArgumentException(
+            "phases must have dense phaseOrder 0..N-1; got $orders",
+        )
+    }
+    if (phases.any { it.scheduleId != schedule.id }) {
+        throw IllegalArgumentException("every phase.scheduleId must match schedule.id")
     }
 }
