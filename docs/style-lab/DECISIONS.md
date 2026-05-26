@@ -64,3 +64,5 @@ Scope for the theme polish PR:
 - [x] Compose theme alignment PR (items 3–4 above).
 
 **Chosen:** terracotta-warm (2026-05-26)
+
+**Operator sign-off:** Wei chose **warm** (= `terracotta-warm` pack in this lab). Locks M1.2 style gate; no further pack comparison before internal beta unless accessibility forces a high-contrast revisit.
