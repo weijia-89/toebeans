@@ -212,7 +212,10 @@ class DoseAlarmReceiverLookupTest {
 
         dispatchDoseFire("evt-fired-at")
 
-        val row = database.doseEventQueries.selectDoseEventById("evt-fired-at").executeAsOne()
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById("evt-fired-at")
+                .executeAsOne()
         assertNotNull(row.fired_at)
     }
 
@@ -226,7 +229,10 @@ class DoseAlarmReceiverLookupTest {
         var firedAtBeforeShow: Long? = null
         DoseAlarmReceiver.beforeShowHook = {
             firedAtBeforeShow =
-                database.doseEventQueries.selectDoseEventById("evt-adr-order").executeAsOne().fired_at
+                database.doseEventQueries
+                    .selectDoseEventById("evt-adr-order")
+                    .executeAsOne()
+                    .fired_at
             assertEquals(
                 "notification must not post until after fired_at write",
                 0,
