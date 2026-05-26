@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CI: open PRs must have a canonical trainer (or SDK) code-review comment on the
-# current HEAD with a Pedagogy block. Survives agents skipping descriptive rules.
+# current HEAD with ### Trainer notes (forbids ### Pedagogy). Survives agents skipping rules.
 #
 # Usage:
 #   bash scripts/ci-trainer-pr-review-gate.sh <pr_num> <head_sha> <branch> <gh_repo>
@@ -53,7 +53,9 @@ marker_res = [
 ]
 meta_head = re.compile(r"head=([0-9a-f]{7,40})", re.I)
 meta_verdict = re.compile(r"verdict=(APPROVE|REQUEST_CHANGES|BLOCK)", re.I)
-pedagogy = re.compile(r"^###\s+Pedagogy", re.M | re.I)
+trainer_notes = re.compile(r"^###\s+Trainer notes\b", re.M | re.I)
+forbidden_pedagogy = re.compile(r"^###\s+Pedagogy", re.M | re.I)
+required_note_labels = ("Program notes", "Your form", "Next session")
 
 def matches_marker(body: str) -> bool:
     return any(p.search(body) for p in marker_res)
@@ -85,8 +87,15 @@ if best is None:
     sys.exit(1)
 
 body = best.get("body") or ""
-if not pedagogy.search(body):
-    print(f"FAIL  PR #{pr}: review comment missing '### Pedagogy' section")
+if forbidden_pedagogy.search(body):
+    print(f"FAIL  PR #{pr}: review uses forbidden '### Pedagogy' heading; use '### Trainer notes'")
+    sys.exit(1)
+if not trainer_notes.search(body):
+    print(f"FAIL  PR #{pr}: review comment missing '### Trainer notes' section")
+    sys.exit(1)
+missing = [label for label in required_note_labels if label not in body]
+if missing:
+    print(f"FAIL  PR #{pr}: Trainer notes missing labels: {', '.join(missing)}")
     sys.exit(1)
 if not meta_verdict.search(body):
     print(f"FAIL  PR #{pr}: review comment missing verdict= in meta line")

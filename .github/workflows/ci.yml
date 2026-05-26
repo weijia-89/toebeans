@@ -60,11 +60,12 @@ jobs:
 
   trainer-pr-review-gate:
     # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
-    # PR with head= matching HEAD and a ### Pedagogy section (trainer v0.12.0).
+    # PR with head= matching HEAD and ### Trainer notes (or legacy ### Pedagogy).
     name: Trainer PR review comment gate
     runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'pull_request' }}
     steps:
+      - uses: actions/checkout@v4
       - name: Require trainer code-review comment on PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
