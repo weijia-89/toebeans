@@ -7,10 +7,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Instant
 
 /**
- * Phase 6 concrete subclass of [ScheduleRepositoryContract]. The factory constructs a freshly
- * isolated [SqlDelightScheduleRepository] backed by an in-memory [JdbcSqliteDriver]. Every
- * inherited contract test should turn GREEN; this is the proof that the SQLDelight
- * implementation satisfies the contract approved in Phase 5.
+ * jvmTest SqlDelight regression gate for [ScheduleRepositoryContract]: JDBC SQLite,
+ * `PRAGMA foreign_keys=ON`, and real ADR-0010 CASCADE on case 11. The factory constructs
+ * a freshly isolated [SqlDelightScheduleRepository] backed by an in-memory [JdbcSqliteDriver].
+ *
+ * [StubScheduleRepositoryContractTest] (commonTest) runs the same 11 cases against an
+ * in-memory fake for harness/Robolectric paths without JDBC; case 11 cascade there is
+ * behavioral simulation only (see [ScheduleRepositoryContract] subclass roles).
  *
  * Lives in `:shared:jvmTest` for the same reason as [SqlDelightPetRepositoryContractTest]:
  * the JDBC SQLite driver is not available in `commonTest`.
@@ -22,6 +25,8 @@ import kotlinx.datetime.Instant
  *
  * [AppModule] remains on [app.toebeans.android.data.FakeScheduleRepository]; DI swap is a
  * follow-up queue row after merge.
+ *
+ * sdk-review F1: Phase 5/6 future tense removed; SqlDelight subclass is the green FK gate today.
  */
 class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
     private lateinit var database: ToebeansDatabase

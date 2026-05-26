@@ -6,8 +6,7 @@ import kotlin.test.BeforeTest
 /**
  * Abstract test-as-spec base for repositories whose tests need configurable per-test
  * database setup. Currently used as the parent of `MedicationRepositoryContract`,
- * `ScheduleRepositoryContract`, and `DoseEventRepositoryContract` (all upcoming in
- * Phases 3 / 5 / 7 of the Decision 4a sequence). [PetRepositoryContract] does NOT
+ * `ScheduleRepositoryContract`, and `DoseEventRepositoryContract`. [PetRepositoryContract] does NOT
  * extend this base because Pet is the top of the foreign-key chain; its tests do
  * not assert FK cascade behavior (per AGENTS.md § Test-as-spec rules and ADR-0010).
  *
@@ -58,9 +57,13 @@ import kotlin.test.BeforeTest
  *   ↳ MedicationRepositoryContract                (Phase 3; abstract; defines @Test methods)
  *       ↳ SqlDelightMedicationRepositoryContractTest  (Phase 4; concrete; real impl)
  *       ↳ StubMedicationRepositoryContractTest        (Phase 3; concrete; RED)
- *   ↳ ScheduleRepositoryContract                  (Phase 5; same shape)
+ *   ↳ ScheduleRepositoryContract                  (abstract; defines @Test methods)
+ *       ↳ SqlDelightScheduleRepositoryContractTest  (jvmTest; concrete; green FK gate)
+ *       ↳ StubScheduleRepositoryContractTest        (commonTest; green in-memory fake; harness)
  *   ↳ DoseEventRepositoryContract                 (shipped; SqlDelight subclass in jvmTest)
  * ```
+ *
+ * sdk-review F2: Schedule commonTest fake is green (not RED stub); diagram matches AGENTS.md dual-gate.
  */
 abstract class MedicalRepositoryContract {
     /**
