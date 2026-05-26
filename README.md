@@ -3,44 +3,55 @@
 Pet medication tracker for Android. Local-only. No cloud, no telemetry, no
 third-party services.
 
-Status: `v0.1.0-dev`, pre-MVP scaffold. The dose-log surface works end-to-end.
-The reminder-firing path lands in the next milestone.
+Status: `v0.1.0-dev`, pre-MVP. Pets and their medications live in SQLDelight
+(`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
+tab lists schedules and opens read-only schedule detail. After reboot,
+`BootReceiver` replays alarms for the next 72 hours (stub path today; receiver
+DB lookup still landing). Notification firing remains on the ROADMAP.
 
-**SDK weekend (2026-05-23):** BootReceiver phase 1 ([PR #39](https://github.com/weijia-89/toebeans/pull/39)). Phase 2 merged ([PR #40](https://github.com/weijia-89/toebeans/pull/40) → `main` @ `b5da01b`): 72h rehydration stub. **Next SDK slice:** M1 SQLDelight repositories or `DoseAlarmReceiver` DB lookup (ROADMAP steps 3–4).
+**SDK (2026-05):** BootReceiver scaffold ([PR #39](https://github.com/weijia-89/toebeans/pull/39)),
+72h rehydration stub ([PR #40](https://github.com/weijia-89/toebeans/pull/40)),
+SQLDelight repositories ([PR #46](https://github.com/weijia-89/toebeans/pull/46)),
+reminder rescheduler slice ([PR #48](https://github.com/weijia-89/toebeans/pull/48)).
 
 <p align="center">
-  <img src="docs/screenshots/01-home-today.png" alt="Today screen with two pets and two pending Methimazole doses for Luna" width="280">
+  <img src="docs/screenshots/01-home-today.png" alt="Today screen with Luna and Rufus pet chips and two pending Methimazole dose rows" width="280">
 </p>
 
 ## What it does today
 
 * Add pets with weight and birthdate, plus a free-text notes field.
 * Add medications underneath each pet.
-* Define a schedule: start date, dose times, doses per day.
-* Tap **Log dose now** on a medication to record a dose given.
-* See `Last dose: 2h ago` on each row, or `just now` / `yesterday` /
-  `on May 13` once enough time has passed.
+* Define a schedule from a medication row (start date, dose times, doses per day).
+* On **Today**, tap **Log dose** on a due row to record that dose.
+* On a pet's detail screen, tap **Log dose now** on a medication row (same
+  underlying dose log).
+* See relative last-dose labels on medication rows (`just now`, `2h ago`,
+  `yesterday`, `on May 13`, and so on).
 * Theme picker (Auto / Light / Dark). Optional Material You dynamic color on
   Android 12 and up.
 
 <p align="center">
   <img src="docs/screenshots/02-pets-list.png" alt="Pets list with Luna the cat and Rufus the dog" width="220">
   &nbsp;
-  <img src="docs/screenshots/03-pet-detail-luna.png" alt="Luna's detail showing Methimazole 2.5 mg and a Log dose now button" width="220">
+  <img src="docs/screenshots/03-pet-detail-luna.png" alt="Luna detail with Methimazole 2.5 mg and Log dose now" width="220">
   &nbsp;
-  <img src="docs/screenshots/06-home-dose-logged.png" alt="Today screen after logging: morning dose shows Given check, Logged today row appears" width="220">
+  <img src="docs/screenshots/06-home-dose-logged.png" alt="Today after logging: morning dose shows Given, Logged today lists the entry" width="220">
 </p>
 
-Pick a pet, tap **Log dose now** on the medication row. The Today screen
-records the morning dose as `Given ✓` and a row appears under **Logged today**.
+On **Today**, tap **Log dose** on the morning row. The dose moves to **Given ✓**
+and the same entry shows under **Logged today**.
 
-The Reminders tab lists every active schedule, and Settings holds the theme
-picker alongside the Material You toggle and the JSON export/import controls.
+The **Reminders** tab lists active schedules. Tap a row for schedule detail
+(phases, dose times, delete). **Settings** has the theme picker and Material You
+toggle, plus JSON export/import and a Diagnostics card for the local crash log.
 
 <p align="center">
-  <img src="docs/screenshots/05-reminders.png" alt="Reminders list: Luna's Methimazole, twice daily for 3650 days" width="220">
+  <img src="docs/screenshots/05-reminders.png" alt="Reminders list: Luna Methimazole twice daily" width="220">
   &nbsp;
-  <img src="docs/screenshots/04-settings.png" alt="Settings: theme picker Auto/Light/Dark, Material You toggle, Data export and import, Diagnostics" width="220">
+  <img src="docs/screenshots/07-schedule-detail.png" alt="Schedule detail: phases, dose times, delete" width="220">
+  &nbsp;
+  <img src="docs/screenshots/04-settings.png" alt="Settings: theme, Material You, export/import, Diagnostics" width="220">
 </p>
 
 ## What it deliberately doesn't do
@@ -55,15 +66,13 @@ in the dependency graph at all.
 
 ## Stack
 
-Kotlin 2.0 with Compose Multiplatform UI. A KMP `shared` module holds the
-domain models and repository contracts. The schedule calculator (a pure
-function that projects a `Schedule` plus its phases into a list of
-`ScheduledDose` values for a given window) also lives there and is fully
-implemented; its 15-case test-as-spec passes green. SQLDelight is wired in
-for the on-disk schema, but the current scaffold uses in-memory fakes for
-the repositories so the UI can be reviewed before the persistence layer
-ships. DI is via Koin. The reminder-firing path will use AlarmManager for
-exact firing and WorkManager for the recurring sweep.
+Kotlin 2.0 with Compose Multiplatform UI. The KMP `shared` module owns domain
+models plus repository contracts; the schedule calculator (pure function from
+`Schedule` phases to `ScheduledDose` values for a window) ships there too, with
+fifteen green test-as-spec cases. SQLDelight backs on-device
+storage. DI is via Koin. Reminder firing uses AlarmManager; boot replay
+re-schedules the 72-hour horizon via `BootReceiver` (receiver-side DB wiring
+still in progress).
 
 The Android app targets API 24 (Android 7.0) and up.
 
@@ -85,25 +94,25 @@ To run the shared-module tests without an Android SDK:
 ./gradlew :shared:jvmTest --console=plain
 ```
 
-The shared-module tests are the test-as-spec contract for the schedule
-calculator. Fifteen cases lock down empty-result fast paths, phase
-concatenation, end-date-inclusive semantics, day-interval (skip-day)
-behavior, the malformed-input throw discipline, and the ADR-0008 bounds
-(window ≤ 30 days, event count ≤ 100,000). All fifteen pass green; the
-calculator is fully implemented.
+Refresh README screenshots on a booted `toebeans-pixel7` AVD after
+`installDebug`:
+
+```bash
+./scripts/capture_readme_screenshots.sh
+```
 
 ## Repository layout
 
 ```
 toebeans/
-  shared/      KMP shared module
-  androidApp/  Android app: Compose UI, fake repositories, theme prefs
+  shared/      KMP shared module (models, SQLDelight, calculator)
+  androidApp/  Android app: Compose UI, AlarmManager notifications
   docs/
     adr/         Short architecture decisions (MADR format)
     screenshots/ Emulator captures embedded in this README
     ARCHITECTURE.md
     ROADMAP.md
-  scripts/     Build helpers and CI checks
+  scripts/     Build helpers, CI checks, screenshot capture
 ```
 
 ## Contributing
@@ -118,10 +127,10 @@ is no opt-in or opt-out for telemetry because there is none to opt into. The
 threat model is in [SECURITY.md](SECURITY.md).
 
 The first-launch dialog states the local-only posture in plain language and
-offers an opt-in demo dataset before any data is written.
+lets you load demo data or start with an empty database.
 
 <p align="center">
-  <img src="docs/screenshots/00-welcome-dialog.png" alt="First-launch welcome dialog: toebeans is a local-first medication reminder, with Load demo data and Start fresh options" width="280">
+  <img src="docs/screenshots/00-welcome-dialog.png" alt="First-launch welcome dialog with Load demo data and Start fresh" width="280">
 </p>
 
 ## License
