@@ -5,14 +5,19 @@ import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
 
 /**
- * Phase 5 contract subclass backed by an in-memory fake so `:shared:jvmTest` passes in
- * harness verify. [SqlDelightScheduleRepositoryContractTest] (jvmTest) is the regression
- * gate for the real SQLDelight implementation.
+ * commonTest harness fake: all 11 inherited contract cases pass without JDBC.
+ * [SqlDelightScheduleRepositoryContractTest] (jvmTest) is the SQLDelight + FK cascade gate.
+ * Kept (unlike deleted StubPetRepositoryContractTest) because harness verify and Robolectric
+ * paths lack a JDBC SQLite driver in commonTest.
+ *
+ * Case 11 (Medication delete cascade) is behavioral simulation via [deleteAllForMedication];
+ * ADR-0010 SQLite FK CASCADE is proven only on the SqlDelight subclass path.
  */
 class StubScheduleRepositoryContractTest : ScheduleRepositoryContract() {
     private lateinit var inMemory: InMemoryContractScheduleRepository
@@ -45,11 +50,12 @@ private class InMemoryContractScheduleRepository : ScheduleRepository {
         }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
-        schedules.map { snap ->
-            snap.values
+        // sdk-review F5: combine both flows like SqlDelightScheduleRepository so phase-only updates re-emit.
+        combine(schedules, phasesByScheduleId) { scheduleSnap, phaseSnap ->
+            scheduleSnap.values
                 .filter { it.endDate == null || it.endDate!! >= onOrAfter }
                 .map { sched ->
-                    ScheduleWithPhases(sched, phasesByScheduleId.value[sched.id] ?: emptyList())
+                    ScheduleWithPhases(sched, phaseSnap[sched.id] ?: emptyList())
                 }
         }
 
@@ -72,6 +78,7 @@ private class InMemoryContractScheduleRepository : ScheduleRepository {
         phasesByScheduleId.update { it - id }
     }
 
+    // sdk-review F4: app-level cascade simulation; SqlDelight path proves ADR-0010 FK CASCADE.
     suspend fun deleteAllForMedication(medicationId: String) {
         val ids = schedules.value.values.filter { it.medicationId == medicationId }.map { it.id }
         ids.forEach { delete(it) }

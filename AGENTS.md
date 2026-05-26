@@ -186,8 +186,7 @@ Two Gradle init scripts in `~/.gradle/init.d/` handle this:
 Standard commands per `CONTRIBUTING.md`. Key caveats:
 
 - **ktlintCheck**: Not functional in Cloud Agent. The stub plugin resolves (so the build configures) but does not register tasks. The real ktlint plugin downloads from `plugins-artifacts.gradle.org` which is blocked. Use `detekt` for lint.
-- **StubScheduleRepositoryContractTest**: 11 tests intentionally fail (Phase 5 test-as-spec stubs; see the test file's Javadoc). Exclude with `--tests "!*StubScheduleRepository*"` if needed.
-- **Kover verify** depends on all tests passing. Since the 11 stub tests are expected-RED, `koverVerify` cannot pass without excluding them.
+- **StubScheduleRepositoryContractTest**: 11 contract cases run green against an in-memory fake in `commonTest` (harness verify path without JDBC). **SqlDelightScheduleRepositoryContractTest** (`jvmTest`) is the SQLDelight + FK cascade regression gate.
 
 ### Quick-start commands
 
