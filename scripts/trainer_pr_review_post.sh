@@ -36,7 +36,8 @@ else
   exit 2
 fi
 
-MARKER="<!-- trainer-codereview-toebeans-${BRANCH_SLUG} -->"
+REPO_SLUG="${GH_REPO##*/}"
+MARKER="<!-- trainer-codereview-${REPO_SLUG}-${BRANCH_SLUG} -->"
 META="<!-- head=${HEAD_SHORT} verdict=${VERDICT} round=${ROUND} -->"
 
 OUT=$(mktemp)
@@ -47,7 +48,7 @@ OUT=$(mktemp)
 } >"$OUT"
 
 COMMENT_ID=$(gh api "repos/${GH_REPO}/issues/${PR_NUM}/comments" --paginate \
-  -q ".[] | select(.body | test(\"trainer-codereview-toebeans-${BRANCH_SLUG}\")) | .id" 2>/dev/null | head -1)
+  --jq ".[] | select(.body | contains(\"trainer-codereview-${REPO_SLUG}-${BRANCH_SLUG}\")) | .id" 2>/dev/null | head -1)
 
 if [[ -n "$COMMENT_ID" ]]; then
   gh api -X PATCH "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" \

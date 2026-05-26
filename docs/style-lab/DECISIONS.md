@@ -60,7 +60,7 @@ Scope for the theme polish PR:
 - [x] Open `docs/style-lab/index.html` offline and review all three packs.
 - [x] Wei sets **`Chosen:`** below.
 - [x] `tokens-snapshot.json` reflects terracotta-warm (no hex change vs `Color.kt`).
-- [ ] Record completion in `docs/ROADMAP.md` when this commit lands.
+- [x] Record completion in `docs/ROADMAP.md` when this commit lands.
 - [x] Compose theme alignment PR (items 3–4 above).
 
 **Chosen:** terracotta-warm (2026-05-26)

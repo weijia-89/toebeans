@@ -109,11 +109,11 @@ Refresh README screenshots on a booted `toebeans-pixel7` AVD after
 
 ## Design review
 
-Docs-only style exploration before a Compose theme polish pass (no APK change until sign-off).
+Static style lab (`docs/style-lab/`) for variant comparison. **terracotta-warm** signed off 2026-05-26. Shipped Compose theme (PR [#54](https://github.com/weijia-89/toebeans/pull/54)): Today **Log dose** filled primary pill, **Given ✓** sage tertiary, dark `Theme.kt` tune. Material You toggle stays default off.
 
 - Open [docs/style-lab/index.html](docs/style-lab/index.html) in a browser (`open docs/style-lab/index.html` on macOS).
 - Toggle variant packs (terracotta-warm, sage-calm, high-contrast).
-- Record the choice in [docs/style-lab/DECISIONS.md](docs/style-lab/DECISIONS.md) when ready.
+- Decisions log: [docs/style-lab/DECISIONS.md](docs/style-lab/DECISIONS.md).
 
 ```bash
 bash scripts/manual_qa_boot.sh fresh --open-style-lab
