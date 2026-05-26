@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 jobs:
   fitness-functions:
@@ -54,6 +55,25 @@ jobs:
         run: bash scripts/test_test_no_pbkdf2_in_backup_after_tbn2.sh .
       - name: No-em-dash-in-docs fitness-function self-test
         run: bash scripts/test_test_no_em_dash_in_docs.sh .
+      - name: Trainer PR review gate self-test
+        run: bash scripts/test_ci_trainer_pr_review_gate.sh .
+
+  trainer-pr-review-gate:
+    # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
+    # PR with head= matching HEAD and a ### Pedagogy section (trainer v0.12.0).
+    name: Trainer PR review comment gate
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Require trainer code-review comment on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash scripts/ci-trainer-pr-review-gate.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            "${{ github.event.pull_request.head.ref }}" \
+            "${{ github.repository }}"
 
   vibe-dangerous-gate:
     # Survives `git commit --no-verify`. Enforces the same rule as
@@ -113,7 +133,7 @@ jobs:
   build-and-test:
     name: Gradle build + shared tests
     runs-on: ubuntu-24.04
-    needs: fitness-functions
+    needs: [fitness-functions, trainer-pr-review-gate]
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
