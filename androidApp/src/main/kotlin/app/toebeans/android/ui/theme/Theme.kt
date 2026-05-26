@@ -44,20 +44,22 @@ private val LightColors =
         onErrorContainer = ErrorLight,
     )
 
+// Dark mirror of terracotta-warm (docs/style-lab/DECISIONS.md, 2026-05-26). Primary
+// matches light + style-lab .btn so Log dose pills read the same in Auto dark mode.
 private val DarkColors =
     darkColorScheme(
-        primary = ToebeansTerracottaContainer,
-        onPrimary = ToebeansBrown,
+        primary = ToebeansTerracotta,
+        onPrimary = SurfaceLight,
         primaryContainer = ToebeansTerracotta,
         onPrimaryContainer = SurfaceLight,
         secondary = ToebeansBrownContainer,
-        onSecondary = ToebeansBrown,
-        secondaryContainer = ToebeansBrown,
-        onSecondaryContainer = ToebeansBrownContainer,
-        tertiary = ToebeansSageContainer,
-        onTertiary = ToebeansBrown,
-        tertiaryContainer = ToebeansSage,
-        onTertiaryContainer = SurfaceLight,
+        onSecondary = OnSurfaceDark,
+        secondaryContainer = SurfaceVariantDark,
+        onSecondaryContainer = OnSurfaceVariantDark,
+        tertiary = ToebeansSage,
+        onTertiary = SurfaceLight,
+        tertiaryContainer = ToebeansSageContainer,
+        onTertiaryContainer = ToebeansBrown,
         surface = SurfaceDark,
         surfaceVariant = SurfaceVariantDark,
         onSurface = OnSurfaceDark,

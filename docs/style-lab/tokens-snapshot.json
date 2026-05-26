@@ -1,0 +1,10 @@
+{
+  "source": "androidApp/.../ui/theme/Color.kt",
+  "captured": "2026-05-26",
+  "chosen": "terracotta-warm",
+  "chosenAt": "2026-05-26",
+  "variants": ["terracotta-warm", "sage-calm", "high-contrast"],
+  "brand": {"terracotta": "#c65a3d", "brown": "#4a2e1f", "sage": "#6f8f6a"},
+  "surface": {"light": "#fdf7f2", "variantLight": "#f5e8dc", "dark": "#1f1612"},
+  "onSurface": {"light": "#231712", "variantLight": "#6b5448"}
+}

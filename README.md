@@ -6,8 +6,8 @@ third-party services.
 Status: `v0.1.0-dev`, pre-MVP. Pets and their medications live in SQLDelight
 (`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
 tab lists schedules and opens read-only schedule detail. After reboot,
-`BootReceiver` replays alarms for the next 72 hours (stub path today; receiver
-DB lookup still landing). Notification firing remains on the ROADMAP.
+`BootReceiver` replays alarms for the next 72 hours by querying pending rows from
+SQLDelight in the receiver process. Notification firing remains on the ROADMAP.
 
 **SDK (2026-05):** BootReceiver scaffold ([PR #39](https://github.com/weijia-89/toebeans/pull/39)),
 72h rehydration stub ([PR #40](https://github.com/weijia-89/toebeans/pull/40)),
@@ -101,6 +101,18 @@ Refresh README screenshots on a booted `toebeans-pixel7` AVD after
 ./scripts/capture_readme_screenshots.sh
 ```
 
+## Design review
+
+Docs-only style exploration before a Compose theme polish pass (no APK change until sign-off).
+
+- Open [docs/style-lab/index.html](docs/style-lab/index.html) in a browser (`open docs/style-lab/index.html` on macOS).
+- Toggle variant packs (terracotta-warm, sage-calm, high-contrast).
+- Record the choice in [docs/style-lab/DECISIONS.md](docs/style-lab/DECISIONS.md) when ready.
+
+```bash
+bash scripts/manual_qa_boot.sh fresh --open-style-lab
+```
+
 ## Repository layout
 
 ```
@@ -109,6 +121,7 @@ toebeans/
   androidApp/  Android app: Compose UI, AlarmManager notifications
   docs/
     adr/         Short architecture decisions (MADR format)
+    style-lab/   Static HTML variant packs for design sign-off
     screenshots/ Emulator captures embedded in this README
     ARCHITECTURE.md
     ROADMAP.md

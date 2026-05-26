@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terracotta-warm">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>toebeans style lab (sign-off)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="banner">
+    <strong>For Wei sign-off only.</strong> Static preview of key surfaces. Does not reflect the shipped Compose UI until
+    <code>DECISIONS.md</code> records a chosen pack.
+  </div>
+  <div class="controls">
+    <label for="theme">Variant pack</label>
+    <select id="theme">
+      <option value="terracotta-warm">terracotta-warm</option>
+      <option value="sage-calm">sage-calm</option>
+      <option value="high-contrast">high-contrast</option>
+    </select>
+  </div>
+  <main>
+    <h1>toebeans — Today + settings chrome</h1>
+    <h2>Today (mock)</h2>
+    <div class="panel">
+      <div class="row">
+        <div><strong>Luna</strong> · Methimazole 2.5 mg<br><span class="chip">morning · due</span></div>
+        <button type="button" class="btn">Log dose</button>
+      </div>
+      <div class="row">
+        <div><strong>Rufus</strong> · Methimazole<br><span class="chip">evening</span></div>
+        <span class="given">Given ✓</span>
+      </div>
+    </div>
+    <h2>Settings card (mock)</h2>
+    <div class="panel">
+      <div class="row"><span>Theme</span><span class="chip">Auto</span></div>
+      <div class="row"><span>Export data</span><button type="button" class="btn">Export</button></div>
+    </div>
+  </main>
+  <script>
+    document.getElementById('theme').addEventListener('change', (e) => {
+      document.documentElement.setAttribute('data-theme', e.target.value);
+    });
+  </script>
+</body>
+</html>
