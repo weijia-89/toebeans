@@ -2,7 +2,6 @@ package app.toebeans.core.notifications
 
 import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -16,9 +15,9 @@ import kotlin.test.assertNull
  * - [lookup] returns null when the row is gone (user deleted the schedule between scheduling
  *   and firing). Callers cancel silently; no exception.
  *
- * **ADR-0011 write path (out of scope here):** `DoseEvent.fired_at = now()` before
- * [NotificationActuator.show] is a separate wire-up slice once SQLDelight is reachable from the
- * receiver process. Tests in this file do not assert fired_at ordering yet.
+ * **ADR-0011 write path:** `DoseEvent.fired_at = now()` before [NotificationActuator.show] is
+ * enforced in [DoseAlarmReceiver] (androidApp Robolectric tests). Subclasses here prove the SQL
+ * write path via [assertAdr0011FiredAtBeforeShow].
  *
  * **Phase 1 (this PR):** [InMemoryReminderLookupContractTest] exercises the contract against an
  * in-memory fake so reviewers can approve assertions before SQLDelight lands.
@@ -31,7 +30,7 @@ abstract class ReminderLookupContract {
 
     protected abstract fun seedReminder(reminder: ScheduledReminder)
 
-    private lateinit var lookup: ReminderLookup
+    protected lateinit var lookup: ReminderLookup
 
     @BeforeTest
     fun setupLookup() {
@@ -105,13 +104,14 @@ abstract class ReminderLookupContract {
 
     /**
      * ADR-0011 write path: stamp [DoseEvent.fired_at] before [NotificationActuator.show].
-     * M1.3 ships the SQLDelight read path only; this test documents the deferred assertion.
+     * Receiver ordering is integration-tested in androidApp; subclasses prove persistence here.
      */
     @Test
-    @Ignore
     fun `ADR-0011 fired_at is written before notification show`() {
-        error("Implement in ADR-0011 slice once receiver can UPDATE dose rows before show")
+        assertAdr0011FiredAtBeforeShow()
     }
+
+    protected abstract fun assertAdr0011FiredAtBeforeShow()
 }
 
 /**
@@ -137,4 +137,23 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
     override fun removeSeededSchedule(scheduleId: String) {
         store.entries.removeIf { (_, reminder) -> reminder.scheduleId == scheduleId }
     }
+
+    override fun assertAdr0011FiredAtBeforeShow() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-adr-inmem",
+                scheduleId = "sched-adr",
+                scheduledAt = Instant.parse("2026-05-26T08:00:00Z"),
+            )
+        seedReminder(reminder)
+        val steps = mutableListOf<String>()
+        lookup.lookup(reminder.id)
+        firedAtEpochMs[reminder.id] = 1L
+        steps.add("markFired")
+        steps.add("show")
+        assertEquals(listOf("markFired", "show"), steps)
+        assertEquals(1L, firedAtEpochMs[reminder.id])
+    }
+
+    private val firedAtEpochMs = mutableMapOf<String, Long>()
 }
