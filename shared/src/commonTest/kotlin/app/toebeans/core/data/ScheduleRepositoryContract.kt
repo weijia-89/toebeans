@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
  *
  * ## Subclass roles
  *
- * [StubScheduleRepositoryContractTest] (commonTest) runs all 11 cases against an in-memory
+ * [InMemoryScheduleRepositoryContractTest] (commonTest) runs all 11 cases against an in-memory
  * fake so JVM/Android test targets without JDBC still exercise the contract. Case 11 simulates
  * Medication-delete cascade via the fake's `deleteAllForMedication`; it does not prove SQLite
  * FK behavior. Unlike Pet (whose RED stub was deleted once SqlDelight went green), Schedule
@@ -39,7 +39,7 @@ import kotlin.test.assertTrue
  * Extends [MedicalRepositoryContract] to inherit the [obtainDriver] / [configureDb] hook
  * pair. [SqlDelightScheduleRepositoryContractTest] overrides [obtainDriver] to return the
  * real driver and [configureDb] to run `PRAGMA foreign_keys=ON` per ADR-0010.
- * [StubScheduleRepositoryContractTest] returns null from [obtainDriver], so no FK setup runs.
+ * [InMemoryScheduleRepositoryContractTest] returns null from [obtainDriver], so no FK setup runs.
  *
  * ## Why phaseOrder denseness is caller-enforced (case 6)
  *
@@ -59,7 +59,7 @@ import kotlin.test.assertTrue
  * The [ScheduleRepository] interface has no `delete medication` method (that lives on
  * [MedicationRepository]). To exercise the cascade, this contract declares an abstract
  * [deleteParentMedication] hook. [SqlDelightScheduleRepositoryContractTest] deletes via the
- * real medication table so SQLite FK CASCADE fires. [StubScheduleRepositoryContractTest]
+ * real medication table so SQLite FK CASCADE fires. [InMemoryScheduleRepositoryContractTest]
  * simulates cascade in the in-memory fake (harness-only; not a FK proof).
  *
  * ## Active-window semantics (cases 9 and 10)
@@ -82,7 +82,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
      * outside the [ScheduleRepository] surface, so case 11 can assert CASCADE down to
      * Schedule and SchedulePhase rows. [SqlDelightScheduleRepositoryContractTest] uses raw
      * driver execute (or a co-injected [MedicationRepository]) for real FK CASCADE.
-     * [StubScheduleRepositoryContractTest] simulates cascade in its in-memory fake.
+     * [InMemoryScheduleRepositoryContractTest] simulates cascade in its in-memory fake.
      */
     protected abstract suspend fun deleteParentMedication(medicationId: String)
 

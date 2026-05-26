@@ -11,7 +11,7 @@ import kotlinx.datetime.Instant
  * `PRAGMA foreign_keys=ON`, and real ADR-0010 CASCADE on case 11. The factory constructs
  * a freshly isolated [SqlDelightScheduleRepository] backed by an in-memory [JdbcSqliteDriver].
  *
- * [StubScheduleRepositoryContractTest] (commonTest) runs the same 11 cases against an
+ * [InMemoryScheduleRepositoryContractTest] (commonTest) runs the same 11 cases against an
  * in-memory fake for harness/Robolectric paths without JDBC; case 11 cascade there is
  * behavioral simulation only (see [ScheduleRepositoryContract] subclass roles).
  *

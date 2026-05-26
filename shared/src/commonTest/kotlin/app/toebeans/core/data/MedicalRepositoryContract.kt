@@ -59,7 +59,7 @@ import kotlin.test.BeforeTest
  *       ↳ StubMedicationRepositoryContractTest        (Phase 3; concrete; RED)
  *   ↳ ScheduleRepositoryContract                  (abstract; defines @Test methods)
  *       ↳ SqlDelightScheduleRepositoryContractTest  (jvmTest; concrete; green FK gate)
- *       ↳ StubScheduleRepositoryContractTest        (commonTest; green in-memory fake; harness)
+ *       ↳ InMemoryScheduleRepositoryContractTest    (commonTest; green in-memory fake; harness)
  *   ↳ DoseEventRepositoryContract                 (shipped; SqlDelight subclass in jvmTest)
  * ```
  *

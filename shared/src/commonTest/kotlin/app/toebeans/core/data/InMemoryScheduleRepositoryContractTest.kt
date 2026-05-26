@@ -18,8 +18,10 @@ import kotlinx.datetime.LocalDate
  *
  * Case 11 (Medication delete cascade) is behavioral simulation via [deleteAllForMedication];
  * ADR-0010 SQLite FK CASCADE is proven only on the SqlDelight subclass path.
+ *
+ * sdk-review F1: renamed from Stub* — green in-memory fake, not a RED throw-stub.
  */
-class StubScheduleRepositoryContractTest : ScheduleRepositoryContract() {
+class InMemoryScheduleRepositoryContractTest : ScheduleRepositoryContract() {
     private lateinit var inMemory: InMemoryContractScheduleRepository
 
     override fun obtainDriver(): SqlDriver? = null
