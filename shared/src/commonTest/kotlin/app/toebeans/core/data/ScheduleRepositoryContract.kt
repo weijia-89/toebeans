@@ -22,23 +22,24 @@ import kotlin.test.assertTrue
  * subclasses provide a freshly-isolated [ScheduleRepository] via [createRepository] (called
  * once per test via [BeforeTest]).
  *
- * Phase 5 (this PR, M1 Decision 4a) ships this contract plus [StubScheduleRepositoryContractTest],
- * which exercises a stub-throws factory. Every test fails RED on first run, per AGENTS.md
- * § Test-as-spec rules: the human reviewer sees a failing test runner output, not just a
- * source diff. RED is the deliverable for this PR.
+ * ## Subclass roles
  *
- * Phase 6 (the SqlDelight-backed [ScheduleRepository] implementation PR, also vibe-dangerous)
- * ships a sibling subclass (e.g. `SqlDelightScheduleRepositoryContractTest`) whose factory
- * returns a real implementation. Those tests turn green and from then on this contract is
- * the regression gate.
+ * [StubScheduleRepositoryContractTest] (commonTest) runs all 11 cases against an in-memory
+ * fake so JVM/Android test targets without JDBC still exercise the contract. Case 11 simulates
+ * Medication-delete cascade via the fake's `deleteAllForMedication`; it does not prove SQLite
+ * FK behavior. Unlike Pet (whose RED stub was deleted once SqlDelight went green), Schedule
+ * keeps this green commonTest fake for harness verify paths that lack a JDBC driver.
+ *
+ * [SqlDelightScheduleRepositoryContractTest] (jvmTest) is the authoritative regression gate
+ * for the real SQLDelight implementation: JDBC SQLite, `PRAGMA foreign_keys=ON`, and true
+ * ADR-0010 CASCADE on case 11.
  *
  * ## Inheritance
  *
  * Extends [MedicalRepositoryContract] to inherit the [obtainDriver] / [configureDb] hook
- * pair. The Phase-6 SqlDelight subclass overrides [obtainDriver] to return the real driver
- * and inherits the default [configureDb] override pattern documented in
- * [MedicalRepositoryContract] (i.e. `driver.execute(null, "PRAGMA foreign_keys=ON", 0)` per
- * ADR-0010). The stub subclass in this PR returns null, so no FK setup runs.
+ * pair. [SqlDelightScheduleRepositoryContractTest] overrides [obtainDriver] to return the
+ * real driver and [configureDb] to run `PRAGMA foreign_keys=ON` per ADR-0010.
+ * [StubScheduleRepositoryContractTest] returns null from [obtainDriver], so no FK setup runs.
  *
  * ## Why phaseOrder denseness is caller-enforced (case 6)
  *
@@ -57,10 +58,9 @@ import kotlin.test.assertTrue
  *
  * The [ScheduleRepository] interface has no `delete medication` method (that lives on
  * [MedicationRepository]). To exercise the cascade, this contract declares an abstract
- * [deleteParentMedication] hook. The Phase-6 SqlDelight subclass implements it by deleting
- * directly through the medication table; subclasses without a real FK driver (the stub
- * here, and future fake-based subclasses) throw [UnsupportedOperationException], which
- * still leaves the test RED until the SqlDelight subclass lands.
+ * [deleteParentMedication] hook. [SqlDelightScheduleRepositoryContractTest] deletes via the
+ * real medication table so SQLite FK CASCADE fires. [StubScheduleRepositoryContractTest]
+ * simulates cascade in the in-memory fake (harness-only; not a FK proof).
  *
  * ## Active-window semantics (cases 9 and 10)
  *
@@ -79,11 +79,10 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
 
     /**
      * Concrete subclasses delete the medication row identified by [medicationId] directly,
-     * outside the [ScheduleRepository] surface, so case 11 can assert the FK CASCADE down to
-     * Schedule and SchedulePhase rows. The Phase-6 SqlDelight subclass implements this via
-     * raw driver execute (or via a co-injected [MedicationRepository]). Subclasses without a
-     * real FK-enforcing driver throw [UnsupportedOperationException], which keeps case 11
-     * RED until a real driver is wired.
+     * outside the [ScheduleRepository] surface, so case 11 can assert CASCADE down to
+     * Schedule and SchedulePhase rows. [SqlDelightScheduleRepositoryContractTest] uses raw
+     * driver execute (or a co-injected [MedicationRepository]) for real FK CASCADE.
+     * [StubScheduleRepositoryContractTest] simulates cascade in its in-memory fake.
      */
     protected abstract suspend fun deleteParentMedication(medicationId: String)
 
@@ -268,10 +267,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             repo.upsert(schedule("s1", "m1"), listOf(phase("s1", 0), phase("s1", 1)))
             repo.upsert(schedule("s2", "m1"), listOf(phase("s2", 0)))
 
-            // The hook is implemented by Phase-6 SqlDelight subclasses via raw driver execute
-            // (or a co-injected MedicationRepository) so the FK CASCADE actually fires. Stub
-            // subclasses throw, which keeps the assertion below unreachable and the test RED
-            // until Phase 6 wires a real FK-enforcing driver.
+            // sdk-review F3: SqlDelight subclass proves FK CASCADE; commonTest fake simulates it.
             deleteParentMedication("m1")
 
             val schedulesAfter = repo.observeForMedication("m1").first()
