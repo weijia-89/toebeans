@@ -6,7 +6,11 @@ import android.content.Intent
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.ToebeansApp
+import app.toebeans.core.data.SqlDelightDoseEventRepository
 import app.toebeans.core.notifications.ReminderLookup
+import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * BroadcastReceiver fired by AlarmManager when a dose's scheduled time arrives.
@@ -17,8 +21,8 @@ import app.toebeans.core.notifications.ReminderLookup
  * Lifecycle:
  *  1. AlarmManager triggers this receiver's [onReceive] at the wall-clock instant.
  *  2. [ReminderLookup.lookup] re-fetches authoritative reminder data from SQLDelight.
- *  3. We delegate to [AndroidNotificationActuator.show], which populates the visible notification.
- *  4. We mark the DoseEvent.fired_at in the database (ADR-0011 slice; requires SQLDelight here).
+ *  3. We stamp [DoseEvent.fired_at] in SQLDelight (ADR-0011 write-before-show).
+ *  4. We delegate to [AndroidNotificationActuator.show], which populates the visible notification.
  */
 public class DoseAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -43,6 +47,21 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
         @VisibleForTesting
         @JvmField
         public var lookupOverride: ReminderLookup? = null
+
+        /**
+         * Test seam for ADR-0011 [DoseEvent.fired_at] writes. Production uses SQLDelight on the
+         * receiver database when null.
+         */
+        @VisibleForTesting
+        @JvmField
+        public var firedAtWriterOverride: ((doseEventId: String, firedAt: Instant) -> Unit)? = null
+
+        /**
+         * Test seam invoked immediately after [markDoseEventFired] and before [AndroidNotificationActuator.show].
+         */
+        @VisibleForTesting
+        @JvmField
+        public var beforeShowHook: (() -> Unit)? = null
 
         internal fun reminderLookupFor(context: Context): ReminderLookup =
             lookupOverride ?: defaultReminderLookup(context)
@@ -70,7 +89,25 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
                 notificationActuatorFor(context).cancel(reminderId)
                 return
             }
+            markDoseEventFired(context, reminderId)
+            beforeShowHook?.invoke()
             notificationActuatorFor(context).show(reminder)
+        }
+
+        internal fun markDoseEventFired(
+            context: Context,
+            doseEventId: String,
+        ) {
+            val firedAt = Clock.System.now()
+            val writer = firedAtWriterOverride
+            if (writer != null) {
+                writer(doseEventId, firedAt)
+            } else {
+                SqlDelightDoseEventRepository(
+                    database = ToebeansApp.openReceiverDatabase(context),
+                    dispatcher = Dispatchers.Unconfined,
+                ).markFired(doseEventId, firedAt)
+            }
         }
 
         private fun notificationActuatorFor(context: Context): AndroidNotificationActuator {

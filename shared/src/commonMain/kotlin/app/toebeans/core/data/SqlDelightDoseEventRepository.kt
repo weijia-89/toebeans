@@ -161,6 +161,23 @@ public class SqlDelightDoseEventRepository(
                 note = event.note,
             )
         }
+
+    /**
+     * ADR-0011 receiver fire path: stamp [DoseEvent.fired_at] synchronously before notification show.
+     *
+     * Called from [app.toebeans.android.notifications.DoseAlarmReceiver] outside the Koin graph.
+     * Intentionally not `suspend` — the BroadcastReceiver must finish the write before
+     * [app.toebeans.core.notifications.NotificationActuator.show].
+     */
+    public fun markFired(
+        doseEventId: String,
+        firedAt: Instant,
+    ) {
+        queries.markDoseEventFired(
+            fired_at = firedAt.toEpochMilliseconds(),
+            id = doseEventId,
+        )
+    }
 }
 
 internal fun DoseEventRow.toDomain(): DoseEvent =

@@ -2,7 +2,6 @@ package app.toebeans.core.notifications
 
 import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -16,9 +15,9 @@ import kotlin.test.assertNull
  * - [lookup] returns null when the row is gone (user deleted the schedule between scheduling
  *   and firing). Callers cancel silently; no exception.
  *
- * **ADR-0011 write path (out of scope here):** `DoseEvent.fired_at = now()` before
- * [NotificationActuator.show] is a separate wire-up slice once SQLDelight is reachable from the
- * receiver process. Tests in this file do not assert fired_at ordering yet.
+ * **ADR-0011 write path:** Write-before-show ordering is integration-tested only in
+ * [app.toebeans.android.notifications.DoseAlarmReceiverLookupTest]. Subclasses here prove
+ * [assertAdr0011MarkFiredPersists] (SqlDelight: real `markFired`; in-memory: scaffolding only).
  *
  * **Phase 1 (this PR):** [InMemoryReminderLookupContractTest] exercises the contract against an
  * in-memory fake so reviewers can approve assertions before SQLDelight lands.
@@ -31,7 +30,7 @@ abstract class ReminderLookupContract {
 
     protected abstract fun seedReminder(reminder: ScheduledReminder)
 
-    private lateinit var lookup: ReminderLookup
+    protected lateinit var lookup: ReminderLookup
 
     @BeforeTest
     fun setupLookup() {
@@ -104,19 +103,21 @@ abstract class ReminderLookupContract {
     }
 
     /**
-     * ADR-0011 write path: stamp [DoseEvent.fired_at] before [NotificationActuator.show].
-     * M1.3 ships the SQLDelight read path only; this test documents the deferred assertion.
+     * ADR-0011 persistence: [SqlDelightDoseEventRepository.markFired] stamps the row.
+     * Receiver write-before-show ordering is integration-tested in androidApp only.
      */
     @Test
-    @Ignore
-    fun `ADR-0011 fired_at is written before notification show`() {
-        error("Implement in ADR-0011 slice once receiver can UPDATE dose rows before show")
+    fun `ADR-0011 markFired persists fired_at on dose row`() {
+        assertAdr0011MarkFiredPersists()
     }
+
+    protected abstract fun assertAdr0011MarkFiredPersists()
 }
 
 /**
- * GREEN contract subclass backed by an in-memory map. Proves the assertions are well-formed
- * before SQLDelight lands.
+ * GREEN contract subclass backed by an in-memory map. Proves read-path assertions are well-formed
+ * before SQLDelight lands. ADR-0011 write-before-show ordering is **not** simulated here — see
+ * [app.toebeans.android.notifications.DoseAlarmReceiverLookupTest].
  */
 class InMemoryReminderLookupContractTest : ReminderLookupContract() {
     private val store = mutableMapOf<String, ScheduledReminder>()
@@ -136,5 +137,17 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
 
     override fun removeSeededSchedule(scheduleId: String) {
         store.entries.removeIf { (_, reminder) -> reminder.scheduleId == scheduleId }
+    }
+
+    override fun assertAdr0011MarkFiredPersists() {
+        // sdk-review F2: in-memory cannot prove receiver ordering; androidApp owns that falsifier.
+        val reminder =
+            ScheduledReminder(
+                id = "evt-adr-inmem",
+                scheduleId = "sched-adr",
+                scheduledAt = Instant.parse("2026-05-26T08:00:00Z"),
+            )
+        seedReminder(reminder)
+        assertEquals(reminder, lookup.lookup(reminder.id))
     }
 }

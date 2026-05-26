@@ -13,6 +13,7 @@ import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -31,9 +32,8 @@ import org.robolectric.annotation.Config
  * - Row gone: [ReminderLookup] returns null → receiver silently cancels the pending alarm, no crash,
  *   no notification.
  *
- * **ADR-0011 (deferred):** `DoseEvent.fired_at` write-before-show and LocalCrashLog markers for
- * [AndroidNotificationActuator.show] permission denial are not asserted here; they ship with the
- * ADR-0011 wire-up PR once SQLDelight is reachable in the receiver process.
+ * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. Permission-denial
+ * [AndroidNotificationActuator.show] outcomes and LocalCrashLog markers are a follow-on slice.
  *
  * Per AGENTS.md vibe-dangerous protocol: human review of assertions before extending coverage.
  */
@@ -58,6 +58,8 @@ class DoseAlarmReceiverLookupTest {
         systemNotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         DoseAlarmReceiver.lookupOverride = null
+        DoseAlarmReceiver.firedAtWriterOverride = null
+        DoseAlarmReceiver.beforeShowHook = null
         ToebeansApp.resetReceiverDatabaseCacheForTests()
         context.deleteDatabase(dbName)
         database =
@@ -72,6 +74,8 @@ class DoseAlarmReceiverLookupTest {
     @After
     fun tearDown() {
         DoseAlarmReceiver.lookupOverride = null
+        DoseAlarmReceiver.firedAtWriterOverride = null
+        DoseAlarmReceiver.beforeShowHook = null
         ToebeansApp.resetReceiverDatabaseCacheForTests()
         context.deleteDatabase(dbName)
     }
@@ -196,6 +200,73 @@ class DoseAlarmReceiverLookupTest {
 
         val active = shadowOf(systemNotificationManager).activeNotifications
         assertEquals(1, active.size)
+    }
+
+    @Test
+    fun `onReceive stamps fired_at on persisted dose event`() {
+        seedDoseEvent(
+            eventId = "evt-fired-at",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T08:30:00Z"),
+        )
+
+        dispatchDoseFire("evt-fired-at")
+
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById("evt-fired-at")
+                .executeAsOne()
+        assertNotNull(row.fired_at)
+    }
+
+    @Test
+    fun `ADR-0011 marks fired_at before notification show`() {
+        seedDoseEvent(
+            eventId = "evt-adr-order",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T08:45:00Z"),
+        )
+        var firedAtBeforeShow: Long? = null
+        DoseAlarmReceiver.beforeShowHook = {
+            firedAtBeforeShow =
+                database.doseEventQueries
+                    .selectDoseEventById("evt-adr-order")
+                    .executeAsOne()
+                    .fired_at
+            assertEquals(
+                "notification must not post until after fired_at write",
+                0,
+                shadowOf(systemNotificationManager).activeNotifications.size,
+            )
+        }
+
+        dispatchDoseFire("evt-adr-order")
+
+        assertNotNull(firedAtBeforeShow)
+        assertEquals(1, shadowOf(systemNotificationManager).activeNotifications.size)
+    }
+
+    @Test
+    fun `row gone does not stamp fired_at`() {
+        seedDoseEvent(
+            eventId = "evt-no-fired-at",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T09:15:00Z"),
+        )
+        // sdk-review F1: keep row in DB so fired_at null falsifies stamp-before-lookup regressions.
+        DoseAlarmReceiver.lookupOverride =
+            object : ReminderLookup {
+                override fun lookup(reminderId: String): ScheduledReminder? = null
+            }
+
+        dispatchDoseFire("evt-no-fired-at")
+
+        assertEquals(0, shadowOf(systemNotificationManager).activeNotifications.size)
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById("evt-no-fired-at")
+                .executeAsOne()
+        assertNull(row.fired_at)
     }
 
     @Test
