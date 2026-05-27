@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-26.
+Last updated: 2026-05-27.
 
 ---
 
@@ -117,6 +117,8 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | ✓ | **Distribution wedge (M1.2 gate closed): D1 pet-owner direct.** Operator decision 2026-05-26; M2 work item at `research/distribution-wedge-m2-d1.md`. Feasibility dossier §4.6 option 1 selected; clinic, insurer, and rescue paths deferred. | Cold review, feasibility dossier §4.6 |
 | ✓ | **Beta smoke checklist (Q9 blocker):** operator runs add pet → medication → schedule on device before inviting internal testers. Shipped at `docs/beta-smoke-add-medication.md`. Anchor-mode prompt remains M1.5 / ADR-0007. | research/decisions/2026-05-26-m12-beta-gates.md § Q9 |
 | ✓ | First-launch UX revisit: gated the Rufus + Luna seed behind a first-launch dialog (`FirstLaunchDialogHost`). Stores now start empty; `loadDemoData()` populates the demo on the user's tap of "Load demo data". `FirstLaunchPreferences` persists the seen-flag in SharedPreferences (same pattern as `ThemePreferences`). 11 new unit tests (5 prefs + 6 demo-loader, including a user-created-entries-preserved case). | Cold review |
+| | **Settings theme segmented control: selection border desync.** On Settings → Display, tapping Light/Dark/Auto updates the checkmark to the chosen mode but the white M3 selection outline stays on the previous segment (reported: checkmark on Dark while border remains on Light). Fix `SettingsScreen` `SingleChoiceSegmentedButtonRow` so border and `selected` state track `ThemeMode` from `ThemePreferences`; add Compose UI test or screenshot regression after ADR-0013 deps land. M1.2 polish / post–style-lab follow-up; does not block internal beta. | Operator feedback 2026-05-27 |
+| | **Add Medication unified modal (create flow).** Single surface for medication + initial schedule window + dose times + notification/alert settings. Required fields: medication **name** and **dose amount** only; pet selection, notes, phase overrides, and full medication metadata optional when needed. Replaces the post-beta friction of save medication → navigate → schedule create. Does **not** block M1.2 beta (Q9 uses the current multi-step path in `docs/beta-smoke-add-medication.md`). Anchor-mode prompt remains M1.5 / ADR-0007. | Operator product intent 2026-05-27, research/decisions/2026-05-26-m12-beta-gates.md § Q9 |
 
 **Definition of done (milestone 1.2):**
 - One tester has used the app for 30 consecutive days without losing trust.
@@ -144,6 +146,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | | `SchedulePhaseDstRulesTest` (separate from the main test-as-spec) |
 | | ADR-0007 G1 citation completion (Plumb's 9th ed.) |
 | | UI integration test for TZ-shift mid-day |
+| | **Prescription label capture (M1.5+ pointer; OCR delivery M4).** Owner may photograph or attach a prescription label for reference alongside manual entry. **No on-device text extraction in M1.5**; pre-fill of medication name, dose, etc. ships under the M4 OCR gate (ML Kit, local-only per ADR-0003). Do not block ADR-0007 travel/DST work. | Operator product intent 2026-05-27, ROADMAP M4, feasibility dossier Slice 4, ADR-0001 |
 
 ---
 
@@ -155,7 +158,8 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 |---|---|
 | | Argon2id KDF replacing PBKDF2 in backup codec (v0.1-followups #7) |
 | | "Show next 30 days" schedule view |
-| | Import-from-vet-record flow (manual paste; OCR deferred to milestone 4) |
+| | Import-from-vet-record flow (manual paste; on-device OCR pre-fill deferred to milestone 4; see M4 OCR row and M1.5 label-capture pointer) |
+| | **Add Medication unified modal (M2 polish if not landed in M1.2).** Same scope as the M1.2 row: one modal for med + schedule + alerts; name + dose amount required only. If the unified flow ships during internal beta, strike this duplicate; otherwise treat as pre–public-release UX gate. | Operator product intent 2026-05-27, M1.2 unified-modal row |
 | | Caregiver share: read-only invite via QR + E2EE handoff (not cloud sync) |
 | | **Document timeline** (Slice 3 per dossier § 8.2). Owner attaches photos and scans of vet invoices, lab reports, discharge instructions, and prescription labels to the pet profile. Plain storage with manual entry of structured fields where the owner wants them; no OCR yet (OCR is M4). Per ADR-0019, imported vet-written content surfaces verbatim with attribution to the source document; no app paraphrasing. |
 | | **Vet visit and appointment reminders** as first-class domain (new `VetVisit` model; vaccine reminders are a subtype). Owner-entered scheduled followups ("recheck in 6 weeks," "annual rabies booster"). Per ADR-0019: owner-entered or vet-record-imported source, scheduled-reminder delivery, attribution framing. Domain model lands under ADR-0019 Followup F5; UI layers on after. |
@@ -186,7 +190,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 
 | Pending | What |
 |---|---|
-| | On-device OCR for prescription labels (ML Kit; ADR-0001 reference) |
+| | **On-device OCR for prescription labels (ML Kit; ADR-0001 reference).** Read prescription label text on-device (no cloud) to pre-fill medication name, dose amount, and optional structured fields; owner confirms before persist. **Decision gate:** feasibility dossier Slice 4 pilot on real labels; if extraction quality is unacceptable, defer rather than add a cloud harness (ADR-0003). Supersedes manual-only label attach from M1.5 pointer row. |
 | | Drug-interaction warnings: STRICTLY rule-based, vet-curated, NO LLM (forbidden by AGENTS.md vibe-impossible). Now derives from ADR-0019 § Specific application; vet-advisory-board-curated rule pack source. |
 | | Vaccination & visit reminders alongside medications. Note: M2 lands the `VetVisit` domain model and owner-entered/vet-record-imported reminders. M4 work here is the **rule-pack delivery** layer (e.g., regional-regulatory rabies-booster rules per ADR-0019 Followup F3 rule-pack storage). |
 | | **Chronic-condition admin overlays** (Moat #4 per dossier § 3.3; framework per ADR-0019). Per-condition rule-based reminder packs (CKD, diabetes, seizure, atopic dermatitis) curated by a registered veterinary advisory board. Gated on advisory-board ADR (ADR-0019 Followup F2) and rule-pack storage ADR (ADR-0019 Followup F3). |
