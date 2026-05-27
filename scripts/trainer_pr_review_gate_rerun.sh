@@ -50,16 +50,14 @@ BRANCH=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefName -q .headRefNa
 HEAD_SHA=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefOid -q .headRefOid)
 
 RUN_ID=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
-  --limit 20 --json databaseId,headSha,event \
-  --jq --arg sha "$HEAD_SHA" '
+  --limit 20 --json databaseId,headSha,event | jq -r --arg sha "$HEAD_SHA" '
     [.[] | select(.headSha == $sha and .event == "pull_request")]
     | sort_by(.databaseId) | reverse | .[0].databaseId // empty
   ')
 
 if [[ -z "$RUN_ID" ]]; then
   RUN_ID=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
-    --limit 5 --json databaseId \
-    --jq 'sort_by(.databaseId) | reverse | .[0].databaseId // empty')
+    --limit 5 --json databaseId | jq -r 'sort_by(.databaseId) | reverse | .[0].databaseId // empty')
 fi
 
 if [[ -z "$RUN_ID" ]]; then
