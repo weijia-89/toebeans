@@ -76,7 +76,7 @@ Every open PR to `main` **must** have a canonical GitHub issue comment before CI
 
 **Docs-only exempt:** PRs that change **only** `docs/**` or `research/**` files ending in `.md` or `.txt` skip the comment gate (CI exits 0 with `SKIP`). Mixed PRs (e.g. roadmap + Kotlin) still require the comment. `AGENTS.md`, `CLAUDE.md`, `.github/`, `scripts/`, and product code paths are never exempt.
 
-**Post / PATCH:** `bash scripts/trainer_pr_review_post.sh <pr_num> <verdict> <round> review.md` from repo root on the PR branch.
+**Post / PATCH:** `bash scripts/trainer_pr_review_post.sh <pr_num> <verdict> <round> review.md` from repo root on the PR branch. Prefer **post then push** so `head=` matches the first CI run; if you posted after push, the script reruns only the gate job (`trainer_pr_review_gate_rerun.sh`).
 
 Agents: route trainer → form-check `code-review` **before** claiming PR ready; posting the comment is not optional.
 
