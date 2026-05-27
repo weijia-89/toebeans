@@ -132,9 +132,12 @@ jobs:
           comment-summary-in-pr: on-failure
 
   build-and-test:
+    # Runs in parallel with trainer-pr-review-gate (buds pattern). Gate still
+    # fails the workflow until the canonical PR comment exists; it must not
+    # block Gradle signal on first push or while the agent posts/PATCHes review.
     name: Gradle build + shared tests
     runs-on: ubuntu-24.04
-    needs: [fitness-functions, trainer-pr-review-gate]
+    needs: [fitness-functions]
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17

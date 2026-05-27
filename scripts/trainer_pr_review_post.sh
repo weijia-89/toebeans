@@ -7,6 +7,9 @@
 #
 # verdict: APPROVE | REQUEST_CHANGES | BLOCK
 # body.md must include ### Findings and ### Trainer notes (trainer-github-pr-commentary.md).
+#
+# Order: post/PATCH before push when CI should pass on that SHA (trainer-codereview-gate.md).
+# After posting on an already-pushed PR, re-run the failed gate workflow or push again.
 
 set -euo pipefail
 
