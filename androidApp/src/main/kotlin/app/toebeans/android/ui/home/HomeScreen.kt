@@ -46,7 +46,8 @@ import org.koin.androidx.compose.koinViewModel
  * Home / Today screen. Shows the user's tracked pets as tappable chips and today's
  * dose surfaces ("Logged today" + due-today cards). Dose rows persist via
  * [SqlDelightDoseEventRepository][app.toebeans.core.data.SqlDelightDoseEventRepository]
- * (AppModule DI); 72h materializer and boot rehydration remain deferred.
+ * (AppModule DI); boot rehydration replays existing pending rows; schedule-create
+ * materializes the 72h horizon on save.
  *
  * Three states:
  *   - Loading: nothing (the parent suppresses recompositions while loading).

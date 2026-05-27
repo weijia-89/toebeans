@@ -148,9 +148,9 @@ Medication-critical path. Treat a silent miss as **smoke fail** unless explicitl
 | **Reminders** list + schedule detail | Shipped |
 | `DoseAlarmReceiver` + SQLDelight lookup | Shipped |
 | `BootReceiver` 72h **rehydration** (re-schedule existing **pending** dose rows) | Shipped |
-| **Schedule-create → pending DoseEvent materialization + AlarmManager.schedule** in UI process | **Not wired** (deferred slice; see Known gaps) |
+| **Schedule-create → pending DoseEvent materialization + AlarmManager.schedule** in UI process | **Shipped** (`ReminderRescheduler` + `ScheduleCreateViewModel.save`) |
 
-**Operator implication:** After step 3, a **push notification at the scheduled time may not fire** for user-created schedules until the 72h materializer + post-save scheduling slice lands. UI and logging paths can still pass smoke.
+**Operator implication:** After step 3, a **push notification at the scheduled time should fire** on device when exact-alarm permission and battery settings allow. Emulator timing remains best-effort; confirm on hardware.
 
 ### Procedure (when testing anyway)
 
