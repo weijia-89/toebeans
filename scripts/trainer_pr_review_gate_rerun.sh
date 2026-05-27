@@ -88,10 +88,23 @@ if [[ "$JOB_STATUS" == "in_progress" || "$JOB_STATUS" == "queued" ]]; then
   exit 0
 fi
 
+RUN_STATUS=$(gh run view "$RUN_ID" --repo "$GH_REPO" --json status -q .status)
+if [[ "$RUN_STATUS" == "in_progress" || "$RUN_STATUS" == "queued" || "$RUN_STATUS" == "pending" ]]; then
+  echo "trainer_pr_review_gate_rerun: workflow run ${RUN_ID} still ${RUN_STATUS}; retry after it finishes:"
+  echo "  bash scripts/trainer_pr_review_gate_rerun.sh ${PR_NUM} ${GH_REPO}"
+  exit 0
+fi
+
 if [[ "${TRAINER_GATE_RERUN_DRY_RUN:-}" == "1" ]]; then
   echo "trainer_pr_review_gate_rerun: dry-run would rerun run=${RUN_ID} job=${JOB_ID} (${GATE_JOB_NAME})"
   exit 0
 fi
 
-gh run rerun "$RUN_ID" --repo "$GH_REPO" --job "$JOB_ID"
-echo "trainer_pr_review_gate_rerun: rerun triggered run=${RUN_ID} job=${JOB_ID} (${GATE_JOB_NAME})"
+if gh run rerun "$RUN_ID" --repo "$GH_REPO" --job "$JOB_ID" 2>/dev/null; then
+  echo "trainer_pr_review_gate_rerun: rerun triggered run=${RUN_ID} job=${JOB_ID} (${GATE_JOB_NAME})"
+elif gh run rerun "$RUN_ID" --repo "$GH_REPO" --failed 2>/dev/null; then
+  echo "trainer_pr_review_gate_rerun: rerun triggered failed jobs on run=${RUN_ID}"
+else
+  echo "trainer_pr_review_gate_rerun: could not rerun (run may be too old or locked); push empty commit or re-run gate from Actions UI" >&2
+  exit 0
+fi

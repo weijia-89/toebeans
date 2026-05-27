@@ -24,6 +24,18 @@ jobs:
         with:
           sparse-checkout: |
             scripts
+      - name: Wait for in-flight ci run (if any)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="${{ github.event.issue.number }}"
+          branch=$(gh pr view "$pr" --repo "${{ github.repository }}" --json headRefName -q .headRefName)
+          for _ in $(seq 1 20); do
+            status=$(gh run list --repo "${{ github.repository }}" --branch "$branch" --workflow ci \
+              --limit 1 --json status -q '.[0].status // "completed"')
+            [[ "$status" != "in_progress" && "$status" != "queued" && "$status" != "pending" ]] && break
+            sleep 15
+          done
       - name: Rerun trainer PR review comment gate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
