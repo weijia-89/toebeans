@@ -1,11 +1,15 @@
 package app.toebeans.android.ui.schedule
 
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.ScheduledDose
 import kotlinx.coroutines.Dispatchers
@@ -105,7 +109,9 @@ class ScheduleCreateMidnightStraddleTest {
         ScheduleCreateViewModel(
             medicationRepository = InMemMedRepoMidnight(MED),
             scheduleRepository = InMemSchedRepoMidnight(),
+            doseEventRepository = NoopDoseRepoMidnight,
             scheduleCalculator = NoopCalculatorMidnight,
+            notificationActuator = NoopNotificationActuatorMidnight,
             timeZone = TimeZone.UTC,
         )
 
@@ -200,4 +206,50 @@ private class InMemSchedRepoMidnight : ScheduleRepository {
         schedules.update { it - id }
         phases.update { it - id }
     }
+}
+
+private object NoopDoseRepoMidnight : DoseEventRepository {
+    override fun observeForPet(
+        petId: String,
+        sinceInclusive: kotlinx.datetime.Instant,
+    ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> = kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override fun observeLastGivenForMedication(medicationId: String): kotlinx.coroutines.flow.Flow<DoseEvent?> =
+        kotlinx.coroutines.flow.flowOf(null)
+
+    override fun observeAllRecent(
+        sinceInclusive: kotlinx.datetime.Instant,
+    ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> = kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override fun observeAll(): kotlinx.coroutines.flow.Flow<List<DoseEvent>> =
+        kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override suspend fun recordGivenNow(
+        doseEventId: String,
+        scheduleId: String,
+        medicationId: String,
+        at: kotlinx.datetime.Instant,
+        note: String?,
+    ): DoseEvent = error("unused")
+
+    override suspend fun recordGivenForSlot(
+        doseEventId: String,
+        scheduleId: String,
+        medicationId: String,
+        scheduledAt: kotlinx.datetime.Instant,
+        resolvedAt: kotlinx.datetime.Instant,
+        note: String?,
+    ): DoseEvent = error("unused")
+
+    override suspend fun delete(doseEventId: String) = Unit
+
+    override suspend fun upsert(event: DoseEvent) = Unit
+}
+
+private object NoopNotificationActuatorMidnight : NotificationActuator {
+    override fun schedule(reminder: ScheduledReminder) = Unit
+
+    override fun cancel(reminderId: String) = Unit
+
+    override fun show(reminder: ScheduledReminder) = Unit
 }

@@ -1,13 +1,16 @@
 package app.toebeans.android.ui.schedule
 
 import androidx.lifecycle.ViewModel
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.MalformedScheduleException
+import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +40,9 @@ import kotlin.uuid.Uuid
 public class ScheduleCreateViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val doseEventRepository: DoseEventRepository,
     private val scheduleCalculator: ScheduleCalculator,
+    private val notificationActuator: NotificationActuator,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val _state =
@@ -195,28 +200,7 @@ public class ScheduleCreateViewModel(
             return null
         }
 
-        val scheduleId = "sched-${Uuid.random()}"
-        val phases =
-            s.phases.mapIndexed { idx, draft ->
-                SchedulePhase(
-                    id = "phase-${Uuid.random()}",
-                    scheduleId = scheduleId,
-                    phaseOrder = idx,
-                    durationDays = draft.durationDaysText.toInt(),
-                    dosesPerDay = draft.doseTimes.size,
-                    doseTimesLocal = draft.doseTimes.sorted(),
-                    doseAmount = draft.doseAmount.trim().ifEmpty { null },
-                    dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
-                )
-            }
-        val schedule =
-            Schedule(
-                id = scheduleId,
-                medicationId = medId,
-                startDate = s.startDate,
-                endDate = s.endDate,
-                createdAt = Clock.System.now(),
-            )
+        val (schedule, phases) = newSchedulePayload(s, medId)
 
         // Pre-flight the calculator across a representative window before persisting.
         // The Reminders/Today renderers run the same calculator at view-time; if it would
@@ -239,8 +223,58 @@ public class ScheduleCreateViewModel(
             return null
         }
 
+        upsertMaterializeAndSchedule(schedule, phases, medId)
+        return schedule.id
+    }
+
+    private fun newSchedulePayload(
+        s: ScheduleCreateUiState,
+        medId: String,
+    ): Pair<Schedule, List<SchedulePhase>> {
+        val scheduleId = "sched-${Uuid.random()}"
+        val phases =
+            s.phases.mapIndexed { idx, draft ->
+                SchedulePhase(
+                    id = "phase-${Uuid.random()}",
+                    scheduleId = scheduleId,
+                    phaseOrder = idx,
+                    durationDays = draft.durationDaysText.toInt(),
+                    dosesPerDay = draft.doseTimes.size,
+                    doseTimesLocal = draft.doseTimes.sorted(),
+                    doseAmount = draft.doseAmount.trim().ifEmpty { null },
+                    dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
+                )
+            }
+        val schedule =
+            Schedule(
+                id = scheduleId,
+                medicationId = medId,
+                startDate = s.startDate!!,
+                endDate = s.endDate,
+                createdAt = Clock.System.now(),
+            )
+        return schedule to phases
+    }
+
+    private suspend fun upsertMaterializeAndSchedule(
+        schedule: Schedule,
+        phases: List<SchedulePhase>,
+        medicationId: String,
+    ) {
         scheduleRepository.upsert(schedule, phases)
-        return scheduleId
+        val reminders =
+            ReminderRescheduler.materializeHorizonForSchedule(
+                schedule = schedule,
+                phases = phases,
+                medicationId = medicationId,
+                doseEventRepository = doseEventRepository,
+                scheduleCalculator = scheduleCalculator,
+                timeZone = timeZone,
+                now = Clock.System.now(),
+            )
+        for (reminder in reminders) {
+            notificationActuator.schedule(reminder)
+        }
     }
 
     /**
