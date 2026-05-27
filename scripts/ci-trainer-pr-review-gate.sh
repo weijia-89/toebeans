@@ -25,6 +25,14 @@ GH_REPO=$4
 BRANCH_SLUG=${BRANCH//\//-}
 HEAD_SHORT=${HEAD_SHA:0:7}
 
+GATE_DIR=$(cd "$(dirname "$0")" && pwd)
+if [[ -z "${TRAINER_PR_REVIEW_DISABLE_EXEMPT:-}" ]]; then
+  if bash "${GATE_DIR}/ci-trainer-pr-review-gate-exempt.sh" "$GH_REPO" "$PR_NUM"; then
+    echo "SKIP  trainer PR review gate: docs-only PR (exempt paths; no comment required)"
+    exit 0
+  fi
+fi
+
 if [[ -n "${TRAINER_PR_REVIEW_FIXTURE:-}" ]]; then
   COMMENTS_JSON=$(cat "$TRAINER_PR_REVIEW_FIXTURE")
 else
