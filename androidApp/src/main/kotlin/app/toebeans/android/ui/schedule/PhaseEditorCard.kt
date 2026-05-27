@@ -45,6 +45,7 @@ public fun PhaseEditorCard(
     onChange: (PhaseDraft) -> Unit,
     onRemove: () -> Unit,
     onAffirmNightDose: () -> Unit = {},
+    onDismissMidnightStraddle: () -> Unit = {},
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -107,11 +108,10 @@ public fun PhaseEditorCard(
             // warning below (tertiaryContainer) — both banners can fire simultaneously
             // for a dose set like [23:00, 01:00], so visual differentiation matters.
             //
-            // Non-blocking. No affirmation action: the spec frames this as a "heads up"
-            // nudge, not a "confirm you meant this" gate. Same accessibility shape as the
-            // formError and nightDoseWarning banners: clearAndSetSemantics + liveRegion
-            // Polite so TalkBack announces once on appearance without focus-stealing.
-            if (draft.crossesMidnight) {
+            // Non-blocking. "Got it" dismisses the banner for the current dose-time set;
+            // dose-time edits re-surface it. Same accessibility shape as the formError and
+            // nightDoseWarning banners: clearAndSetSemantics + liveRegion Polite.
+            if (draft.crossesMidnight && !draft.midnightStraddleDismissed) {
                 val straddleMsg =
                     "Heads up: your dose times cross midnight. Doses after midnight land on the next calendar day."
                 Surface(
@@ -126,11 +126,15 @@ public fun PhaseEditorCard(
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     shape = MaterialTheme.shapes.medium,
                 ) {
-                    Text(
-                        text = straddleMsg,
+                    Column(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(text = straddleMsg, style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = onDismissMidnightStraddle) {
+                            Text("Got it")
+                        }
+                    }
                 }
             }
 

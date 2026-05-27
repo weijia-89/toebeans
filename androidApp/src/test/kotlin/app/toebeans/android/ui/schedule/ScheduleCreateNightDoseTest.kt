@@ -10,6 +10,7 @@ import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.notifications.ScheduledReminder
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.ScheduledDose
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -125,6 +129,69 @@ class ScheduleCreateNightDoseTest {
             val phase = vm.state.value.phases[0]
             assertFalse("warning should clear after affirmation", phase.nightDoseWarning)
             assertTrue("affirmation flag should be set", phase.nightDoseAffirmed)
+        }
+
+    @Test
+    fun `save succeeds with night dose without affirmation (non-blocking warning)`() =
+        runTest {
+            val schedRepo = InMemSchedRepoB9()
+            val vm =
+                ScheduleCreateViewModel(
+                    medicationRepository = InMemMedRepoB9(MED),
+                    scheduleRepository = schedRepo,
+                    doseEventRepository = NoopDoseRepoB9,
+                    scheduleCalculator = DefaultScheduleCalculator(),
+                    notificationActuator = NoopNotificationActuatorB9,
+                    timeZone = TimeZone.UTC,
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 26))
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(3, 0))) }
+            assertTrue(
+                vm.state.value.phases[0]
+                    .nightDoseWarning,
+            )
+
+            val id = vm.save()
+            assertNotNull("night-dose warning must not gate save", id)
+            assertNull(vm.state.value.formError)
+            assertEquals(1, schedRepo.savedCount())
+        }
+
+    @Test
+    fun `save succeeds after affirmation then non-dose-time field edit`() =
+        runTest {
+            val schedRepo = InMemSchedRepoB9()
+            val vm =
+                ScheduleCreateViewModel(
+                    medicationRepository = InMemMedRepoB9(MED),
+                    scheduleRepository = schedRepo,
+                    doseEventRepository = NoopDoseRepoB9,
+                    scheduleCalculator = DefaultScheduleCalculator(),
+                    notificationActuator = NoopNotificationActuatorB9,
+                    timeZone = TimeZone.UTC,
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 26))
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(3, 0))) }
+            vm.affirmNightDose(0)
+            assertFalse(
+                vm.state.value.phases[0]
+                    .nightDoseWarning,
+            )
+
+            vm.updatePhase(0) { it.copy(durationDaysText = "14") }
+
+            val phase = vm.state.value.phases[0]
+            assertFalse(
+                "dismissed night-dose banner must stay hidden after non-dose-time edits",
+                phase.nightDoseWarning,
+            )
+            assertTrue(phase.nightDoseAffirmed)
+            val id = vm.save()
+            assertNotNull("save should succeed after user dismissed night-dose banner", id)
+            assertNull(vm.state.value.formError)
+            assertEquals(1, schedRepo.savedCount())
         }
 
     @Test
@@ -250,6 +317,8 @@ private class InMemSchedRepoB9 : ScheduleRepository {
         schedules.update { it + (schedule.id to schedule) }
         this.phases.update { it + (schedule.id to phases) }
     }
+
+    fun savedCount(): Int = schedules.value.size
 
     override suspend fun delete(id: String) {
         schedules.update { it - id }

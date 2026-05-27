@@ -203,6 +203,7 @@ public fun ScheduleCreateScreen(
                         onChange = { updated -> viewModel.updatePhase(idx) { updated } },
                         onRemove = { viewModel.removePhase(idx) },
                         onAffirmNightDose = { viewModel.affirmNightDose(idx) },
+                        onDismissMidnightStraddle = { viewModel.dismissMidnightStraddle(idx) },
                     )
                 }
 
