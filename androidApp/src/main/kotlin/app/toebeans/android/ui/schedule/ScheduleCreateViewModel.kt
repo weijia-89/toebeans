@@ -200,28 +200,7 @@ public class ScheduleCreateViewModel(
             return null
         }
 
-        val scheduleId = "sched-${Uuid.random()}"
-        val phases =
-            s.phases.mapIndexed { idx, draft ->
-                SchedulePhase(
-                    id = "phase-${Uuid.random()}",
-                    scheduleId = scheduleId,
-                    phaseOrder = idx,
-                    durationDays = draft.durationDaysText.toInt(),
-                    dosesPerDay = draft.doseTimes.size,
-                    doseTimesLocal = draft.doseTimes.sorted(),
-                    doseAmount = draft.doseAmount.trim().ifEmpty { null },
-                    dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
-                )
-            }
-        val schedule =
-            Schedule(
-                id = scheduleId,
-                medicationId = medId,
-                startDate = s.startDate,
-                endDate = s.endDate,
-                createdAt = Clock.System.now(),
-            )
+        val (schedule, phases) = newSchedulePayload(s, medId)
 
         // Pre-flight the calculator across a representative window before persisting.
         // The Reminders/Today renderers run the same calculator at view-time; if it would
@@ -244,12 +223,50 @@ public class ScheduleCreateViewModel(
             return null
         }
 
+        upsertMaterializeAndSchedule(schedule, phases, medId)
+        return schedule.id
+    }
+
+    private fun newSchedulePayload(
+        s: ScheduleCreateUiState,
+        medId: String,
+    ): Pair<Schedule, List<SchedulePhase>> {
+        val scheduleId = "sched-${Uuid.random()}"
+        val phases =
+            s.phases.mapIndexed { idx, draft ->
+                SchedulePhase(
+                    id = "phase-${Uuid.random()}",
+                    scheduleId = scheduleId,
+                    phaseOrder = idx,
+                    durationDays = draft.durationDaysText.toInt(),
+                    dosesPerDay = draft.doseTimes.size,
+                    doseTimesLocal = draft.doseTimes.sorted(),
+                    doseAmount = draft.doseAmount.trim().ifEmpty { null },
+                    dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
+                )
+            }
+        val schedule =
+            Schedule(
+                id = scheduleId,
+                medicationId = medId,
+                startDate = s.startDate!!,
+                endDate = s.endDate,
+                createdAt = Clock.System.now(),
+            )
+        return schedule to phases
+    }
+
+    private suspend fun upsertMaterializeAndSchedule(
+        schedule: Schedule,
+        phases: List<SchedulePhase>,
+        medicationId: String,
+    ) {
         scheduleRepository.upsert(schedule, phases)
         val reminders =
             ReminderRescheduler.materializeHorizonForSchedule(
                 schedule = schedule,
                 phases = phases,
-                medicationId = medId,
+                medicationId = medicationId,
                 doseEventRepository = doseEventRepository,
                 scheduleCalculator = scheduleCalculator,
                 timeZone = timeZone,
@@ -258,7 +275,6 @@ public class ScheduleCreateViewModel(
         for (reminder in reminders) {
             notificationActuator.schedule(reminder)
         }
-        return scheduleId
     }
 
     /**

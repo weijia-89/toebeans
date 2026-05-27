@@ -384,6 +384,7 @@ private class InMemSchedRepo : ScheduleRepository {
     fun snapshot(): Map<String, Schedule> = schedules.value
 }
 
+@Suppress("LongParameterList")
 private fun scheduleCreateVm(
     medRepo: MedicationRepository,
     schedRepo: ScheduleRepository,
@@ -412,7 +413,11 @@ private class InMemDoseRepo : DoseEventRepository {
     ): Flow<List<DoseEvent>> = MutableStateFlow(store.filter { it.scheduledAt >= sinceInclusive })
 
     override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> =
-        MutableStateFlow(store.filter { it.medicationId == medicationId && it.status == DoseStatus.GIVEN }.maxByOrNull { it.scheduledAt })
+        MutableStateFlow(
+            store
+                .filter { it.medicationId == medicationId && it.status == DoseStatus.GIVEN }
+                .maxByOrNull { it.scheduledAt },
+        )
 
     override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
         MutableStateFlow(store.filter { it.status == DoseStatus.GIVEN && it.scheduledAt >= sinceInclusive })
