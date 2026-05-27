@@ -10,6 +10,7 @@ import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.notifications.ScheduledReminder
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.ScheduledDose
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -45,7 +49,7 @@ import org.junit.Test
  *
  * These tests pin the state transitions a user would actually experience: editing the
  * dose-time list into a straddling configuration must flip the flag on, and editing
- * back out must flip it off.
+ * back out must flip it off. Dismissing the straddle banner must not block [save].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScheduleCreateMidnightStraddleTest {
@@ -82,6 +86,45 @@ class ScheduleCreateMidnightStraddleTest {
         }
 
     @Test
+    fun `dismissMidnightStraddle hides the straddle banner until dose times change`() =
+        runTest {
+            val vm = newVm()
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            assertTrue(
+                vm.state.value.phases[0]
+                    .crossesMidnight,
+            )
+
+            vm.dismissMidnightStraddle(0)
+            assertTrue(
+                "underlying straddle flag remains for detection",
+                vm.state.value.phases[0]
+                    .crossesMidnight,
+            )
+            assertTrue(
+                vm.state.value.phases[0]
+                    .midnightStraddleDismissed,
+            )
+
+            vm.updatePhase(0) { it.copy(durationDaysText = "14") }
+            assertTrue(
+                "non-dose-time edit must not clear straddle dismissal",
+                vm.state.value.phases[0]
+                    .midnightStraddleDismissed,
+            )
+
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(8, 0), LocalTime(20, 0))) }
+            assertFalse(
+                vm.state.value.phases[0]
+                    .crossesMidnight,
+            )
+            assertFalse(
+                vm.state.value.phases[0]
+                    .midnightStraddleDismissed,
+            )
+        }
+
+    @Test
     fun `editing back to a non-straddling configuration clears crossesMidnight`() =
         runTest {
             val vm = newVm()
@@ -101,6 +144,36 @@ class ScheduleCreateMidnightStraddleTest {
                 vm.state.value.phases[0]
                     .crossesMidnight,
             )
+        }
+
+    @Test
+    fun `save succeeds after dismissMidnightStraddle then non-dose-time field edit`() =
+        runTest {
+            val schedRepo = InMemSchedRepoMidnight()
+            val vm =
+                ScheduleCreateViewModel(
+                    medicationRepository = InMemMedRepoMidnight(MED),
+                    scheduleRepository = schedRepo,
+                    doseEventRepository = NoopDoseRepoMidnight,
+                    scheduleCalculator = DefaultScheduleCalculator(),
+                    notificationActuator = NoopNotificationActuatorMidnight,
+                    timeZone = TimeZone.UTC,
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 26))
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            vm.dismissMidnightStraddle(0)
+            assertTrue(
+                vm.state.value.phases[0]
+                    .midnightStraddleDismissed,
+            )
+
+            vm.updatePhase(0) { it.copy(durationDaysText = "14") }
+
+            val id = vm.save()
+            assertNotNull("straddle dismiss must not gate save", id)
+            assertNull(vm.state.value.formError)
+            assertEquals(1, schedRepo.savedCount())
         }
 
     // --- Test rig ----------------------------------------------------------
@@ -201,6 +274,8 @@ private class InMemSchedRepoMidnight : ScheduleRepository {
         schedules.update { it + (schedule.id to schedule) }
         this.phases.update { it + (schedule.id to phases) }
     }
+
+    fun savedCount(): Int = schedules.value.size
 
     override suspend fun delete(id: String) {
         schedules.update { it - id }

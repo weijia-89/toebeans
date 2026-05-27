@@ -102,27 +102,42 @@ public class ScheduleCreateViewModel(
         // banner — any field touch resets the calculator-preflight verdict.
         //
         // Also recompute the night-dose warning (B9): any LocalTime in [00:00, 06:00)
-        // triggers the warning, and any edit resets [PhaseDraft.nightDoseAffirmed] to
-        // false so the user re-confirms after changes. The recomputation is authoritative
-        // — even if the caller's transform set nightDoseWarning to a stale value via
-        // copy(), the values below overwrite it.
+        // triggers the warning unless the user already affirmed for the current dose-time
+        // set. Only a change to [PhaseDraft.doseTimes] clears [PhaseDraft.nightDoseAffirmed]
+        // so the user re-confirms after changing when doses fire — edits to duration,
+        // interval, or dose-amount override must not re-surface a banner they dismissed.
+        // The recomputation is authoritative — even if the caller's transform set
+        // nightDoseWarning to a stale value via copy(), the values below overwrite it.
         //
         // Additionally recompute the midnight-straddle flag (v0.1-followups #9). Same
-        // authoritative-overwrite pattern as nightDoseWarning. The straddle warning is
-        // informational only — no affirmation flag, no save-time gating — so it does
-        // not need an "affirmed" companion field.
+        // authoritative-overwrite pattern. [PhaseDraft.midnightStraddleDismissed] clears
+        // only when dose times change; straddle is informational only — no save-time gating.
         _state.update { state ->
             state.copy(
                 phases =
                     state.phases.mapIndexed { i, phase ->
                         if (i == index) {
                             val transformed = transform(phase).copy(error = null)
+                            val doseTimesChanged = transformed.doseTimes != phase.doseTimes
+                            val affirmed =
+                                if (doseTimesChanged) {
+                                    false
+                                } else {
+                                    phase.nightDoseAffirmed
+                                }
                             val hasNightDose = transformed.doseTimes.any { it.isInNightWindow() }
                             val straddles = MidnightStraddleDetection.crossesMidnight(transformed.doseTimes)
+                            val straddleDismissed =
+                                if (doseTimesChanged) {
+                                    false
+                                } else {
+                                    phase.midnightStraddleDismissed
+                                }
                             transformed.copy(
-                                nightDoseWarning = hasNightDose,
-                                nightDoseAffirmed = false,
+                                nightDoseWarning = hasNightDose && !affirmed,
+                                nightDoseAffirmed = affirmed,
                                 crossesMidnight = straddles,
+                                midnightStraddleDismissed = straddleDismissed,
                             )
                         } else {
                             phase
@@ -138,8 +153,7 @@ public class ScheduleCreateViewModel(
      * v0.1-followups #1, this is the explicit "Yes, that's intentional" action — it
      * clears [PhaseDraft.nightDoseWarning] and sets [PhaseDraft.nightDoseAffirmed].
      *
-     * Affirmation is reset by any subsequent edit via [updatePhase]; see the KDoc on
-     * [PhaseDraft] for the rationale.
+     * Affirmation is reset when [doseTimes] change via [updatePhase]; see [PhaseDraft].
      *
      * No-op if [index] is out of range or if the phase has no warning to affirm (calling
      * affirm on a phase with all-daytime doses just sets the affirmed flag harmlessly).
@@ -153,7 +167,31 @@ public class ScheduleCreateViewModel(
                     phases =
                         state.phases.mapIndexed { i, phase ->
                             if (i == index) {
-                                phase.copy(nightDoseWarning = false, nightDoseAffirmed = true)
+                                phase.copy(nightDoseAffirmed = true, nightDoseWarning = false)
+                            } else {
+                                phase
+                            }
+                        },
+                )
+            }
+        }
+    }
+
+    /**
+     * Dismiss the midnight-straddle informational banner on the phase at [index].
+     * Per v0.1-followups #9 this is a "heads up" only — it does not gate [save].
+     * Cleared when dose times change via [updatePhase].
+     */
+    public fun dismissMidnightStraddle(index: Int) {
+        _state.update { state ->
+            if (index !in state.phases.indices) {
+                state
+            } else {
+                state.copy(
+                    phases =
+                        state.phases.mapIndexed { i, phase ->
+                            if (i == index) {
+                                phase.copy(midnightStraddleDismissed = true)
                             } else {
                                 phase
                             }
@@ -390,10 +428,10 @@ public data class ScheduleCreateUiState(
  * `updatePhase` call (this is intentional — `copy` callers shouldn't try to lie about
  * whether the warning applies).
  *
- * `nightDoseAffirmed` is set ONLY by [ScheduleCreateViewModel.affirmNightDose]. Any
- * subsequent edit via `updatePhase` resets it to `false` so the user re-sees the
- * warning if they add another night dose. Spec is silent on persistence; we default
- * to the safer "reset on edit" policy. See `ScheduleCreateNightDoseTest` test #5.
+ * `nightDoseAffirmed` is set ONLY by [ScheduleCreateViewModel.affirmNightDose]. A
+ * subsequent edit to [doseTimes] via `updatePhase` resets it to `false` so the user
+ * re-sees the warning if they change when doses fire. Edits to other phase fields do
+ * not clear affirmation. See `ScheduleCreateNightDoseTest`.
  *
  * Both flags default to `false`. The warning is non-blocking — it does not affect
  * [ScheduleCreateViewModel.save]'s validation path.
@@ -417,4 +455,9 @@ public data class PhaseDraft(
      * overwritten by the next `updatePhase` call.
      */
     public val crossesMidnight: Boolean = false,
+    /**
+     * User dismissed the straddle banner via [ScheduleCreateViewModel.dismissMidnightStraddle].
+     * Cleared when [doseTimes] change. Does not affect [ScheduleCreateViewModel.save].
+     */
+    public val midnightStraddleDismissed: Boolean = false,
 )
