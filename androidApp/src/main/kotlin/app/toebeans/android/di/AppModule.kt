@@ -1,7 +1,12 @@
 package app.toebeans.android.di
 
+import android.app.AlarmManager
+import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.SqliteForeignKeysCallback
+import app.toebeans.android.notifications.AndroidNotificationActuator
+import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.home.HomeViewModel
@@ -28,6 +33,7 @@ import app.toebeans.core.data.SqlDelightPetRepository
 import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +68,16 @@ public val appModule =
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
         single<ScheduleCalculator> { DefaultScheduleCalculator() }
+
+        single<NotificationActuator> {
+            val context = androidContext()
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
+                notificationManager = NotificationManagerCompat.from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            )
+        }
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }
@@ -105,7 +121,9 @@ public val appModule =
             ScheduleCreateViewModel(
                 medicationRepository = get(),
                 scheduleRepository = get(),
+                doseEventRepository = get(),
                 scheduleCalculator = get(),
+                notificationActuator = get(),
             )
         }
         viewModel {

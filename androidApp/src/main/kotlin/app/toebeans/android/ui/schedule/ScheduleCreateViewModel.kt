@@ -1,8 +1,11 @@
 package app.toebeans.android.ui.schedule
 
 import androidx.lifecycle.ViewModel
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -37,7 +40,9 @@ import kotlin.uuid.Uuid
 public class ScheduleCreateViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val doseEventRepository: DoseEventRepository,
     private val scheduleCalculator: ScheduleCalculator,
+    private val notificationActuator: NotificationActuator,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val _state =
@@ -240,6 +245,18 @@ public class ScheduleCreateViewModel(
         }
 
         scheduleRepository.upsert(schedule, phases)
+        val reminders =
+            ReminderRescheduler.materializeHorizonForSchedule(
+                schedule = schedule,
+                phases = phases,
+                medicationId = medId,
+                doseEventRepository = doseEventRepository,
+                scheduleCalculator = scheduleCalculator,
+                timeZone = timeZone,
+            )
+        for (reminder in reminders) {
+            notificationActuator.schedule(reminder)
+        }
         return scheduleId
     }
 

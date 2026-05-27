@@ -1,9 +1,14 @@
 package app.toebeans.android.ui.schedule
 
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
@@ -76,12 +81,15 @@ class ScheduleCreatePreflightTest {
                             maxCount = DefaultScheduleCalculator.MAX_EVENT_COUNT,
                         ),
                 )
+            val doseRepo = InMemDoseRepo()
+            val actuator = RecordingNotificationActuator()
             val vm =
-                ScheduleCreateViewModel(
-                    medicationRepository = medRepo,
-                    scheduleRepository = schedRepo,
-                    scheduleCalculator = calc,
-                    timeZone = TimeZone.UTC,
+                scheduleCreateVm(
+                    medRepo = medRepo,
+                    schedRepo = schedRepo,
+                    calc = calc,
+                    doseRepo = doseRepo,
+                    actuator = actuator,
                 )
             vm.setMedicationId(MED_ID)
             vm.onStartDateChange(LocalDate(2026, 5, 1))
@@ -110,11 +118,10 @@ class ScheduleCreatePreflightTest {
                         ),
                 )
             val vm =
-                ScheduleCreateViewModel(
-                    medicationRepository = medRepo,
-                    scheduleRepository = schedRepo,
-                    scheduleCalculator = calc,
-                    timeZone = TimeZone.UTC,
+                scheduleCreateVm(
+                    medRepo = medRepo,
+                    schedRepo = schedRepo,
+                    calc = calc,
                 )
             vm.setMedicationId(MED_ID)
             vm.onStartDateChange(LocalDate(2026, 5, 1))
@@ -139,11 +146,10 @@ class ScheduleCreatePreflightTest {
             val schedRepo = InMemSchedRepo()
             val calc = FakeCalculator(throws = null)
             val vm =
-                ScheduleCreateViewModel(
-                    medicationRepository = medRepo,
-                    scheduleRepository = schedRepo,
-                    scheduleCalculator = calc,
-                    timeZone = TimeZone.UTC,
+                scheduleCreateVm(
+                    medRepo = medRepo,
+                    schedRepo = schedRepo,
+                    calc = calc,
                 )
             vm.setMedicationId(MED_ID)
             vm.onStartDateChange(LocalDate(2026, 5, 1))
@@ -167,16 +173,20 @@ class ScheduleCreatePreflightTest {
             val medRepo = InMemMedRepo(MED)
             val schedRepo = InMemSchedRepo()
             val realCalc = DefaultScheduleCalculator()
+            val doseRepo = InMemDoseRepo()
+            val actuator = RecordingNotificationActuator()
             val vm =
-                ScheduleCreateViewModel(
-                    medicationRepository = medRepo,
-                    scheduleRepository = schedRepo,
-                    scheduleCalculator = realCalc,
-                    timeZone = TimeZone.UTC,
+                scheduleCreateVm(
+                    medRepo = medRepo,
+                    schedRepo = schedRepo,
+                    calc = realCalc,
+                    doseRepo = doseRepo,
+                    actuator = actuator,
                 )
             vm.setMedicationId(MED_ID)
-            vm.onStartDateChange(LocalDate(2026, 5, 1))
-            vm.onEndDateChange(LocalDate(2026, 5, 14))
+            // Start today so the 72h materializer window intersects an active schedule.
+            vm.onStartDateChange(LocalDate(2026, 5, 26))
+            vm.onEndDateChange(LocalDate(2026, 6, 30))
             // Replace the default single 7-day phase with a 2-phase taper to push the calculator
             // through actual phase concatenation (the most complex code path in the algorithm).
             vm.updatePhase(0) {
@@ -191,6 +201,12 @@ class ScheduleCreatePreflightTest {
             assertNotNull("realistic 2-phase taper should pre-flight green", id)
             assertNull("formError should be null on integration success", vm.state.value.formError)
             assertEquals(1, schedRepo.snapshot().size)
+            assertTrue("materializer should persist pending dose rows", doseRepo.snapshot().isNotEmpty())
+            assertEquals(
+                "every pending row should be scheduled with AlarmManager",
+                doseRepo.snapshot().size,
+                actuator.scheduled.size,
+            )
         }
 
     @Test
@@ -202,11 +218,10 @@ class ScheduleCreatePreflightTest {
         // exception types, not just the FakeCalculator's throws.
         val realCalc = DefaultScheduleCalculator()
         val vm =
-            ScheduleCreateViewModel(
-                medicationRepository = InMemMedRepo(MED),
-                scheduleRepository = InMemSchedRepo(),
-                scheduleCalculator = realCalc,
-                timeZone = TimeZone.UTC,
+            scheduleCreateVm(
+                medRepo = InMemMedRepo(MED),
+                schedRepo = InMemSchedRepo(),
+                calc = realCalc,
             )
         val schedule = sampleSchedule()
         val duplicate =
@@ -234,11 +249,10 @@ class ScheduleCreatePreflightTest {
                     ),
             )
         val vm =
-            ScheduleCreateViewModel(
-                medicationRepository = InMemMedRepo(MED),
-                scheduleRepository = InMemSchedRepo(),
-                scheduleCalculator = calc,
-                timeZone = TimeZone.UTC,
+            scheduleCreateVm(
+                medRepo = InMemMedRepo(MED),
+                schedRepo = InMemSchedRepo(),
+                calc = calc,
             )
         val schedule = sampleSchedule()
         val phases = listOf(samplePhase())
@@ -368,4 +382,78 @@ private class InMemSchedRepo : ScheduleRepository {
     }
 
     fun snapshot(): Map<String, Schedule> = schedules.value
+}
+
+private fun scheduleCreateVm(
+    medRepo: MedicationRepository,
+    schedRepo: ScheduleRepository,
+    calc: ScheduleCalculator,
+    timeZone: TimeZone = TimeZone.UTC,
+    doseRepo: InMemDoseRepo = InMemDoseRepo(),
+    actuator: RecordingNotificationActuator = RecordingNotificationActuator(),
+): ScheduleCreateViewModel =
+    ScheduleCreateViewModel(
+        medicationRepository = medRepo,
+        scheduleRepository = schedRepo,
+        doseEventRepository = doseRepo,
+        scheduleCalculator = calc,
+        notificationActuator = actuator,
+        timeZone = timeZone,
+    )
+
+private class InMemDoseRepo : DoseEventRepository {
+    private val store = mutableListOf<DoseEvent>()
+
+    fun snapshot(): List<DoseEvent> = store.toList()
+
+    override fun observeForPet(
+        petId: String,
+        sinceInclusive: Instant,
+    ): Flow<List<DoseEvent>> = MutableStateFlow(store.filter { it.scheduledAt >= sinceInclusive })
+
+    override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> =
+        MutableStateFlow(store.filter { it.medicationId == medicationId && it.status == DoseStatus.GIVEN }.maxByOrNull { it.scheduledAt })
+
+    override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
+        MutableStateFlow(store.filter { it.status == DoseStatus.GIVEN && it.scheduledAt >= sinceInclusive })
+
+    override fun observeAll(): Flow<List<DoseEvent>> = MutableStateFlow(store.toList())
+
+    override suspend fun recordGivenNow(
+        doseEventId: String,
+        scheduleId: String,
+        medicationId: String,
+        at: Instant,
+        note: String?,
+    ): DoseEvent = error("unused in ScheduleCreate tests")
+
+    override suspend fun recordGivenForSlot(
+        doseEventId: String,
+        scheduleId: String,
+        medicationId: String,
+        scheduledAt: Instant,
+        resolvedAt: Instant,
+        note: String?,
+    ): DoseEvent = error("unused in ScheduleCreate tests")
+
+    override suspend fun delete(doseEventId: String) {
+        store.removeAll { it.id == doseEventId }
+    }
+
+    override suspend fun upsert(event: DoseEvent) {
+        store.removeAll { it.id == event.id }
+        store.add(event)
+    }
+}
+
+private class RecordingNotificationActuator : NotificationActuator {
+    val scheduled = mutableListOf<ScheduledReminder>()
+
+    override fun schedule(reminder: ScheduledReminder) {
+        scheduled.add(reminder)
+    }
+
+    override fun cancel(reminderId: String) = Unit
+
+    override fun show(reminder: ScheduledReminder) = Unit
 }
