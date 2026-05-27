@@ -1,0 +1,45 @@
+# When a canonical trainer review comment is posted/edited on a PR, rerun only the
+# gate job so merge is unblocked without a full workflow rerun or empty commit.
+# Workflow definition runs from the repo default branch once merged.
+name: Trainer gate rerun on review comment
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  actions: write
+  pull-requests: read
+  issues: read
+
+jobs:
+  rerun-trainer-pr-review-gate:
+    if: |
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, 'trainer-codereview-') &&
+      contains(github.event.comment.body, format('trainer-codereview-{0}-', github.event.repository.name))
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+      - name: Wait for in-flight ci run (if any)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="${{ github.event.issue.number }}"
+          branch=$(gh pr view "$pr" --repo "${{ github.repository }}" --json headRefName -q .headRefName)
+          for _ in $(seq 1 20); do
+            status=$(gh run list --repo "${{ github.repository }}" --branch "$branch" --workflow ci \
+              --limit 1 --json status -q '.[0].status // "completed"')
+            [[ "$status" != "in_progress" && "$status" != "queued" && "$status" != "pending" ]] && break
+            sleep 15
+          done
+      - name: Rerun trainer PR review comment gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash scripts/trainer_pr_review_gate_rerun.sh \
+            "${{ github.event.issue.number }}" \
+            "${{ github.repository }}"
