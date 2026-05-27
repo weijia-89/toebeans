@@ -3,7 +3,6 @@ package app.toebeans.core.scheduler
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
-import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +16,6 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 
 class ReminderReschedulerTest {
@@ -76,8 +74,10 @@ class ReminderReschedulerTest {
 private class RecordingDoseRepo : DoseEventRepository {
     val upserted = mutableListOf<DoseEvent>()
 
-    override fun observeForPet(petId: String, sinceInclusive: Instant): Flow<List<DoseEvent>> =
-        flowOf(emptyList())
+    override fun observeForPet(
+        petId: String,
+        sinceInclusive: Instant,
+    ): Flow<List<DoseEvent>> = flowOf(emptyList())
 
     override fun observeLastGivenForMedication(medicationId: String): Flow<DoseEvent?> = flowOf(null)
 

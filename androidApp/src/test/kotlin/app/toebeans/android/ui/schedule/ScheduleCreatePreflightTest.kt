@@ -7,10 +7,10 @@ import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
-import app.toebeans.core.notifications.NotificationActuator
-import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.MalformedScheduleException
 import app.toebeans.core.scheduler.ScheduleCalculator

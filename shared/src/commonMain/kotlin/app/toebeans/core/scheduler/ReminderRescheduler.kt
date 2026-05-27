@@ -6,7 +6,6 @@ import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.ScheduledReminder
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlin.time.Duration.Companion.hours

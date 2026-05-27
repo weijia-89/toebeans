@@ -3,13 +3,13 @@ package app.toebeans.android.ui.schedule
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
-import app.toebeans.core.model.DoseEvent
-import app.toebeans.core.notifications.NotificationActuator
-import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.ScheduledDose
 import kotlinx.coroutines.Dispatchers
@@ -261,8 +261,7 @@ private object NoopDoseRepoB9 : DoseEventRepository {
     override fun observeForPet(
         petId: String,
         sinceInclusive: kotlinx.datetime.Instant,
-    ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> =
-        kotlinx.coroutines.flow.flowOf(emptyList())
+    ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> = kotlinx.coroutines.flow.flowOf(emptyList())
 
     override fun observeLastGivenForMedication(medicationId: String): kotlinx.coroutines.flow.Flow<DoseEvent?> =
         kotlinx.coroutines.flow.flowOf(null)
