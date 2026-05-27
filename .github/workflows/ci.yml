@@ -57,6 +57,8 @@ jobs:
         run: bash scripts/test_test_no_em_dash_in_docs.sh .
       - name: Trainer PR review gate self-test
         run: bash scripts/test_ci_trainer_pr_review_gate.sh .
+      - name: Trainer gate rerun self-test
+        run: bash scripts/test_trainer_pr_review_gate_rerun.sh .
 
   trainer-pr-review-gate:
     # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
