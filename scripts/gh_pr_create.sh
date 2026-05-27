@@ -66,6 +66,8 @@ if ! grep -q '^## Test plan' "$BODY_FILE"; then
   exit 1
 fi
 
+bash "$ROOT/scripts/pr_body_validate.sh" "$BODY_FILE"
+
 ARGS=(pr create --title "$TITLE" --body-file "$BODY_FILE")
 [[ -n "$BASE" ]] && ARGS+=(--base "$BASE")
 [[ "$DRAFT" -eq 1 ]] && ARGS+=(--draft)

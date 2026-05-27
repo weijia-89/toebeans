@@ -99,6 +99,8 @@ scripts/gh_pr_create.sh --title "type(scope): short subject" --body-file /tmp/pr
 
 Test plan lists **commands to run**, not command output. Use checklist items (`- [ ]`) for manual steps.
 
+**Never paste terminal output** (verify, gradle, flutter test) into the PR body. `scripts/pr_body_validate.sh` rejects log dumps; CI `pr-body-lint` re-checks on every PR edit.
+
 ## Confidence-score rule
 
 Apply [`code-helper` §5](https://github.com/wei/code-helper.skill) to every change. Components:
