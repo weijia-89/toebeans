@@ -253,6 +253,7 @@ public class ScheduleCreateViewModel(
                 doseEventRepository = doseEventRepository,
                 scheduleCalculator = scheduleCalculator,
                 timeZone = timeZone,
+                now = Clock.System.now(),
             )
         for (reminder in reminders) {
             notificationActuator.schedule(reminder)

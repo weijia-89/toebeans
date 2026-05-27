@@ -36,7 +36,7 @@ public object ReminderRescheduler {
         doseEventRepository: DoseEventRepository,
         scheduleCalculator: ScheduleCalculator,
         timeZone: TimeZone,
-        now: Instant = Clock.System.now(),
+        now: Instant,
     ): List<ScheduledReminder> {
         val horizonEnd = now + HORIZON_HOURS.hours
         val doses =
