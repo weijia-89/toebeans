@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-26.
+Last updated: 2026-05-27.
 
 ---
 
@@ -117,6 +117,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | ✓ | **Distribution wedge (M1.2 gate closed): D1 pet-owner direct.** Operator decision 2026-05-26; M2 work item at `research/distribution-wedge-m2-d1.md`. Feasibility dossier §4.6 option 1 selected; clinic, insurer, and rescue paths deferred. | Cold review, feasibility dossier §4.6 |
 | ✓ | **Beta smoke checklist (Q9 blocker):** operator runs add pet → medication → schedule on device before inviting internal testers. Shipped at `docs/beta-smoke-add-medication.md`. Anchor-mode prompt remains M1.5 / ADR-0007. | research/decisions/2026-05-26-m12-beta-gates.md § Q9 |
 | ✓ | First-launch UX revisit: gated the Rufus + Luna seed behind a first-launch dialog (`FirstLaunchDialogHost`). Stores now start empty; `loadDemoData()` populates the demo on the user's tap of "Load demo data". `FirstLaunchPreferences` persists the seen-flag in SharedPreferences (same pattern as `ThemePreferences`). 11 new unit tests (5 prefs + 6 demo-loader, including a user-created-entries-preserved case). | Cold review |
+| | **Settings theme segmented control: selection border desync.** On Settings → Display, tapping Light/Dark/Auto updates the checkmark to the chosen mode but the white M3 selection outline stays on the previous segment (reported: checkmark on Dark while border remains on Light). Fix `SettingsScreen` `SingleChoiceSegmentedButtonRow` so border and `selected` state track `ThemeMode` from `ThemePreferences`; add Compose UI test or screenshot regression after ADR-0013 deps land. M1.2 polish / post–style-lab follow-up; does not block internal beta. | Operator feedback 2026-05-27 |
 
 **Definition of done (milestone 1.2):**
 - One tester has used the app for 30 consecutive days without losing trust.
