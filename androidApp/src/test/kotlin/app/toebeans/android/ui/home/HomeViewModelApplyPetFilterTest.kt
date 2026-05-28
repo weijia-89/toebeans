@@ -2,7 +2,6 @@ package app.toebeans.android.ui.home
 
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -21,7 +20,6 @@ class HomeViewModelApplyPetFilterTest {
         assertEquals(base.dueDoses, result.dueDoses)
         assertEquals(base.recentDoses, result.recentDoses)
     }
-
 
     @Test
     fun `unknown petId clears filter and leaves lists unchanged`() {
