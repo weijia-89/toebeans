@@ -172,7 +172,7 @@ Medication-critical path. Treat a silent miss as **smoke fail** unless explicitl
 1. With a pending dose row in DB (only if materializer exists or manually inserted in debug), reboot device.
 2. Confirm `BootReceiver` re-schedules alarms within 72h horizon (`BootReceiverTest` documents contract).
 
-Skip for beta invite if materializer gap applies. Rehydration cannot schedule doses that were never materialized.
+If reboot does not rehydrate, record as smoke fail on the alarm path and block invite until fixed.
 
 ---
 
@@ -180,22 +180,20 @@ Skip for beta invite if materializer gap applies. Rehydration cannot schedule do
 
 | Result | Action |
 |---|---|
-| **PASS** (steps 0–4 + 5; notification optional per known gap) | Proceed to Play Console tester invite + hand off [soak-test-protocol.md](soak-test-protocol.md). |
+| **PASS** (steps 0–4 + 5; notification verified on hardware) | Proceed to Play Console tester invite + hand off [soak-test-protocol.md](soak-test-protocol.md). |
 | **FAIL** (crash, data loss, schedule not saved, Today/Reminders empty after save) | **Block** tester invite; file issue; fix on `main` before beta. |
-| **PARTIAL** (UI pass, notification fail due to materializer gap) | Document in daily log; operator decision: invite testers with written expectation that **reminders are UI-only until next slice**, or hold invite until alarm path wired. Q9 requires path **usable**: logging doses + seeing schedule counts; silent alarm miss is a **product risk**, not an excuse to skip disclosure. |
+| **PARTIAL** (UI pass, notification fail in an unexplained environment) | Document in daily log and rerun on a second physical device. Do not invite testers until the alarm path is either verified or a bounded environmental cause is confirmed. |
 
 ---
 
-## Known gaps on `main` (2026-05-26)
+## Known gaps on `main` (updated 2026-05-27)
 
 Verified against `origin/main` at operator dispatch. Re-verify after merge.
 
-1. **72h dose materializer not wired after schedule save.** `ScheduleCreateViewModel.save()` persists schedule + phases only; it does not insert pending `DoseEvent` rows or call `NotificationActuator.schedule()`. `ToebeansApp.rehydrateBootAlarms` only re-schedules **existing** pending rows. **Impact:** user-created schedules may not push notifications. Today/Reminders UI still works via calculator projection.
-2. **Anchor-mode prompt** absent (M1.5 / ADR-0007): **accepted** per Q9; no beta blocker.
-3. **Pet detail medication tap** navigates to **Create schedule**, not **Edit medication** (`Destinations.medicationEdit` unused in nav). Edit requires knowing route or future UX fix.
-4. **`NotificationChannel("medication-critical")` registration** still called out as pending in `ToebeansApp` KDoc. Confirm on device if notifications are silent.
-5. **Discontinued medications:** alarms for already-materialized doses may still fire (`MedicationEditViewModel` KDoc); inactive filter on lookup deferred.
-6. **README drift:** README still says "Notification firing remains on the ROADMAP" while receiver + boot rehydration partially shipped. Treat this doc + ROADMAP as authoritative for beta.
+1. **Anchor-mode prompt** absent (M1.5 / ADR-0007): **accepted** per Q9; no beta blocker.
+2. **Pet detail medication tap** navigates to **Create schedule**, not **Edit medication** (`Destinations.medicationEdit` unused in nav). Edit requires knowing route or future UX fix.
+3. **Discontinued medications:** alarms for already-materialized doses may still fire (`MedicationEditViewModel` KDoc); inactive filter on lookup deferred.
+4. **README drift:** README still says "Notification firing remains on the ROADMAP" while schedule-save materialization + receiver lookup + boot rehydration are now shipped. Treat this doc + ROADMAP as authoritative until README sync lands.
 
 ---
 
