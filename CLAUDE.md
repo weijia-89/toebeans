@@ -80,6 +80,27 @@ Every open PR to `main` **must** have a canonical GitHub issue comment before CI
 
 Agents: route trainer → form-check `code-review` **before** claiming PR ready; posting the comment is not optional.
 
+## Opening pull requests (agents)
+
+**Never** pass markdown inline to `gh pr create --body "..."`.
+
+| Mistake | Symptom on GitHub |
+|---------|-------------------|
+| Literal `\n` in a double-quoted `--body` | One-line description with visible `\n` characters |
+| Backticks around a shell command in `--body` | Command runs via substitution; build/test log fills the PR |
+| `$(cat <<EOF` inside `--body "$(...)"` | Heredoc/newline quoting breaks; body truncates or corrupts |
+
+**Do instead:** write `## Summary` + `## Test plan` to a file (real newlines), then:
+
+```bash
+scripts/gh_pr_create.sh --title "type(scope): short subject" --body-file /tmp/pr-body.md
+# or: gh pr create --title "..." --body-file /tmp/pr-body.md
+```
+
+Test plan lists **commands to run**, not command output. Use checklist items (`- [ ]`) for manual steps.
+
+**Never paste terminal output** (verify, gradle, flutter test) into the PR body. `scripts/pr_body_validate.sh` rejects log dumps; CI `pr-body-lint` re-checks on every PR edit.
+
 ## Confidence-score rule
 
 Apply [`code-helper` §5](https://github.com/wei/code-helper.skill) to every change. Components:

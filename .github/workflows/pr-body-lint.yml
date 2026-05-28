@@ -1,0 +1,20 @@
+name: pr-body-lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-body-lint:
+    name: PR description format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PR body (no shell output / literal \\n)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci_pr_body_lint.sh "${{ github.event.pull_request.number }}"
