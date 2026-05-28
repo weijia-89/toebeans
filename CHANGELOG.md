@@ -94,12 +94,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
   restart, and back to Light or Auto the same way.
 * Tapping **Log dose now** on Luna's Methimazole row records a dose and the
   `Last dose: just now` subtitle appears reactively, with no app restart.
-* All five CI fitness functions pass on the current head:
+* All six CI fitness functions pass on the current head:
   * `no-network`
   * `no-analytics`
   * `permission allow-list`
   * `scheduler purity`
-  * `pre-commit hook` parity
+  * `AGENTS/CLAUDE` parity
 
 ## [0.0.1] – Initial scaffold
 
@@ -117,7 +117,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
   hybrid, the local-first posture, the tapering schedule model, the
   dose-event firing path, deferred mutation testing, the timezone +
   travel-mode policy, and a target performance class.
-* CI workflow with five fitness functions. They cover networking,
+* CI workflow with six fitness functions. They cover networking,
   analytics, permission additions, scheduler purity, plus a parity check on
   the agent-contract documents.
 
