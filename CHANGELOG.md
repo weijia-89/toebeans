@@ -6,12 +6,13 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ## [Unreleased]
 
-### In flight (open PRs, 2026-05-28)
+### Shipped (Wave 1 merge train, 2026-05-28)
 
 - **Today M1.2 UX** ([#75](https://github.com/weijia-89/toebeans/pull/75)): scrollable Today body, in-page pet filter, Edit beside Log dose.
 - **Trainer PR head sync** ([#76](https://github.com/weijia-89/toebeans/pull/76)): port `trainer_pr_review_patch_head.sh` from buds for CI gate.
 - **Reminders add affordances** ([#77](https://github.com/weijia-89/toebeans/pull/77)): extended FAB when schedules exist; empty-state add CTA.
 - **Pets tab IA** ([#78](https://github.com/weijia-89/toebeans/pull/78)): compact top-bar add; drop extended FAB on Pets list.
+- **Medication edit context** ([#80](https://github.com/weijia-89/toebeans/pull/80)): read-only pet + schedule hint on edit screen.
 
 ### Security
 
