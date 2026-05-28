@@ -2,6 +2,8 @@ package app.toebeans.android.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.android.ui.reminders.ReminderAddAction
+import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.util.StaleEventGuard
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
@@ -12,6 +14,7 @@ import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
+import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,8 +35,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * Home / Today screen state. Joins four flows so the screen can render:
@@ -59,7 +60,7 @@ import kotlin.uuid.Uuid
  * is pure. Segregating the I/O (the flows in [buildUiState]) from the compute (the
  * companion functions) keeps the compute directly unit-testable.
  */
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 public class HomeViewModel(
     petRepository: PetRepository,
     medicationRepository: MedicationRepository,
@@ -101,9 +102,9 @@ public class HomeViewModel(
     ) {
         viewModelScope.launch {
             doseEventRepository.recordGivenForSlot(
-                // KMP-native UUID; matches Uuid.random() used elsewhere in the app
-                // (ScheduleCreateViewModel, MedicationEditViewModel, PetEditViewModel).
-                doseEventId = Uuid.random().toString(),
+                // Stable per-slot id matches ReminderRescheduler materialization so Log dose
+                // upgrades the pending row instead of inserting a duplicate the UI cannot match.
+                doseEventId = ReminderRescheduler.doseEventIdForSlot(scheduleId, scheduledAt),
                 scheduleId = scheduleId,
                 medicationId = medicationId,
                 scheduledAt = scheduledAt,
@@ -153,7 +154,15 @@ public class HomeViewModel(
                     todayStart = localMidnightToday(),
                     todayEnd = localMidnightTomorrow(),
                 )
-            val base = joinToUiState(petList, medList, doses).copy(dueDoses = dueToday)
+            val addAction =
+                if (petList.isEmpty()) {
+                    null
+                } else {
+                    ReminderListViewModel.resolveAddAction(petList, medList, swp)
+                }
+            val base =
+                joinToUiState(petList, medList, doses)
+                    .copy(dueDoses = dueToday, addAction = addAction)
             applyPetFilter(base, activePetFilter)
         }.stateIn(
             scope = viewModelScope,
@@ -415,5 +424,7 @@ public data class HomeUiState(
     public val dueDoses: List<DueDoseUi> = emptyList(),
     public val recentDoses: List<RecentDoseUi> = emptyList(),
     public val filterPetId: String? = null,
+    /** Next add step for the Today tab FAB (same chain as Reminders). */
+    public val addAction: ReminderAddAction? = null,
     public val loading: Boolean = false,
 )

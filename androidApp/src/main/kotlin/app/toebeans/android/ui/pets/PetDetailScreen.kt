@@ -3,10 +3,12 @@ package app.toebeans.android.ui.pets
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -82,19 +84,6 @@ public fun PetDetailScreen(
                 },
             )
         },
-        // FAB only when the list is non-empty. Empty state has its own primary CTA, so
-        // we avoid double-CTA confusion (and an awkward FAB hovering over an EmptyState
-        // illustration). When the FAB IS shown, Scaffold handles navigation-bar inset
-        // padding automatically via its default contentWindowInsets.
-        floatingActionButton = {
-            if (state.pet != null && state.medications.isNotEmpty()) {
-                ExtendedFloatingActionButton(
-                    onClick = onAddMedication,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text("Add medication") },
-                )
-            }
-        },
     ) { inner ->
         Box(modifier = Modifier.fillMaxSize().padding(inner)) {
             val pet = state.pet
@@ -143,8 +132,30 @@ public fun PetDetailScreen(
                     }
                 }
             }
+            PetDetailAddMedicationFab(
+                visible = pet != null && state.medications.isNotEmpty(),
+                onClick = onAddMedication,
+            )
         }
     }
+}
+
+@Composable
+private fun BoxScope.PetDetailAddMedicationFab(
+    visible: Boolean,
+    onClick: () -> Unit,
+) {
+    if (!visible) return
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+        text = { Text("Add medication") },
+        modifier =
+            Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(16.dp),
+    )
 }
 
 /**
