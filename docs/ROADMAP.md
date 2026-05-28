@@ -5,7 +5,16 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-27.
+Last updated: 2026-05-28.
+
+### In-flight PRs (not merged)
+
+| PR | Branch | Milestone | What |
+|----|--------|-----------|------|
+| [#75](https://github.com/weijia-89/toebeans/pull/75) | `feat/home-m12-scroll-filter-edit` | M1.2 | Today scroll; pet filter; Edit on due rows |
+| [#76](https://github.com/weijia-89/toebeans/pull/76) | `chore/trainer-patch-head-port` | CI | Trainer PR `head=` patch script from buds |
+| [#77](https://github.com/weijia-89/toebeans/pull/77) | `feat/reminders-add-fab-m12` | M1.2 | Reminders extended FAB + empty-state add |
+| [#78](https://github.com/weijia-89/toebeans/pull/78) | `feat/pets-tab-ia-m2` | M2 IA | Pets list focus; top-bar **+** instead of extended FAB |
 
 ---
 
@@ -118,8 +127,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | ✓ | **Beta smoke checklist (Q9 blocker):** operator runs add pet → medication → schedule on device before inviting internal testers. Shipped at `docs/beta-smoke-add-medication.md`. Anchor-mode prompt remains M1.5 / ADR-0007. | research/decisions/2026-05-26-m12-beta-gates.md § Q9 |
 | ✓ | First-launch UX revisit: gated the Rufus + Luna seed behind a first-launch dialog (`FirstLaunchDialogHost`). Stores now start empty; `loadDemoData()` populates the demo on the user's tap of "Load demo data". `FirstLaunchPreferences` persists the seen-flag in SharedPreferences (same pattern as `ThemePreferences`). 11 new unit tests (5 prefs + 6 demo-loader, including a user-created-entries-preserved case). | Cold review |
 | | **Add Medication unified modal (create flow).** Single surface for medication + initial schedule window + dose times + notification/alert settings. Required fields: medication **name** and **dose amount** only; pet selection, notes, phase overrides, and full medication metadata optional when needed. Replaces the post-beta friction of save medication → navigate → schedule create. Does **not** block M1.2 beta (Q9 uses the current multi-step path in `docs/beta-smoke-add-medication.md`). Anchor-mode prompt remains M1.5 / ADR-0007. | Operator product intent 2026-05-27, research/decisions/2026-05-26-m12-beta-gates.md § Q9 |
-| | **Today screen: in-page pet filter.** Tapping the **Today** header (when a filter is active, tap clears to all pets) and tapping a **pet name** in the "Your pets" row filters the existing due-dose list and **Logged today** retrospective on that screen to that pet only. **No navigation** to Pet Detail for filter intent; Pet Detail remains reachable from Pets tab and explicit row actions. Preserve filter state across tab switches via existing bottom-nav `saveState`/`restoreState`. Does not block M1.2 beta. | Operator product intent 2026-05-27 |
-| | **Today dose row: Edit affordance + spacing.** Add an **Edit** control beside **Log dose** on due-today rows with slightly more horizontal spacing than today (reduce mis-taps; not awkwardly far). **Edit** opens medication + schedule/alert settings: prefer deep-link into **Add Medication unified modal** (M1.2 row, when landed) for med + schedule + notifications in one surface; until then route via `MedicationEditScreen` + Schedule Detail (B7) or schedule create as appropriate. Does not block M1.2 beta. | Operator product intent 2026-05-27 |
+| In flight ([#75](https://github.com/weijia-89/toebeans/pull/75)) | **Today screen: in-page pet filter + scroll + Edit.** Pet chips filter due + logged sections; Today header clears filter; due rows get **Edit** beside **Log dose** (routes to med edit / schedule detail until unified modal). | Operator product intent 2026-05-27 |
 | | **Settings theme segmented control: selection border desync.** On Settings → Display, tapping Light/Dark/Auto updates the checkmark to the chosen mode but the white M3 selection outline stays on the previous segment (reported: checkmark on Dark while border remains on Light). Fix `SettingsScreen` `SingleChoiceSegmentedButtonRow` so border and `selected` state track `ThemeMode` from `ThemePreferences`; add Compose UI test or screenshot regression after ADR-0013 deps land. M1.2 polish / post–style-lab follow-up; does not block internal beta. | Operator feedback 2026-05-27 |
 
 **Definition of done (milestone 1.2):**
@@ -159,8 +167,9 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | Pending | What |
 |---|---|
 | | Argon2id KDF replacing PBKDF2 in backup codec (v0.1-followups #7) |
-| ✓ | **Bottom nav order: Pets after Today.** Reorder `BottomNavItem` from Today → Reminders → Pets → Settings to **Today → Pets → Reminders → Settings**. Document primary pathways in this row: **Today** = dose logging + filter; **Pets** = pet hub (detail, meds, schedules); **Reminders** = schedule catalog (B6/B7); **Settings** = data/backup/theme. Reminders stays a tab (no code deletion); position change only. | Operator product intent 2026-05-27 |
-| | **Pets tab IA (manage, not acquire).** De-emphasize or remove the prominent **Add pet** extended FAB for the common case (adding pets is rare). Center the tab on **existing pets**: richer list rows (species/age, active med count or next-dose hint), tap → Pet Detail; secondary paths to view schedule, edit pet, add medication, add schedule. **Add pet** moves to overflow / empty-state / Settings, not the primary visual anchor. Proposed layout: hero list → per-pet card → Pet Detail as hub; optional compact "+" in top bar for add. Full visual design deferred; this row captures IA intent only. | Operator product intent 2026-05-27 |
+| ✓ | **Bottom nav order: Pets after Today.** Reorder `BottomNavItem` from Today → Reminders → Pets → Settings to **Today → Pets → Reminders → Settings**. Document primary pathways in this row: **Today** = dose logging + filter; **Pets** = pet hub (detail, meds, schedules); **Reminders** = schedule catalog (B6/B7); **Settings** = data/backup/theme. Reminders stays a tab (no code deletion); position change only. Shipped in [#74](https://github.com/weijia-89/toebeans/pull/74). | Operator product intent 2026-05-27 |
+| In flight ([#78](https://github.com/weijia-89/toebeans/pull/78)) | **Pets tab IA (manage, not acquire).** Compact top-bar **+**; no extended FAB on list. Richer row content remains follow-up. | Operator product intent 2026-05-27 |
+| In flight ([#77](https://github.com/weijia-89/toebeans/pull/77)) | **Reminders tab: add affordances.** Extended FAB when schedules exist; empty-state CTA when none. | Operator product intent 2026-05-28 |
 | | **Reminders tab: product audit (decision row).** Before M2 public polish, audit what **Reminders** shows vs **Today** (due doses + logged today) and **Pets** (per-pet med/schedule hub). Capture operator decision in `research/decisions/` or daily log: **(A)** merge unique Reminders value into Today/Pets and demote tab, **(B)** keep tab but repurpose copy/scope, or **(C)** keep as schedule catalog with clearer differentiation. **Do not remove the Reminders route in code** from this row alone; implementation follows the chosen option. | Operator product intent 2026-05-27 |
 | | "Show next 30 days" schedule view |
 | | Import-from-vet-record flow (manual paste; on-device OCR pre-fill deferred to milestone 4; see M4 OCR row and M1.5 label-capture pointer) |
