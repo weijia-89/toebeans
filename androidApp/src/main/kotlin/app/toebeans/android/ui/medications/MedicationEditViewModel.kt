@@ -3,10 +3,13 @@ package app.toebeans.android.ui.medications
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
+import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.Medication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -22,12 +25,15 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 public class MedicationEditViewModel(
     private val medicationRepository: MedicationRepository,
+    private val petRepository: PetRepository,
+    private val scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MedicationEditUiState())
     public val state: StateFlow<MedicationEditUiState> = _state.asStateFlow()
 
     public fun setPetId(petId: String) {
         _state.update { it.copy(petId = petId) }
+        refreshReferenceContext()
     }
 
     public fun load(medicationId: String) {
@@ -43,6 +49,7 @@ public class MedicationEditViewModel(
                     discontinuedAt = med.discontinuedAt,
                 )
             }
+            refreshReferenceContext()
         }
     }
 
@@ -89,6 +96,36 @@ public class MedicationEditViewModel(
         medicationRepository.upsert(existing.copy(discontinuedAt = null))
         _state.update { it.copy(discontinuedAt = null) }
         return true
+    }
+
+    /**
+     * Loads read-only pet + schedule context for the header card. Runs after [setPetId]
+     * and [load] so every entry path (Today Edit, pet detail, deep link) shows who and
+     * what the user is editing without duplicating nav args for petName.
+     */
+    private fun refreshReferenceContext() {
+        viewModelScope.launch {
+            val snapshot = _state.value
+            val petId = snapshot.petId ?: return@launch
+            val petName = petRepository.getById(petId)?.name
+            val scheduleHint =
+                snapshot.medicationId?.let { medicationId ->
+                    val schedules = scheduleRepository.observeForMedication(medicationId).first()
+                    val phases =
+                        schedules
+                            .minByOrNull { it.startDate }
+                            ?.let { schedule ->
+                                scheduleRepository.observePhases(schedule.id).first()
+                            }.orEmpty()
+                    buildMedicationEditScheduleHint(schedules, phases)
+                }
+            _state.update {
+                it.copy(
+                    petName = petName,
+                    scheduleHint = scheduleHint,
+                )
+            }
+        }
     }
 
     public fun onNameChange(value: String) {
@@ -155,6 +192,13 @@ public class MedicationEditViewModel(
 public data class MedicationEditUiState(
     public val medicationId: String? = null,
     public val petId: String? = null,
+    /** Resolved from [PetRepository] for the read-only context card. */
+    public val petName: String? = null,
+    /**
+     * Schedule date range + dose-time hint for edit mode; `null` in new-medication mode
+     * until the user saves and creates a schedule.
+     */
+    public val scheduleHint: String? = null,
     public val name: String = "",
     public val doseAmount: String = "",
     public val notes: String = "",

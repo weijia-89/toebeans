@@ -3,8 +3,10 @@ package app.toebeans.android.ui.medications
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.PillBackground
@@ -170,6 +175,14 @@ public fun MedicationEditScreen(
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                MedicationEditContextCard(
+                    petName = state.petName,
+                    medicationName = state.name.takeIf { it.isNotBlank() },
+                    doseAmount = state.doseAmount.takeIf { it.isNotBlank() },
+                    scheduleHint = state.scheduleHint,
+                    isNew = state.isNew,
+                )
+
                 // When this medication is discontinued, surface a status banner above the
                 // form fields so it is the first thing the user sees on opening the screen.
                 // Wrapped in clearAndSetSemantics + LiveRegion equivalent via contentDescription
@@ -291,6 +304,77 @@ private fun MedicationEditTopBarActions(
             ),
     ) {
         Text("Delete")
+    }
+}
+
+/**
+ * Read-only reference block so caregivers know which pet and medication they are editing
+ * when arriving from Today (Edit) or any stacked route. Editable fields below may change
+ * while typing; this card reflects loaded identity + schedule hints from the repositories.
+ */
+@Composable
+private fun MedicationEditContextCard(
+    petName: String?,
+    medicationName: String?,
+    doseAmount: String?,
+    scheduleHint: String?,
+    isNew: Boolean,
+) {
+    if (petName == null && medicationName == null && scheduleHint == null) return
+    val medLine =
+        when {
+            medicationName != null && doseAmount != null -> "$medicationName · $doseAmount"
+            medicationName != null -> medicationName
+            isNew -> "New medication"
+            else -> null
+        }
+    val a11y =
+        listOfNotNull(
+            petName?.let { "For $it" },
+            medLine,
+            scheduleHint,
+        ).joinToString(". ")
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(
+                    if (a11y.isNotEmpty()) {
+                        Modifier.semantics { contentDescription = a11y }
+                    } else {
+                        Modifier
+                    },
+                ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            petName?.let { name ->
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+            medLine?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            scheduleHint?.let { hint ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

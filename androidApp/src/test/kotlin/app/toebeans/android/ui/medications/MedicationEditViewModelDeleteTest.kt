@@ -31,7 +31,7 @@ class MedicationEditViewModelDeleteTest {
     fun `delete removes the loaded medication from the repository`() =
         runTest {
             val repo = InMemoryMedRepo(seedMed("med-1", "pet-luna", "Methimazole"))
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             assertTrue(vm.delete())
@@ -43,7 +43,7 @@ class MedicationEditViewModelDeleteTest {
         runTest {
             val seed = seedMed("med-1", "pet-luna", "Methimazole")
             val repo = InMemoryMedRepo(seed)
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             // Never load(): the form is in new-med mode.
             assertFalse(vm.delete())

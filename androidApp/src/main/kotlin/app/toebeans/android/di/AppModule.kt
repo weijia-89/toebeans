@@ -116,7 +116,13 @@ public val appModule =
             )
         }
         viewModel { PetEditViewModel(petRepository = get()) }
-        viewModel { MedicationEditViewModel(medicationRepository = get()) }
+        viewModel {
+            MedicationEditViewModel(
+                medicationRepository = get(),
+                petRepository = get(),
+                scheduleRepository = get(),
+            )
+        }
         viewModel {
             ScheduleCreateViewModel(
                 medicationRepository = get(),
