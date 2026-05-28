@@ -214,38 +214,31 @@ public class ScheduleCreateViewModel(
      */
     public suspend fun save(): String? {
         val s = _state.value
-        if (s.isSaving) return null
         val medId = s.medicationId ?: return null
 
         if (s.startDate == null) {
             _state.update { it.copy(startDateError = "Required") }
             return null
         }
-        if (s.endDate != null && s.endDate < s.startDate) {
-            _state.update { it.copy(formError = "End date must be on or after the start date.") }
+
+        // Validate phases. The first error per phase is surfaced.
+        val phasesWithErrors =
+            s.phases.mapIndexed { idx, draft ->
+                validatePhase(draft, idx)
+            }
+        if (phasesWithErrors.any { it.second != null }) {
+            _state.update {
+                it.copy(
+                    phases =
+                        phasesWithErrors.map { (draft, err) ->
+                            if (err != null) draft.copy(error = err) else draft
+                        },
+                )
+            }
             return null
         }
-        _state.update { it.copy(isSaving = true) }
-        try {
 
-            // Validate phases. The first error per phase is surfaced.
-            val phasesWithErrors =
-                s.phases.mapIndexed { idx, draft ->
-                    validatePhase(draft, idx)
-                }
-            if (phasesWithErrors.any { it.second != null }) {
-                _state.update {
-                    it.copy(
-                        phases =
-                            phasesWithErrors.map { (draft, err) ->
-                                if (err != null) draft.copy(error = err) else draft
-                            },
-                    )
-                }
-                return null
-            }
-
-            val (schedule, phases) = newSchedulePayload(s, medId)
+        val (schedule, phases) = newSchedulePayload(s, medId)
 
         // Pre-flight the calculator across a representative window before persisting.
         // The Reminders/Today renderers run the same calculator at view-time; if it would
@@ -262,17 +255,14 @@ public class ScheduleCreateViewModel(
         // phaseOrder = idx in a dense sequence by construction. But running the full
         // calculator anyway keeps the preflight resilient to future refactors that might
         // let user-supplied phaseOrder values back into the form.
-            val preflightError = runPreflight(schedule, phases)
-            if (preflightError != null) {
-                _state.update { it.copy(formError = preflightError) }
-                return null
-            }
-
-            upsertMaterializeAndSchedule(schedule, phases, medId)
-            return schedule.id
-        } finally {
-            _state.update { it.copy(isSaving = false) }
+        val preflightError = runPreflight(schedule, phases)
+        if (preflightError != null) {
+            _state.update { it.copy(formError = preflightError) }
+            return null
         }
+
+        upsertMaterializeAndSchedule(schedule, phases, medId)
+        return schedule.id
     }
 
     private fun newSchedulePayload(
@@ -425,7 +415,6 @@ public data class ScheduleCreateUiState(
      * field-validation feedback).
      */
     public val formError: String? = null,
-    public val isSaving: Boolean = false,
 )
 
 /**
