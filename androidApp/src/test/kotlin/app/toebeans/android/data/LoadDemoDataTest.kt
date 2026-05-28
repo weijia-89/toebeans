@@ -49,6 +49,33 @@ class LoadDemoDataTest {
         }
 
     @Test
+    fun `loadDemoData seeds multiple meds per pet with staggered dose times`() =
+        runTest {
+            val petRepo = FakePetRepository()
+            val medRepo = FakeMedicationRepository()
+            val schedRepo = FakeScheduleRepository()
+            loadDemoData(petRepo, medRepo, schedRepo)
+            val meds = medRepo.observeAll().first()
+            assertEquals(6, meds.size)
+            assertEquals(3, meds.count { it.petId == "pet-rufus" })
+            assertEquals(3, meds.count { it.petId == "pet-luna" })
+            val rufusMorning =
+                schedRepo
+                    .observePhases("sched-rufus-carprofen")
+                    .first()
+                    .single()
+                    .doseTimesLocal
+            val lunaEvening =
+                schedRepo
+                    .observePhases("sched-luna-fortiflora")
+                    .first()
+                    .single()
+                    .doseTimesLocal
+            assertEquals(listOf(kotlinx.datetime.LocalTime(8, 0)), rufusMorning)
+            assertEquals(listOf(kotlinx.datetime.LocalTime(17, 30)), lunaEvening)
+        }
+
+    @Test
     fun `loadDemoData is idempotent`() =
         runTest {
             val petRepo = FakePetRepository()
@@ -57,8 +84,8 @@ class LoadDemoDataTest {
             loadDemoData(petRepo, medRepo, schedRepo)
             loadDemoData(petRepo, medRepo, schedRepo)
             assertEquals(2, petRepo.observeAll().first().size)
-            assertEquals(1, medRepo.observeAll().first().size)
-            assertEquals(1, schedRepo.observeAll().first().size)
+            assertEquals(6, medRepo.observeAll().first().size)
+            assertEquals(6, schedRepo.observeAll().first().size)
         }
 
     @Test
