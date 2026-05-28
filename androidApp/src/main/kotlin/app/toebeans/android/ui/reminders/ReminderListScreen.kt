@@ -51,6 +51,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 public fun ReminderListScreen(
     onScheduleClick: (scheduleId: String) -> Unit,
+    onNeedsScheduleClick: (petId: String, medicationId: String) -> Unit,
     onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
     viewModel: ReminderListViewModel = koinViewModel(),
@@ -59,6 +60,7 @@ public fun ReminderListScreen(
     ReminderListContent(
         state = state,
         onScheduleClick = onScheduleClick,
+        onNeedsScheduleClick = onNeedsScheduleClick,
         onAddReminder = onAddReminder,
         contentPadding = contentPadding,
     )
@@ -72,6 +74,7 @@ public fun ReminderListScreen(
 internal fun ReminderListContent(
     state: ReminderListUiState,
     onScheduleClick: (String) -> Unit,
+    onNeedsScheduleClick: (petId: String, medicationId: String) -> Unit,
     onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
 ) {
@@ -93,11 +96,17 @@ internal fun ReminderListContent(
                     item { Spacer(Modifier.height(8.dp)) }
                     items(
                         items = state.rows,
-                        key = { row -> row.scheduleId },
+                        key = { row -> row.rowKey },
                     ) { row ->
                         ReminderRow(
                             row = row,
-                            onClick = { onScheduleClick(row.scheduleId) },
+                            onClick = {
+                                if (row.needsSchedule) {
+                                    onNeedsScheduleClick(row.petId, row.medicationId)
+                                } else {
+                                    onScheduleClick(row.scheduleId!!)
+                                }
+                            },
                         )
                     }
                     item { Spacer(Modifier.height(8.dp)) }
@@ -158,7 +167,7 @@ private fun ReminderRow(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(MaterialTheme.shapes.medium)
-                .pointerInput(row.scheduleId) {
+                .pointerInput(row.rowKey) {
                     detectTapGestures(onTap = { onClick() })
                 }.semantics {
                     contentDescription =
