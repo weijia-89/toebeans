@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.ui.components.EmptyState
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -35,14 +40,10 @@ import org.koin.androidx.compose.koinViewModel
  *
  * Behavior:
  *   - Loading: a centered indeterminate spinner.
- *   - Empty: a friendly message explaining how to add reminders (the user must add a
- *     medication to a pet, then a schedule for that medication).
- *   - Populated: a LazyColumn of [ReminderRow] cards, grouped via the ViewModel's sort
- *     (pet name, then medication name).
+ *   - Empty: [EmptyState] with a primary CTA that starts the pet → medication → schedule chain.
+ *   - Populated: a LazyColumn of [ReminderRow] cards plus an FAB for the same add path.
  *
- * Tap handling is wired through [onScheduleClick]; until B7 Schedule Detail ships the
- * caller passes a no-op lambda. That keeps the row tappable (so the future wiring is a
- * one-line caller change) without exposing a broken navigation today.
+ * Tap handling is wired through [onScheduleClick] to Schedule Detail (B7).
  *
  * The LazyColumn is the load-bearing surface for the ADR-0008 list-scroll fps budget;
  * the future macrobench `ScrollBenchmark` will measure it directly.
@@ -50,6 +51,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 public fun ReminderListScreen(
     onScheduleClick: (scheduleId: String) -> Unit,
+    onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
     viewModel: ReminderListViewModel = koinViewModel(),
 ) {
@@ -57,6 +59,7 @@ public fun ReminderListScreen(
     ReminderListContent(
         state = state,
         onScheduleClick = onScheduleClick,
+        onAddReminder = onAddReminder,
         contentPadding = contentPadding,
     )
 }
@@ -69,42 +72,58 @@ public fun ReminderListScreen(
 internal fun ReminderListContent(
     state: ReminderListUiState,
     onScheduleClick: (String) -> Unit,
+    onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
 ) {
-    when {
-        state.loading -> LoadingState(contentPadding)
-        state.rows.isEmpty() -> EmptyState(contentPadding)
-        else ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item { Spacer(Modifier.height(8.dp)) }
-                items(
-                    items = state.rows,
-                    // Stable keys keep LazyColumn from invalidating rows on every
-                    // emission — load-bearing for the ADR-0008 scroll fps budget once
-                    // the macrobench scroll test ships.
-                    key = { row -> row.scheduleId },
-                ) { row ->
-                    ReminderRow(
-                        row = row,
-                        onClick = { onScheduleClick(row.scheduleId) },
-                    )
-                }
-                item { Spacer(Modifier.height(8.dp)) }
-            }
-    }
-}
-
-@Composable
-private fun LoadingState(contentPadding: PaddingValues) {
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
                 .padding(contentPadding),
+    ) {
+        when {
+            state.loading -> LoadingState()
+            state.rows.isEmpty() -> RemindersEmptyState(addAction = state.addAction, onAddReminder = onAddReminder)
+            else ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 88.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item { Spacer(Modifier.height(8.dp)) }
+                    items(
+                        items = state.rows,
+                        key = { row -> row.scheduleId },
+                    ) { row ->
+                        ReminderRow(
+                            row = row,
+                            onClick = { onScheduleClick(row.scheduleId) },
+                        )
+                    }
+                    item { Spacer(Modifier.height(8.dp)) }
+                }
+        }
+
+        if (!state.loading && state.addAction != null) {
+            ExtendedFloatingActionButton(
+                onClick = { onAddReminder(state.addAction) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(state.addAction.buttonLabel()) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingState() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
@@ -112,29 +131,20 @@ private fun LoadingState(contentPadding: PaddingValues) {
 }
 
 @Composable
-private fun EmptyState(contentPadding: PaddingValues) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-                .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "No reminders yet",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text =
-                "Add a medication to one of your pets, then set up a dose schedule. " +
-                    "The schedule will appear here as a reminder.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun RemindersEmptyState(
+    addAction: ReminderAddAction?,
+    onAddReminder: (ReminderAddAction) -> Unit,
+) {
+    val label = addAction?.buttonLabel() ?: "Add schedule"
+    EmptyState(
+        emoji = "⏰",
+        title = "No reminders yet",
+        body =
+            "Set up a dose schedule for one of your pets. " +
+                "You'll see it here and on Today when a dose is due.",
+        primaryActionLabel = label,
+        onPrimaryAction = addAction?.let { { onAddReminder(it) } },
+    )
 }
 
 @Composable
@@ -142,9 +152,6 @@ private fun ReminderRow(
     row: ReminderRowUi,
     onClick: () -> Unit,
 ) {
-    // Compose detectTapGestures inside pointerInput gives us a tappable Card without
-    // pulling in material3's experimental Card-with-onClick API. The Card itself stays
-    // on the stable surface.
     Card(
         modifier =
             Modifier
