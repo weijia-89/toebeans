@@ -51,9 +51,9 @@ internal fun seedPet(
     )
 
 internal class InMemoryMedRepo(
-    initial: Medication,
+    initial: Medication? = null,
 ) : MedicationRepository {
-    private val store = MutableStateFlow(mapOf(initial.id to initial))
+    private val store = MutableStateFlow(if (initial != null) mapOf(initial.id to initial) else emptyMap())
 
     override fun observeForPet(petId: String): Flow<List<Medication>> =
         store.asStateFlow().map { snap -> snap.values.filter { it.petId == petId } }

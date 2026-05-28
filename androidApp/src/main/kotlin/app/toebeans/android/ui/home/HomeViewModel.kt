@@ -157,7 +157,11 @@ public class HomeViewModel(
             applyPetFilter(base, activePetFilter)
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+            started =
+                SharingStarted.WhileSubscribed(
+                    stopTimeoutMillis = 5_000L,
+                    replayExpirationMillis = 0L,
+                ),
             initialValue =
                 HomeUiState(
                     pets = emptyList(),

@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -72,8 +71,8 @@ public fun ScheduleCreateScreen(
             // Box bounds. Without this the Scaffold wraps content and the bottomBar floats
             // up against the form content.
             modifier = Modifier.fillMaxSize(),
-            // Surface set transparent so the PillBackground shows through.
-            containerColor = Color.Transparent,
+            // Opaque so stacked routes beneath do not show through during transitions.
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     title = {
