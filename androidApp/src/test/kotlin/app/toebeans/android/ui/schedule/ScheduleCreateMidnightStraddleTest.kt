@@ -20,8 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
@@ -53,9 +54,11 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScheduleCreateMidnightStraddleTest {
+    private val mainDispatcher = StandardTestDispatcher()
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(mainDispatcher)
     }
 
     @After
@@ -65,8 +68,9 @@ class ScheduleCreateMidnightStraddleTest {
 
     @Test
     fun `editing dose times into a straddling configuration sets crossesMidnight true`() =
-        runTest {
+        runTest(mainDispatcher.scheduler) {
             val vm = newVm()
+            runCurrent()
             // The initial blank draft uses [LocalTime(8, 0)] — single dose, does not
             // straddle. Confirms the recompute path produces false from the default
             // state before any user edits.
@@ -77,6 +81,7 @@ class ScheduleCreateMidnightStraddleTest {
             )
 
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            runCurrent()
 
             assertTrue(
                 "23:00 + 01:00 should flip crossesMidnight on",
@@ -87,15 +92,18 @@ class ScheduleCreateMidnightStraddleTest {
 
     @Test
     fun `dismissMidnightStraddle hides the straddle banner until dose times change`() =
-        runTest {
+        runTest(mainDispatcher.scheduler) {
             val vm = newVm()
+            runCurrent()
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            runCurrent()
             assertTrue(
                 vm.state.value.phases[0]
                     .crossesMidnight,
             )
 
             vm.dismissMidnightStraddle(0)
+            runCurrent()
             assertTrue(
                 "underlying straddle flag remains for detection",
                 vm.state.value.phases[0]
@@ -107,6 +115,7 @@ class ScheduleCreateMidnightStraddleTest {
             )
 
             vm.updatePhase(0) { it.copy(durationDaysText = "14") }
+            runCurrent()
             assertTrue(
                 "non-dose-time edit must not clear straddle dismissal",
                 vm.state.value.phases[0]
@@ -114,6 +123,7 @@ class ScheduleCreateMidnightStraddleTest {
             )
 
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(8, 0), LocalTime(20, 0))) }
+            runCurrent()
             assertFalse(
                 vm.state.value.phases[0]
                     .crossesMidnight,
@@ -126,10 +136,12 @@ class ScheduleCreateMidnightStraddleTest {
 
     @Test
     fun `editing back to a non-straddling configuration clears crossesMidnight`() =
-        runTest {
+        runTest(mainDispatcher.scheduler) {
             val vm = newVm()
+            runCurrent()
             // Step 1: enter a straddling configuration so the flag is on.
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            runCurrent()
             assertTrue(
                 "precondition: straddle flag set after first edit",
                 vm.state.value.phases[0]
@@ -138,6 +150,7 @@ class ScheduleCreateMidnightStraddleTest {
 
             // Step 2: user revises the schedule into a daytime rhythm. Flag must clear.
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(8, 0), LocalTime(20, 0))) }
+            runCurrent()
 
             assertFalse(
                 "flag should clear once dose times no longer straddle",
@@ -148,7 +161,7 @@ class ScheduleCreateMidnightStraddleTest {
 
     @Test
     fun `save succeeds after dismissMidnightStraddle then non-dose-time field edit`() =
-        runTest {
+        runTest(mainDispatcher.scheduler) {
             val schedRepo = InMemSchedRepoMidnight()
             val vm =
                 ScheduleCreateViewModel(
@@ -159,16 +172,20 @@ class ScheduleCreateMidnightStraddleTest {
                     notificationActuator = NoopNotificationActuatorMidnight,
                     timeZone = TimeZone.UTC,
                 )
+            runCurrent()
             vm.setMedicationId(MED_ID)
             vm.onStartDateChange(LocalDate(2026, 5, 26))
             vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(23, 0), LocalTime(1, 0))) }
+            runCurrent()
             vm.dismissMidnightStraddle(0)
+            runCurrent()
             assertTrue(
                 vm.state.value.phases[0]
                     .midnightStraddleDismissed,
             )
 
             vm.updatePhase(0) { it.copy(durationDaysText = "14") }
+            runCurrent()
 
             val id = vm.save()
             assertNotNull("straddle dismiss must not gate save", id)

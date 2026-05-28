@@ -109,7 +109,7 @@ class BootReceiverTest {
 
     @Test
     fun `onReceive with BOOT_COMPLETED schedules alarms for pending dose events in horizon`() {
-        val scheduledAt = Clock.System.now() + 1.hours
+        val scheduledAt = Clock.System.now() + 12.hours
         seedPendingDoseEvent(
             eventId = "evt-boot-rehydrate",
             scheduleId = "sched-luna-methimazole",
@@ -132,7 +132,7 @@ class BootReceiverTest {
         seedPendingDoseEvent(
             eventId = "evt-unrelated-action",
             scheduleId = "sched-luna-methimazole",
-            scheduledAt = Clock.System.now() + 1.hours,
+            scheduledAt = Clock.System.now() + 12.hours,
         )
         val receiver = BootReceiver()
         receiver.onReceive(context, Intent("app.toebeans.action.UNRELATED"))
