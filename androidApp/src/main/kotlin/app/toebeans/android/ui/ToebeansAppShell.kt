@@ -1,5 +1,7 @@
 package app.toebeans.android.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
@@ -85,14 +87,26 @@ public fun ToebeansAppShell() {
             navController = navController,
             startDestination = Destinations.HOME,
         ) {
-            composable(Destinations.HOME) {
+            composable(
+                route = Destinations.HOME,
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     contentPadding = innerPadding,
                 )
             }
-            composable(Destinations.REMINDERS) {
+            composable(
+                route = Destinations.REMINDERS,
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
                 ReminderListScreen(
                     onScheduleClick = { scheduleId ->
                         navController.navigate(Destinations.scheduleDetail(scheduleId))
@@ -100,14 +114,26 @@ public fun ToebeansAppShell() {
                     contentPadding = innerPadding,
                 )
             }
-            composable(Destinations.PETS) {
+            composable(
+                route = Destinations.PETS,
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
                 PetsScreen(
                     onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     contentPadding = innerPadding,
                 )
             }
-            composable(Destinations.SETTINGS) {
+            composable(
+                route = Destinations.SETTINGS,
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
                 SettingsScreen(contentPadding = innerPadding)
             }
             // ----- Stacked destinations. ContentPadding intentionally NOT forwarded; these
@@ -209,6 +235,7 @@ public fun ToebeansAppShell() {
 // Tab destinations where the bottom NavigationBar should be visible. Anything else
 // (detail/edit screens) hides the tab strip so the screen's own bottomBar reaches the
 // bottom of the viewport.
+
 private val TOP_LEVEL_ROUTES =
     setOf(Destinations.HOME, Destinations.REMINDERS, Destinations.PETS, Destinations.SETTINGS)
 
