@@ -7,14 +7,9 @@ This document is the canonical answer to "what's feasible now vs what's deferred
 
 Last updated: 2026-05-28.
 
-### In-flight PRs (not merged)
+### Wave 1 shipped (2026-05-28)
 
-| PR | Branch | Milestone | What |
-|----|--------|-----------|------|
-| [#75](https://github.com/weijia-89/toebeans/pull/75) | `feat/home-m12-scroll-filter-edit` | M1.2 | Today scroll; pet filter; Edit on due rows |
-| [#76](https://github.com/weijia-89/toebeans/pull/76) | `chore/trainer-patch-head-port` | CI | Trainer PR `head=` patch script from buds |
-| [#77](https://github.com/weijia-89/toebeans/pull/77) | `feat/reminders-add-fab-m12` | M1.2 | Reminders extended FAB + empty-state add |
-| [#78](https://github.com/weijia-89/toebeans/pull/78) | `feat/pets-tab-ia-m2` | M2 IA | Pets list focus; top-bar **+** instead of extended FAB |
+PRs [#75](https://github.com/weijia-89/toebeans/pull/75)–[#78](https://github.com/weijia-89/toebeans/pull/78) and [#80](https://github.com/weijia-89/toebeans/pull/80) merged on `main`. See [CHANGELOG](../CHANGELOG.md) and [Wave 2 UI backlog](wave2-ui-backlog.md).
 
 ---
 

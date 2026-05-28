@@ -70,7 +70,9 @@ public class MedicationEditViewModel(
 
     public fun load(medicationId: String) {
         viewModelScope.launch {
-            // Clear stale fields before fetch; shared VM across navigations.
+            // Clear stale form fields before the async fetch. The screen shares one
+            // Koin-scoped VM across navigations; without this, a Today med tap briefly
+            // shows the previous medication until load() returns.
             _state.update {
                 it.copy(
                     medicationId = medicationId,
