@@ -104,6 +104,33 @@ class ReminderListViewModelTest {
         val state = ReminderListViewModel.joinToUiState(emptyList(), emptyList(), emptyList(), today)
         assertTrue(state.rows.isEmpty())
         assertEquals(false, state.loading)
+        assertEquals(ReminderAddAction.AddPet, state.addAction)
+    }
+
+    @Test
+    fun `resolveAddAction routes to add medication when pet has no meds`() {
+        val p = pet(id = "p1", name = "Luna")
+        val action = ReminderListViewModel.resolveAddAction(listOf(p), emptyList(), emptyList())
+        assertEquals(ReminderAddAction.AddMedication("p1"), action)
+    }
+
+    @Test
+    fun `resolveAddAction routes to add schedule when med has no schedule`() {
+        val p = pet(id = "p1", name = "Luna")
+        val m = med(id = "m1", petId = "p1", name = "Methimazole")
+        val action = ReminderListViewModel.resolveAddAction(listOf(p), listOf(m), emptyList())
+        assertEquals(ReminderAddAction.AddSchedule("p1", "m1"), action)
+    }
+
+    @Test
+    fun `resolveAddAction routes to add medication when all meds already scheduled`() {
+        val p = pet(id = "p1", name = "Luna")
+        val m = med(id = "m1", petId = "p1")
+        val s = schedule(id = "s1", medicationId = "m1")
+        val swp = ScheduleWithPhases(s, listOf(phase(s.id)))
+        val action =
+            ReminderListViewModel.resolveAddAction(listOf(p), listOf(m), listOf(swp))
+        assertEquals(ReminderAddAction.AddMedication("p1"), action)
     }
 
     @Test

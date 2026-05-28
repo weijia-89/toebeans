@@ -30,6 +30,7 @@ import app.toebeans.android.ui.nav.Destinations
 import app.toebeans.android.ui.pets.PetDetailScreen
 import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
+import app.toebeans.android.ui.reminders.ReminderAddAction
 import app.toebeans.android.ui.reminders.ReminderListScreen
 import app.toebeans.android.ui.schedule.ScheduleCreateScreen
 import app.toebeans.android.ui.schedule.ScheduleDetailScreen
@@ -112,6 +113,17 @@ public fun ToebeansAppShell() {
                 ReminderListScreen(
                     onScheduleClick = { scheduleId ->
                         navController.navigate(Destinations.scheduleDetail(scheduleId))
+                    },
+                    onAddReminder = { action ->
+                        when (action) {
+                            ReminderAddAction.AddPet -> navController.navigate(Destinations.PET_NEW_ROUTE)
+                            is ReminderAddAction.AddMedication ->
+                                navController.navigate(Destinations.medicationNew(action.petId))
+                            is ReminderAddAction.AddSchedule ->
+                                navController.navigate(
+                                    Destinations.scheduleCreate(action.petId, action.medicationId),
+                                )
+                        }
                     },
                     contentPadding = innerPadding,
                 )

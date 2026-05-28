@@ -128,7 +128,42 @@ public class ReminderListViewModel(
                         { it.scheduleId },
                     ),
                 )
-            return ReminderListUiState(rows = sorted, loading = false)
+            return ReminderListUiState(
+                rows = sorted,
+                loading = false,
+                addAction = resolveAddAction(pets, meds, schedules),
+            )
+        }
+
+        /**
+         * Picks the next step in the pet → medication → schedule chain for the Reminders
+         * tab FAB / empty-state CTA.
+         */
+        internal fun resolveAddAction(
+            pets: List<Pet>,
+            meds: List<Medication>,
+            schedules: List<ScheduleWithPhases>,
+        ): ReminderAddAction {
+            val activePets =
+                pets
+                    .filter { it.archivedAt == null }
+                    .sortedBy { it.name.lowercase() }
+            if (activePets.isEmpty()) {
+                return ReminderAddAction.AddPet
+            }
+            val activeMeds = meds.filter { it.discontinuedAt == null }
+            val scheduledMedIds = schedules.map { it.schedule.medicationId }.toSet()
+            for (pet in activePets) {
+                val petMeds = activeMeds.filter { it.petId == pet.id }
+                if (petMeds.isEmpty()) {
+                    return ReminderAddAction.AddMedication(pet.id)
+                }
+                val needsSchedule = petMeds.firstOrNull { it.id !in scheduledMedIds }
+                if (needsSchedule != null) {
+                    return ReminderAddAction.AddSchedule(pet.id, needsSchedule.id)
+                }
+            }
+            return ReminderAddAction.AddMedication(activePets.first().id)
         }
 
         /**
@@ -200,8 +235,30 @@ public data class ReminderRowUi(
     public val endsLabel: String?,
 )
 
+/** Next add step for the Reminders tab primary CTA (FAB / empty state). */
+public sealed interface ReminderAddAction {
+    public data object AddPet : ReminderAddAction
+
+    public data class AddMedication(
+        public val petId: String,
+    ) : ReminderAddAction
+
+    public data class AddSchedule(
+        public val petId: String,
+        public val medicationId: String,
+    ) : ReminderAddAction
+}
+
+public fun ReminderAddAction.buttonLabel(): String =
+    when (this) {
+        ReminderAddAction.AddPet -> "Add pet"
+        is ReminderAddAction.AddMedication -> "Add medication"
+        is ReminderAddAction.AddSchedule -> "Add schedule"
+    }
+
 /** UI state for the Reminder List screen. Immutable snapshot. */
 public data class ReminderListUiState(
     public val rows: List<ReminderRowUi>,
     public val loading: Boolean,
+    public val addAction: ReminderAddAction? = null,
 )
