@@ -15,9 +15,7 @@ fi
 
 export TRAINER_GATE_RERUN_SKIP=
 export TRAINER_GATE_RERUN_DRY_RUN=1
-# Missing gh or no PR: must exit 0 without throwing
 if ! bash "$RERUN" 999999 "nonexistent/fake-repo" >/dev/null 2>&1; then
-  # gh may error; script should still exit 0 when run list fails... check script
   :
 fi
 

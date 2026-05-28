@@ -22,6 +22,10 @@ if ! command -v gh >/dev/null 2>&1; then
   echo "trainer_pr_review_gate_rerun: gh CLI not found; skip rerun" >&2
   exit 0
 fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "trainer_pr_review_gate_rerun: jq not found; skip rerun" >&2
+  exit 0
+fi
 
 PR_NUM=${1:-}
 GH_REPO=${2:-}
@@ -46,28 +50,51 @@ if [[ -z "$PR_NUM" ]]; then
   fi
 fi
 
-BRANCH=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefName -q .headRefName)
-HEAD_SHA=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefOid -q .headRefOid)
-
-RUN_ID=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
-  --limit 20 --json databaseId,headSha,event | jq -r --arg sha "$HEAD_SHA" '
-    [.[] | select(.headSha == $sha and .event == "pull_request")]
-    | sort_by(.databaseId) | reverse | .[0].databaseId // empty
-  ')
-
-if [[ -z "$RUN_ID" ]]; then
-  RUN_ID=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
-    --limit 5 --json databaseId | jq -r 'sort_by(.databaseId) | reverse | .[0].databaseId // empty')
+if ! BRANCH=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefName -q .headRefName 2>/dev/null); then
+  echo "trainer_pr_review_gate_rerun: cannot resolve headRefName for PR #${PR_NUM}; skip" >&2
+  exit 0
 fi
-
-if [[ -z "$RUN_ID" ]]; then
-  echo "trainer_pr_review_gate_rerun: no ci workflow run for PR #${PR_NUM} (${BRANCH}); skip"
+if ! HEAD_SHA=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefOid -q .headRefOid 2>/dev/null); then
+  echo "trainer_pr_review_gate_rerun: cannot resolve headRefOid for PR #${PR_NUM}; skip" >&2
   exit 0
 fi
 
-JOB_JSON=$(gh run view "$RUN_ID" --repo "$GH_REPO" --json jobs --jq \
-  ".jobs[] | select(.name == \"${GATE_JOB_NAME}\") | {id: .databaseId, status: .status, conclusion: .conclusion}" \
-  | head -1)
+RUN_IDS=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
+  --limit 50 --json databaseId,headSha,event,status \
+  | jq -r --arg sha "$HEAD_SHA" '
+      [
+        .[] | select(.headSha == $sha and (.event == "pull_request" or .event == "pull_request_target"))
+      ]
+      + [.[] | select(.headSha == $sha)]
+      | unique_by(.databaseId)
+      | sort_by(.databaseId)
+      | reverse
+      | .[].databaseId
+    ')
+
+if [[ -z "$RUN_IDS" ]]; then
+  echo "trainer_pr_review_gate_rerun: no ci workflow runs for PR #${PR_NUM} (${BRANCH}) head=${HEAD_SHA:0:7}; skip"
+  exit 0
+fi
+
+RUN_ID=""
+JOB_JSON=""
+while IFS= read -r candidate; do
+  [[ -z "$candidate" ]] && continue
+  candidate_job=$(gh run view "$candidate" --repo "$GH_REPO" --json jobs --jq \
+    ".jobs[] | select(.name == \"${GATE_JOB_NAME}\") | {id: .databaseId, status: .status, conclusion: .conclusion}" \
+    2>/dev/null | head -1 || true)
+  if [[ -n "$candidate_job" ]]; then
+    RUN_ID="$candidate"
+    JOB_JSON="$candidate_job"
+    break
+  fi
+done <<< "$RUN_IDS"
+
+if [[ -z "$RUN_ID" || -z "$JOB_JSON" ]]; then
+  echo "trainer_pr_review_gate_rerun: gate job \"${GATE_JOB_NAME}\" not found in recent runs for PR #${PR_NUM}; skip"
+  exit 0
+fi
 
 JOB_ID=$(echo "$JOB_JSON" | jq -r '.id // empty')
 JOB_STATUS=$(echo "$JOB_JSON" | jq -r '.status // empty')
