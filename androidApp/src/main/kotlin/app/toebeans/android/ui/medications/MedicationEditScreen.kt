@@ -62,8 +62,7 @@ public fun MedicationEditScreen(
     var showDiscontinueDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId, medicationId) {
-        viewModel.setPetId(petId)
-        if (medicationId != null) viewModel.load(medicationId)
+        viewModel.prepareRoute(petId, medicationId)
     }
 
     if (showDeleteDialog) {
@@ -166,82 +165,89 @@ public fun MedicationEditScreen(
                 }
             },
         ) { inner ->
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(inner)
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            // Opaque surface so predictive-back and transparent Scaffold do not show the
+            // previous destination (Today dose list) through the form.
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                MedicationEditContextCard(
-                    petName = state.petName,
-                    medicationName = state.name.takeIf { it.isNotBlank() },
-                    doseAmount = state.doseAmount.takeIf { it.isNotBlank() },
-                    scheduleHint = state.scheduleHint,
-                    isNew = state.isNew,
-                )
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(inner)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                            .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    MedicationEditContextCard(
+                        petName = state.petName,
+                        medicationName = state.name.takeIf { it.isNotBlank() },
+                        doseAmount = state.doseAmount.takeIf { it.isNotBlank() },
+                        scheduleHint = state.scheduleHint,
+                        isNew = state.isNew,
+                    )
 
-                // When this medication is discontinued, surface a status banner above the
-                // form fields so it is the first thing the user sees on opening the screen.
-                // Wrapped in clearAndSetSemantics + LiveRegion equivalent via contentDescription
-                // so TalkBack announces the discontinue state immediately, matching the
-                // ScheduleCreate formError + night-dose banner accessibility pattern.
-                state.discontinuedAt?.let { discontinuedAt ->
-                    DiscontinuedBanner(discontinuedAt = discontinuedAt)
+                    // When this medication is discontinued, surface a status banner above the
+                    // form fields so it is the first thing the user sees on opening the screen.
+                    // Wrapped in clearAndSetSemantics + LiveRegion equivalent via contentDescription
+                    // so TalkBack announces the discontinue state immediately, matching the
+                    // ScheduleCreate formError + night-dose banner accessibility pattern.
+                    state.discontinuedAt?.let { discontinuedAt ->
+                        DiscontinuedBanner(discontinuedAt = discontinuedAt)
+                    }
+
+                    OutlinedTextField(
+                        value = state.name,
+                        onValueChange = viewModel::onNameChange,
+                        label = { Text("Medication name") },
+                        singleLine = true,
+                        isError = state.nameError != null,
+                        supportingText = state.nameError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    OutlinedTextField(
+                        value = state.doseAmount,
+                        onValueChange = viewModel::onDoseAmountChange,
+                        // Short label so it does not clip when it floats up on focus. The
+                        // example moved to placeholder + supportingText so the user still sees
+                        // the format hint, but only when the field is empty / errored.
+                        label = { Text("Dose amount") },
+                        placeholder = { Text("e.g. 10 mg, 1 tablet, 0.5 mL") },
+                        singleLine = true,
+                        isError = state.doseAmountError != null,
+                        supportingText =
+                            state.doseAmountError?.let {
+                                { Text(it) }
+                            } ?: {
+                                Text(
+                                    "Confirm with your vet. We will use this on every reminder " +
+                                        "unless a phase overrides it.",
+                                )
+                            },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    OutlinedTextField(
+                        value = state.notes,
+                        onValueChange = viewModel::onNotesChange,
+                        label = { Text("Notes (optional)") },
+                        placeholder = { Text("Storage, special instructions, side-effects to watch for…") },
+                        minLines = 3,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    Text(
+                        // Use onSurfaceVariant (the M3-correct secondary token) instead of
+                        // onSurface.copy(alpha = 0.6f). Contrast is guaranteed by the audit.
+                        text =
+                            "Per-phase dose overrides land when you create the schedule below. " +
+                                "This default is what we'll show on reminders unless a phase changes it.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-
-                OutlinedTextField(
-                    value = state.name,
-                    onValueChange = viewModel::onNameChange,
-                    label = { Text("Medication name") },
-                    singleLine = true,
-                    isError = state.nameError != null,
-                    supportingText = state.nameError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = state.doseAmount,
-                    onValueChange = viewModel::onDoseAmountChange,
-                    // Short label so it does not clip when it floats up on focus. The
-                    // example moved to placeholder + supportingText so the user still sees
-                    // the format hint, but only when the field is empty / errored.
-                    label = { Text("Dose amount") },
-                    placeholder = { Text("e.g. 10 mg, 1 tablet, 0.5 mL") },
-                    singleLine = true,
-                    isError = state.doseAmountError != null,
-                    supportingText =
-                        state.doseAmountError?.let {
-                            { Text(it) }
-                        } ?: {
-                            Text(
-                                "Confirm with your vet. We will use this on every reminder " +
-                                    "unless a phase overrides it.",
-                            )
-                        },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = state.notes,
-                    onValueChange = viewModel::onNotesChange,
-                    label = { Text("Notes (optional)") },
-                    placeholder = { Text("Storage, special instructions, side-effects to watch for…") },
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Text(
-                    // Use onSurfaceVariant (the M3-correct secondary token) instead of
-                    // onSurface.copy(alpha = 0.6f). Contrast is guaranteed by the audit.
-                    text =
-                        "Per-phase dose overrides land when you create the schedule below. " +
-                            "This default is what we'll show on reminders unless a phase changes it.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

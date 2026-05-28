@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -53,6 +54,25 @@ class MedicationEditViewModelLoadStaleTest {
 
             repo.releaseMed2()
             assertEquals("Beta", vm.state.value.name)
+        }
+
+    @Test
+    fun `prepareRoute clears add mode after edit`() =
+        runTest {
+            val med = seedMed("med-1", "pet-1", "Alpha")
+            val repo = InMemoryMedRepo(med)
+            val vm =
+                medicationEditViewModel(
+                    repo,
+                    seedPet("pet-1", "Luna"),
+                )
+            vm.prepareRoute("pet-1", "med-1")
+            assertEquals("med-1", vm.state.value.medicationId)
+
+            vm.prepareRoute("pet-1", null)
+            assertNull(vm.state.value.medicationId)
+            assertEquals("", vm.state.value.name)
+            assertEquals("Luna", vm.state.value.petName)
         }
 }
 

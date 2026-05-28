@@ -2,6 +2,8 @@ package app.toebeans.android.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.android.ui.reminders.ReminderAddAction
+import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.util.StaleEventGuard
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
@@ -153,7 +155,15 @@ public class HomeViewModel(
                     todayStart = localMidnightToday(),
                     todayEnd = localMidnightTomorrow(),
                 )
-            val base = joinToUiState(petList, medList, doses).copy(dueDoses = dueToday)
+            val addAction =
+                if (petList.isEmpty()) {
+                    null
+                } else {
+                    ReminderListViewModel.resolveAddAction(petList, medList, swp)
+                }
+            val base =
+                joinToUiState(petList, medList, doses)
+                    .copy(dueDoses = dueToday, addAction = addAction)
             applyPetFilter(base, activePetFilter)
         }.stateIn(
             scope = viewModelScope,
@@ -415,5 +425,7 @@ public data class HomeUiState(
     public val dueDoses: List<DueDoseUi> = emptyList(),
     public val recentDoses: List<RecentDoseUi> = emptyList(),
     public val filterPetId: String? = null,
+    /** Next add step for the Today tab FAB (same chain as Reminders). */
+    public val addAction: ReminderAddAction? = null,
     public val loading: Boolean = false,
 )

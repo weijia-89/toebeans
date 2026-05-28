@@ -2,11 +2,10 @@ package app.toebeans.android.ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,9 +13,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -37,6 +39,8 @@ import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeCompact
 import app.toebeans.android.ui.pets.formatTimeAgo
+import app.toebeans.android.ui.reminders.ReminderAddAction
+import app.toebeans.android.ui.reminders.buttonLabel
 import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
@@ -58,7 +62,8 @@ import org.koin.androidx.compose.koinViewModel
  * Three states:
  *   - Loading: nothing (the parent suppresses recompositions while loading).
  *   - No pets:  one-CTA empty state inviting the user to add their first pet.
- *   - Has pets: Today header → "Your pets" tappable row → today's dose cards.
+ *   - Has pets: Today header → "Your pets" tappable row → today's dose cards + FAB
+ *     for the pet → medication → schedule add chain (same as Reminders).
  *
  * Pet chips filter the due + logged lists in-page (Pet Detail stays on the Pets tab).
  * Tapping the Today header while a filter is active clears back to all pets.
@@ -66,6 +71,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 public fun HomeScreen(
     onAddPet: () -> Unit,
+    onAddReminder: (ReminderAddAction) -> Unit,
     onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -75,6 +81,7 @@ public fun HomeScreen(
     HomeScreenContent(
         state = state,
         onAddPet = onAddPet,
+        onAddReminder = onAddReminder,
         onPetFilterSelect = viewModel::selectPetFilter,
         onClearPetFilter = viewModel::clearPetFilter,
         onEditDose = onEditDose,
@@ -88,6 +95,7 @@ public fun HomeScreen(
 private fun HomeScreenContent(
     state: HomeUiState,
     onAddPet: () -> Unit,
+    onAddReminder: (ReminderAddAction) -> Unit,
     onPetFilterSelect: (petId: String) -> Unit,
     onClearPetFilter: () -> Unit,
     onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
@@ -110,105 +118,120 @@ private fun HomeScreenContent(
         )
         return
     }
-    // Compute date string once per parent composition. The day-rollover-at-midnight
-    // edge case is fine — the user will close and reopen the app long before the date
-    // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
-    // rather than pulling in a heavier formatter dependency; English-only for v1
-    // (i18n lives in a future milestone alongside Plurals).
-    val today: LocalDate =
-        remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
-    val dateString = formatTodayHeader(today)
+    Box(modifier = modifier.fillMaxSize().padding(contentPadding)) {
+        // Compute date string once per parent composition. The day-rollover-at-midnight
+        // edge case is fine — the user will close and reopen the app long before the date
+        // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
+        // rather than pulling in a heavier formatter dependency; English-only for v1
+        // (i18n lives in a future milestone alongside Plurals).
+        val today: LocalDate =
+            remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        val dateString = formatTodayHeader(today)
 
-    val layoutDirection = LocalLayoutDirection.current
-    // LazyColumn contentPadding extends scroll range past the last row (ReminderList
-    // pattern). Modifier padding before verticalScroll did not clear the bottom nav on
-    // long dose lists; bottom = scaffold inset + slack for the Log dose button.
-    val listContentPadding =
-        PaddingValues(
-            start = contentPadding.calculateStartPadding(layoutDirection) + 16.dp,
-            top = contentPadding.calculateTopPadding(),
-            end = contentPadding.calculateEndPadding(layoutDirection) + 16.dp,
-            bottom = contentPadding.calculateBottomPadding() + 16.dp,
-        )
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = listContentPadding,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        val filterActive = state.filterPetId != null
-        item(key = "today_header") {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier =
-                    if (filterActive) {
-                        Modifier.clickable(onClick = onClearPetFilter)
-                    } else {
-                        Modifier
-                    },
-            ) {
-                // heading() semantic lets TalkBack's heading-rotor jump between top-level
-                // sections on this screen. Without it, screen-reader users have to swipe
-                // through every interactive element to navigate.
-                Text(
-                    text = "Today",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        item(key = "pets_heading") {
-            Text(
-                text = "Your pets",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
+        // LazyColumn contentPadding extends scroll range past the last row (ReminderList
+        // pattern). Modifier padding before verticalScroll did not clear the bottom nav on
+        // long dose lists; bottom = scaffold inset + slack for the Log dose button.
+        val listContentPadding =
+            PaddingValues(
+                start = 16.dp,
+                top = 0.dp,
+                end = 16.dp,
+                bottom = 88.dp,
             )
-        }
-        item(key = "pets_row") {
-            // Pet quick-tap row. Each chip filters due + logged lists in-page. LazyRow
-            // gives horizontal scrolling for multi-pet households without nesting scroll.
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                // 4dp vertical contentPadding leaves room for the Card's elevation shadow
-                // to render without clipping at the top/bottom of the LazyRow.
-                contentPadding = PaddingValues(vertical = 4.dp),
-            ) {
-                items(items = state.pets, key = { it.id }) { pet ->
-                    PetChip(
-                        pet = pet,
-                        medCount = state.medCountByPetId[pet.id] ?: 0,
-                        selected = pet.id == state.filterPetId,
-                        onClick = { onPetFilterSelect(pet.id) },
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = listContentPadding,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            val filterActive = state.filterPetId != null
+            item(key = "today_header") {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier =
+                        if (filterActive) {
+                            Modifier.clickable(onClick = onClearPetFilter)
+                        } else {
+                            Modifier
+                        },
+                ) {
+                    // heading() semantic lets TalkBack's heading-rotor jump between top-level
+                    // sections on this screen. Without it, screen-reader users have to swipe
+                    // through every interactive element to navigate.
+                    Text(
+                        text = "Today",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        text = dateString,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+
+            item(key = "pets_heading") {
+                Text(
+                    text = "Your pets",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+            item(key = "pets_row") {
+                // Pet quick-tap row. Each chip filters due + logged lists in-page. LazyRow
+                // gives horizontal scrolling for multi-pet households without nesting scroll.
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    // 4dp vertical contentPadding leaves room for the Card's elevation shadow
+                    // to render without clipping at the top/bottom of the LazyRow.
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    items(items = state.pets, key = { it.id }) { pet ->
+                        PetChip(
+                            pet = pet,
+                            medCount = state.medCountByPetId[pet.id] ?: 0,
+                            selected = pet.id == state.filterPetId,
+                            onClick = { onPetFilterSelect(pet.id) },
+                        )
+                    }
+                }
+            }
+
+            item(key = "doses_heading") {
+                Text(
+                    text = "Today's doses",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+            item(key = "doses_card") {
+                DueTodayCard(dueDoses = state.dueDoses, onMarkGiven = onMarkGiven, onEditDose = onEditDose)
+            }
+
+            item(key = "logged_heading") {
+                Text(
+                    text = "Logged today",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+            item(key = "logged_card") {
+                LoggedTodayCard(recentDoses = state.recentDoses, onEditMedication = onEditDose)
+            }
         }
 
-        item(key = "doses_heading") {
-            Text(
-                text = "Today's doses",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
+        if (!state.loading && state.addAction != null) {
+            ExtendedFloatingActionButton(
+                onClick = { onAddReminder(state.addAction) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(state.addAction.buttonLabel()) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
             )
-        }
-        item(key = "doses_card") {
-            DueTodayCard(dueDoses = state.dueDoses, onMarkGiven = onMarkGiven, onEditDose = onEditDose)
-        }
-
-        item(key = "logged_heading") {
-            Text(
-                text = "Logged today",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-        }
-        item(key = "logged_card") {
-            LoggedTodayCard(recentDoses = state.recentDoses, onEditMedication = onEditDose)
         }
     }
 }
@@ -577,6 +600,7 @@ private fun HomeScreenEmptyPreview() {
         HomeScreenContent(
             state = HomeUiState(pets = emptyList()),
             onAddPet = {},
+            onAddReminder = {},
             onPetFilterSelect = {},
             onClearPetFilter = {},
             onEditDose = { _, _, _ -> },
@@ -631,6 +655,7 @@ private fun HomeScreenPopulatedPreview() {
                         ),
                 ),
             onAddPet = {},
+            onAddReminder = {},
             onPetFilterSelect = {},
             onClearPetFilter = {},
             onEditDose = { _, _, _ -> },
