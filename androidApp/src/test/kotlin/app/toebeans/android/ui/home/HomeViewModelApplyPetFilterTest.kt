@@ -1,16 +1,32 @@
 package app.toebeans.android.ui.home
 
+import app.toebeans.core.model.Pet
+import app.toebeans.core.model.Species
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** Unit tests for [HomeViewModel.Companion.applyPetFilter]. */
 class HomeViewModelApplyPetFilterTest {
+    private val now = Instant.parse("2026-05-16T08:00:00Z")
+
     @Test
     fun `null petId leaves lists unchanged and clears filter field`() {
         val base = sampleState()
         val result = HomeViewModel.applyPetFilter(base, null)
+        assertNull(result.filterPetId)
+        assertEquals(base.dueDoses, result.dueDoses)
+        assertEquals(base.recentDoses, result.recentDoses)
+    }
+
+
+    @Test
+    fun `unknown petId clears filter and leaves lists unchanged`() {
+        val base = sampleState()
+        val result = HomeViewModel.applyPetFilter(base, "deleted-pet")
         assertNull(result.filterPetId)
         assertEquals(base.dueDoses, result.dueDoses)
         assertEquals(base.recentDoses, result.recentDoses)
@@ -29,7 +45,7 @@ class HomeViewModelApplyPetFilterTest {
 
     private fun sampleState(): HomeUiState =
         HomeUiState(
-            pets = emptyList(),
+            pets = listOf(samplePet("p-1"), samplePet("p-2")),
             dueDoses =
                 listOf(
                     due("p-1", "s-1"),
@@ -40,6 +56,18 @@ class HomeViewModelApplyPetFilterTest {
                     logged("p-1", "d-1"),
                     logged("p-2", "d-2"),
                 ),
+        )
+
+    private fun samplePet(id: String): Pet =
+        Pet(
+            id = id,
+            name = id,
+            species = Species.CAT,
+            birthdate = LocalDate(2020, 1, 1),
+            weightKg = 4.0,
+            notes = null,
+            createdAt = now,
+            archivedAt = null,
         )
 
     private fun due(

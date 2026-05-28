@@ -361,6 +361,10 @@ public class HomeViewModel(
             if (petId == null) {
                 return state.copy(filterPetId = null)
             }
+            // Stale filter after pet archive/delete: show full lists, not an empty screen.
+            if (state.pets.none { it.id == petId }) {
+                return state.copy(filterPetId = null)
+            }
             return state.copy(
                 filterPetId = petId,
                 dueDoses = state.dueDoses.filter { it.petId == petId },
