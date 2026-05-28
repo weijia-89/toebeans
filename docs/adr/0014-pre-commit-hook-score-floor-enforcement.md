@@ -35,6 +35,16 @@ if (( SCORE < FLOOR )); then
 fi
 ```
 
+### Exception design (if we tighten)
+
+If a score-floor check is added, define the **only** allowed bypass up front so the tool doesn't force score-bumping:
+
+- **Allowed bypass**: test-as-spec splits where the first commit is intentionally red (fails CI by design).
+- **Mechanism**: a single env var the hook reads, e.g. `TOEBEANS_ALLOW_SUBFLOOR_TEST_AS_SPEC=1`.
+- **Documentation requirement**: the calibration entry must explicitly say it is a test-as-spec red commit and name what follow-up evidence will raise `test_verif` (e.g. "paired implementation commit will make this test green; rerun full gate locally before PR").
+
+Any other sub-floor commit stays blocked and must follow `AGENTS.md` ("re-investigate, update plan, re-score").
+
 The trade-off has measurable cost on both sides. Wei should decide after M1.2, when there is real-user signal on whether the existing discipline cadence is producing field-quality results.
 
 ## Trade-off analysis
