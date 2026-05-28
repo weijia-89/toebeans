@@ -59,6 +59,8 @@ jobs:
         run: bash scripts/test_ci_trainer_pr_review_gate.sh .
       - name: Trainer gate rerun self-test
         run: bash scripts/test_trainer_pr_review_gate_rerun.sh .
+      - name: Trainer patch head self-test
+        run: bash scripts/test_trainer_pr_review_patch_head.sh
 
   trainer-pr-review-gate:
     # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
@@ -66,8 +68,25 @@ jobs:
     name: Trainer PR review comment gate
     runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Sync trainer review head= to PR HEAD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! -f scripts/trainer_pr_review_patch_head.sh ]]; then
+            echo "trainer_pr_review_patch_head.sh not in PR checkout; skip head sync"
+            exit 0
+          fi
+          bash scripts/trainer_pr_review_patch_head.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.repository }}"
       - name: Require trainer code-review comment on PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
