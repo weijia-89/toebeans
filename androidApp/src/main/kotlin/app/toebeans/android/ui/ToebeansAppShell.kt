@@ -96,7 +96,9 @@ public fun ToebeansAppShell() {
             ) {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
-                    onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
+                    onEditDose = { petId, medicationId, _ ->
+                        navController.navigate(Destinations.medicationEdit(petId, medicationId))
+                    },
                     contentPadding = innerPadding,
                 )
             }
