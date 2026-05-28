@@ -44,8 +44,7 @@ class MedicationEditViewModelLoadStaleTest {
                     repo,
                     seedPet("pet-1", "Luna"),
                 )
-            vm.setPetId("pet-1")
-            vm.load("med-1")
+            vm.prepareRoute("pet-1", "med-1")
             assertEquals("Alpha", vm.state.value.name)
 
             vm.load("med-2")
@@ -57,7 +56,7 @@ class MedicationEditViewModelLoadStaleTest {
         }
 
     @Test
-    fun `prepareRoute clears add mode after edit`() =
+    fun `prepareRoute clears stale medicationId for add flow`() =
         runTest {
             val med = seedMed("med-1", "pet-1", "Alpha")
             val repo = InMemoryMedRepo(med)
