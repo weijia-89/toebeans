@@ -105,7 +105,7 @@ public fun ScheduleCreateScreen(
                     tonalElevation = 3.dp,
                 ) {
                     Button(
-                        enabled = state.startDate != null && state.phases.isNotEmpty(),
+                        enabled = !state.isSaving && state.startDate != null && state.phases.isNotEmpty(),
                         onClick = {
                             scope.launch {
                                 val id = viewModel.save()
@@ -122,10 +122,7 @@ public fun ScheduleCreateScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
-                        Text(
-                            "Save schedule",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
+                        Text(if (state.isSaving) "Saving..." else "Save schedule", style = MaterialTheme.typography.titleMedium)
                     }
                 }
             },

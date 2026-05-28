@@ -17,13 +17,16 @@ import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.ScheduledDose
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
@@ -260,6 +263,51 @@ class ScheduleCreatePreflightTest {
         assertNotNull(msg)
         assertTrue("DuplicatePhaseOrder message should name the position", msg!!.contains("1"))
     }
+
+    @Test
+    fun `save rejects an end date earlier than the start date`() =
+        runTest {
+            val vm =
+                scheduleCreateVm(
+                    medRepo = InMemMedRepo(MED),
+                    schedRepo = InMemSchedRepo(),
+                    calc = FakeCalculator(throws = null),
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 10))
+            vm.onEndDateChange(LocalDate(2026, 5, 1))
+
+            val id = vm.save()
+            assertNull(id)
+            assertEquals("End date must be on or after the start date.", vm.state.value.formError)
+        }
+
+    @Test
+    fun `second save is ignored while first save is in flight`() =
+        runTest {
+            val releaseUpsert = CompletableDeferred<Unit>()
+            val schedRepo = BlockingUpsertSchedRepo(releaseUpsert)
+            val vm =
+                scheduleCreateVm(
+                    medRepo = InMemMedRepo(MED),
+                    schedRepo = schedRepo,
+                    calc = FakeCalculator(throws = null),
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 1))
+
+            val firstSave = launch { vm.save() }
+            runCurrent()
+            assertTrue(vm.state.value.isSaving)
+
+            val secondId = vm.save()
+            assertNull("second tap should not create another schedule while saving", secondId)
+
+            releaseUpsert.complete(Unit)
+            firstSave.join()
+            assertEquals(1, schedRepo.snapshot().size)
+            assertTrue("in-flight state must reset after completion", !vm.state.value.isSaving)
+        }
 }
 
 private const val MED_ID = "med-amox"
@@ -372,6 +420,48 @@ private class InMemSchedRepo : ScheduleRepository {
         schedule: Schedule,
         phases: List<SchedulePhase>,
     ) {
+        schedules.update { it + (schedule.id to schedule) }
+        this.phases.update { it + (schedule.id to phases) }
+    }
+
+    override suspend fun delete(id: String) {
+        schedules.update { it - id }
+        phases.update { it - id }
+    }
+
+    fun snapshot(): Map<String, Schedule> = schedules.value
+}
+
+private class BlockingUpsertSchedRepo(
+    private val releaseUpsert: CompletableDeferred<Unit>,
+) : ScheduleRepository {
+    private val schedules = MutableStateFlow<Map<String, Schedule>>(emptyMap())
+    private val phases = MutableStateFlow<Map<String, List<SchedulePhase>>>(emptyMap())
+
+    override fun observeForMedication(medicationId: String): Flow<List<Schedule>> =
+        schedules.asStateFlow().map { snap -> snap.values.filter { it.medicationId == medicationId } }
+
+    override fun observeById(id: String): Flow<Schedule?> = schedules.asStateFlow().map { it[id] }
+
+    override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
+        phases.asStateFlow().map { it[scheduleId] ?: emptyList() }
+
+    override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
+        schedules.asStateFlow().map { snap ->
+            snap.values
+                .filter { it.endDate == null || it.endDate!! >= onOrAfter }
+                .map { ScheduleWithPhases(it, phases.value[it.id] ?: emptyList()) }
+        }
+
+    override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
+
+    override fun observeAllPhases(): Flow<List<SchedulePhase>> = phases.asStateFlow().map { it.values.flatten() }
+
+    override suspend fun upsert(
+        schedule: Schedule,
+        phases: List<SchedulePhase>,
+    ) {
+        releaseUpsert.await()
         schedules.update { it + (schedule.id to schedule) }
         this.phases.update { it + (schedule.id to phases) }
     }
