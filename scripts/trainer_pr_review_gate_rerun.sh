@@ -59,6 +59,14 @@ if ! HEAD_SHA=$(gh pr view "$PR_NUM" --repo "$GH_REPO" --json headRefOid -q .hea
   exit 0
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PATCH_HEAD="${SCRIPT_DIR}/trainer_pr_review_patch_head.sh"
+if [[ -f "$PATCH_HEAD" ]]; then
+  bash "$PATCH_HEAD" "$PR_NUM" "$GH_REPO" || {
+    echo "trainer_pr_review_gate_rerun: head sync failed; fix comment then retry" >&2
+  }
+fi
+
 RUN_IDS=$(gh run list --repo "$GH_REPO" --branch "$BRANCH" --workflow "$WORKFLOW_NAME" \
   --limit 50 --json databaseId,headSha,event,status \
   | jq -r --arg sha "$HEAD_SHA" '
