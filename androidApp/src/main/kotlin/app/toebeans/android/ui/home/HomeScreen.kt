@@ -5,16 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -119,80 +119,97 @@ private fun HomeScreenContent(
         remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     val dateString = formatTodayHeader(today)
 
-    val scrollState = rememberScrollState()
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+    val layoutDirection = LocalLayoutDirection.current
+    // LazyColumn contentPadding extends scroll range past the last row (ReminderList
+    // pattern). Modifier padding before verticalScroll did not clear the bottom nav on
+    // long dose lists; bottom = scaffold inset + slack for the Log dose button.
+    val listContentPadding =
+        PaddingValues(
+            start = contentPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = contentPadding.calculateTopPadding(),
+            end = contentPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 16.dp,
+        )
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = listContentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         val filterActive = state.filterPetId != null
-        Column(
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier =
-                if (filterActive) {
-                    Modifier.clickable(onClick = onClearPetFilter)
-                } else {
-                    Modifier
-                },
-        ) {
-            // heading() semantic lets TalkBack's heading-rotor jump between top-level
-            // sections on this screen. Without it, screen-reader users have to swipe
-            // through every interactive element to navigate.
-            Text(
-                text = "Today",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = dateString,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        // Pet quick-tap row. Each chip filters due + logged lists in-page. LazyRow
-        // gives horizontal scrolling for multi-pet households without nesting scroll.
-        Text(
-            text = "Your pets",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            // 4dp vertical contentPadding leaves room for the Card's elevation shadow
-            // to render without clipping at the top/bottom of the LazyRow.
-            contentPadding = PaddingValues(vertical = 4.dp),
-        ) {
-            items(items = state.pets, key = { it.id }) { pet ->
-                PetChip(
-                    pet = pet,
-                    medCount = state.medCountByPetId[pet.id] ?: 0,
-                    selected = pet.id == state.filterPetId,
-                    onClick = { onPetFilterSelect(pet.id) },
+        item(key = "today_header") {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier =
+                    if (filterActive) {
+                        Modifier.clickable(onClick = onClearPetFilter)
+                    } else {
+                        Modifier
+                    },
+            ) {
+                // heading() semantic lets TalkBack's heading-rotor jump between top-level
+                // sections on this screen. Without it, screen-reader users have to swipe
+                // through every interactive element to navigate.
+                Text(
+                    text = "Today",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = dateString,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
-        Text(
-            text = "Today's doses",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        DueTodayCard(dueDoses = state.dueDoses, onMarkGiven = onMarkGiven, onEditDose = onEditDose)
+        item(key = "pets_heading") {
+            Text(
+                text = "Your pets",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        item(key = "pets_row") {
+            // Pet quick-tap row. Each chip filters due + logged lists in-page. LazyRow
+            // gives horizontal scrolling for multi-pet households without nesting scroll.
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                // 4dp vertical contentPadding leaves room for the Card's elevation shadow
+                // to render without clipping at the top/bottom of the LazyRow.
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(items = state.pets, key = { it.id }) { pet ->
+                    PetChip(
+                        pet = pet,
+                        medCount = state.medCountByPetId[pet.id] ?: 0,
+                        selected = pet.id == state.filterPetId,
+                        onClick = { onPetFilterSelect(pet.id) },
+                    )
+                }
+            }
+        }
 
-        Text(
-            text = "Logged today",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        LoggedTodayCard(recentDoses = state.recentDoses, onEditMedication = onEditDose)
+        item(key = "doses_heading") {
+            Text(
+                text = "Today's doses",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        item(key = "doses_card") {
+            DueTodayCard(dueDoses = state.dueDoses, onMarkGiven = onMarkGiven, onEditDose = onEditDose)
+        }
 
-        // Extra scroll slack so the last dose row clears the bottom nav bar.
-        Spacer(modifier = Modifier.height(24.dp))
+        item(key = "logged_heading") {
+            Text(
+                text = "Logged today",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        item(key = "logged_card") {
+            LoggedTodayCard(recentDoses = state.recentDoses, onEditMedication = onEditDose)
+        }
     }
 }
 
