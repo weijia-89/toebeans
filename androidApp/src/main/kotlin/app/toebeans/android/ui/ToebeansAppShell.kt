@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -97,6 +98,7 @@ public fun ToebeansAppShell() {
             ) {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
+                    onAddReminder = { navigateReminderAddAction(navController, it) },
                     onEditDose = { petId, medicationId, _ ->
                         navController.navigate(Destinations.medicationEdit(petId, medicationId))
                     },
@@ -114,17 +116,7 @@ public fun ToebeansAppShell() {
                     onScheduleClick = { scheduleId ->
                         navController.navigate(Destinations.scheduleDetail(scheduleId))
                     },
-                    onAddReminder = { action ->
-                        when (action) {
-                            ReminderAddAction.AddPet -> navController.navigate(Destinations.PET_NEW_ROUTE)
-                            is ReminderAddAction.AddMedication ->
-                                navController.navigate(Destinations.medicationNew(action.petId))
-                            is ReminderAddAction.AddSchedule ->
-                                navController.navigate(
-                                    Destinations.scheduleCreate(action.petId, action.medicationId),
-                                )
-                        }
-                    },
+                    onAddReminder = { navigateReminderAddAction(navController, it) },
                     contentPadding = innerPadding,
                 )
             }
@@ -252,6 +244,21 @@ public fun ToebeansAppShell() {
 
 private val TOP_LEVEL_ROUTES =
     setOf(Destinations.HOME, Destinations.REMINDERS, Destinations.PETS, Destinations.SETTINGS)
+
+private fun navigateReminderAddAction(
+    navController: NavHostController,
+    action: ReminderAddAction,
+) {
+    when (action) {
+        ReminderAddAction.AddPet -> navController.navigate(Destinations.PET_NEW_ROUTE)
+        is ReminderAddAction.AddMedication ->
+            navController.navigate(Destinations.medicationNew(action.petId))
+        is ReminderAddAction.AddSchedule ->
+            navController.navigate(
+                Destinations.scheduleCreate(action.petId, action.medicationId),
+            )
+    }
+}
 
 // Pets tab uses a hand-authored paw vector (see PawIcon.kt) so we don't have to pull in
 // the ~5 MB material-icons-extended dep just for one glyph. Home and Settings stay on

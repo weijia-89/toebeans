@@ -14,6 +14,11 @@ Last updated: 2026-05-28.
 - Tapping a **medicine** row or **schedule** control on Reminders should open edit UI with **bubbles** for both **medicine** and **schedule** (not dead / non-navigating controls).
 - **Date range** and **phase** controls on that surface should use the same edit entry (medicine + schedule context), not placeholders.
 
+## Medication entry (Wave 2)
+
+- **Medicine name search:** automatic lookup wired into the Add/Edit medication form (local index; no cloud).
+- **Dose unit picker:** separate dropdown for units (tbsp, tsp, g, mL, tablet, etc.) alongside free-text dose amount.
+
 ## Medicine info from manual
 
 - Autopopulate medication info fields from a parsed package insert / manual (operator-supplied source text).
