@@ -38,6 +38,22 @@ public class MedicationEditViewModel(
 
     public fun load(medicationId: String) {
         viewModelScope.launch {
+            // Clear stale form fields before the async fetch. The screen shares one
+            // Koin-scoped VM across navigations; without this, a Today med tap briefly
+            // shows the previous medication until load() returns.
+            _state.update {
+                it.copy(
+                    medicationId = medicationId,
+                    name = "",
+                    doseAmount = "",
+                    notes = "",
+                    nameError = null,
+                    doseAmountError = null,
+                    discontinuedAt = null,
+                    petName = null,
+                    scheduleHint = null,
+                )
+            }
             val med = medicationRepository.getById(medicationId) ?: return@launch
             _state.update {
                 it.copy(
