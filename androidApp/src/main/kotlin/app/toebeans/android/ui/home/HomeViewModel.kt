@@ -14,11 +14,13 @@ import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -65,8 +67,20 @@ public class HomeViewModel(
     private val doseEventRepository: DoseEventRepository,
     private val scheduleCalculator: ScheduleCalculator,
 ) : ViewModel() {
+    private val filterPetId = MutableStateFlow<String?>(null)
+
     public val uiState: StateFlow<HomeUiState> =
-        buildUiState(petRepository, medicationRepository, scheduleRepository, doseEventRepository)
+        buildUiState(petRepository, medicationRepository, scheduleRepository, doseEventRepository, filterPetId)
+
+    /** Filter due + logged lists to [petId]. Pet chips on Today use this instead of Pet Detail nav. */
+    public fun selectPetFilter(petId: String) {
+        filterPetId.update { petId }
+    }
+
+    /** Clears the in-page pet filter (Today header tap when a filter is active). */
+    public fun clearPetFilter() {
+        filterPetId.update { null }
+    }
 
     /**
      * Mark the dose at [scheduledAt] on [scheduleId] as GIVEN, now. Fire-and-forget
@@ -103,6 +117,7 @@ public class HomeViewModel(
         medicationRepository: MedicationRepository,
         scheduleRepository: ScheduleRepository,
         doseEventRepository: DoseEventRepository,
+        filterPetId: MutableStateFlow<String?>,
     ): StateFlow<HomeUiState> {
         val pets = petRepository.observeAll()
         val medications = medicationRepository.observeAll()
@@ -124,7 +139,8 @@ public class HomeViewModel(
             medications,
             recentDoses,
             schedulesWithPhases,
-        ) { petList, medList, doses, swp ->
+            filterPetId,
+        ) { petList, medList, doses, swp, activePetFilter ->
             val zone = TimeZone.currentSystemDefault()
             val dueToday =
                 computeDueToday(
@@ -137,7 +153,8 @@ public class HomeViewModel(
                     todayStart = localMidnightToday(),
                     todayEnd = localMidnightTomorrow(),
                 )
-            joinToUiState(petList, medList, doses).copy(dueDoses = dueToday)
+            val base = joinToUiState(petList, medList, doses).copy(dueDoses = dueToday)
+            applyPetFilter(base, activePetFilter)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
@@ -221,6 +238,7 @@ public class HomeViewModel(
                             .replaceFirstChar(Char::titlecase)
                     RecentDoseUi(
                         id = event.id,
+                        petId = pet.id,
                         petName = pet.name,
                         petSpecies = speciesLabel,
                         medicationName = med.name,
@@ -316,6 +334,7 @@ public class HomeViewModel(
                             DueDoseUi(
                                 scheduleId = swp.schedule.id,
                                 medicationId = med.id,
+                                petId = pet.id,
                                 scheduledAt = dose.scheduledAt,
                                 petName = pet.name,
                                 medicationName = med.name,
@@ -330,12 +349,31 @@ public class HomeViewModel(
             // when two schedules happen to share a scheduledAt instant.
             return rows.sortedBy { it.scheduledAt }
         }
+
+        /**
+         * When [petId] is non-null, narrows due + logged lists to that pet. Lives on the
+         * companion for direct unit tests without a ViewModel scope.
+         */
+        internal fun applyPetFilter(
+            state: HomeUiState,
+            petId: String?,
+        ): HomeUiState {
+            if (petId == null) {
+                return state.copy(filterPetId = null)
+            }
+            return state.copy(
+                filterPetId = petId,
+                dueDoses = state.dueDoses.filter { it.petId == petId },
+                recentDoses = state.recentDoses.filter { it.petId == petId },
+            )
+        }
     }
 }
 
 /** Compact UI projection of a logged dose, ready for the Home "Logged today" card. */
 public data class RecentDoseUi(
     public val id: String,
+    public val petId: String,
     public val petName: String,
     public val petSpecies: String,
     public val medicationName: String,
@@ -353,6 +391,7 @@ public data class RecentDoseUi(
 public data class DueDoseUi(
     public val scheduleId: String,
     public val medicationId: String,
+    public val petId: String,
     public val scheduledAt: Instant,
     public val petName: String,
     public val medicationName: String,
@@ -369,5 +408,6 @@ public data class HomeUiState(
     public val medCountByPetId: Map<String, Int> = emptyMap(),
     public val dueDoses: List<DueDoseUi> = emptyList(),
     public val recentDoses: List<RecentDoseUi> = emptyList(),
+    public val filterPetId: String? = null,
     public val loading: Boolean = false,
 )

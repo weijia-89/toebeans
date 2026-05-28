@@ -88,7 +88,11 @@ public fun ToebeansAppShell() {
             composable(Destinations.HOME) {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
-                    onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
+                    onEditDose = { petId, medicationId, scheduleId ->
+                        // Med edit then schedule detail: back stack exposes both until unified modal.
+                        navController.navigate(Destinations.medicationEdit(petId, medicationId))
+                        navController.navigate(Destinations.scheduleDetail(scheduleId))
+                    },
                     contentPadding = innerPadding,
                 )
             }
