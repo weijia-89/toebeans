@@ -3,7 +3,7 @@
 Pet medication tracker for Android. Local-only. No cloud, no telemetry, no
 third-party services.
 
-Status: `v0.1.0-dev`, pre-MVP. Pets and their medications live in SQLDelight
+Status: `v0.1.0-dev`, M1 feature-complete on `main`; bottom nav is **Today → Pets → Reminders → Settings** ([#74](https://github.com/weijia-89/toebeans/pull/74) merged). M1.2 internal-beta prep and M2 IA polish in open PRs ([#75](https://github.com/weijia-89/toebeans/pull/75)–[#78](https://github.com/weijia-89/toebeans/pull/78)). Pets and their medications live in SQLDelight
 (`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
 tab lists schedules and opens read-only schedule detail. After reboot,
 `BootReceiver` replays alarms for the next 72 hours by querying pending rows from
