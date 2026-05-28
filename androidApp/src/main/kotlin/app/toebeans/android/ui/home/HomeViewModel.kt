@@ -239,6 +239,7 @@ public class HomeViewModel(
                     RecentDoseUi(
                         id = event.id,
                         petId = pet.id,
+                        medicationId = med.id,
                         petName = pet.name,
                         petSpecies = speciesLabel,
                         medicationName = med.name,
@@ -378,6 +379,7 @@ public class HomeViewModel(
 public data class RecentDoseUi(
     public val id: String,
     public val petId: String,
+    public val medicationId: String,
     public val petName: String,
     public val petSpecies: String,
     public val medicationName: String,

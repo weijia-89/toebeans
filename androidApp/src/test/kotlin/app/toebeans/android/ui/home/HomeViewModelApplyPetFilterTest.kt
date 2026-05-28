@@ -91,6 +91,7 @@ class HomeViewModelApplyPetFilterTest {
         RecentDoseUi(
             id = id,
             petId = petId,
+            medicationId = "med-$petId",
             petName = petId,
             petSpecies = "Cat",
             medicationName = "Med",

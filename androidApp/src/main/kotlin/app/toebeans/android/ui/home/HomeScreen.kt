@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -18,14 +20,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -121,8 +124,8 @@ private fun HomeScreenContent(
         modifier =
             modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(contentPadding)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -186,7 +189,10 @@ private fun HomeScreenContent(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        LoggedTodayCard(recentDoses = state.recentDoses)
+        LoggedTodayCard(recentDoses = state.recentDoses, onEditMedication = onEditDose)
+
+        // Extra scroll slack so the last dose row clears the bottom nav bar.
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -232,7 +238,7 @@ private fun DueTodayCard(
         // `now` captured per-recomposition for the time label. Same staleness story as
         // LoggedTodayCard — a minute drift on a "12:00" label is fine.
         val tz = remember { TimeZone.currentSystemDefault() }
-        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Column(modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)) {
             dueDoses.forEach { dose ->
                 DueDoseRow(
                     dose = dose,
@@ -265,14 +271,20 @@ private fun DueDoseRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = a11y
-                },
+                .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.padding(end = 12.dp)) {
+        Column(
+            modifier =
+                Modifier
+                    .padding(end = 12.dp)
+                    .clickable(onClick = onEditDose)
+                    .semantics {
+                        contentDescription = a11y
+                        role = Role.Button
+                    },
+        ) {
             Text(
                 text = "${dose.petName} · ${dose.medicationName}",
                 style = MaterialTheme.typography.bodyLarge,
@@ -294,20 +306,12 @@ private fun DueDoseRow(
                 color = MaterialTheme.colorScheme.tertiary,
             )
         } else {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Button(
+                onClick = onMarkGiven,
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
             ) {
-                TextButton(onClick = onEditDose) {
-                    Text("Edit")
-                }
-                Button(
-                    onClick = onMarkGiven,
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                ) {
-                    Text("Log dose")
-                }
+                Text("Log dose")
             }
         }
     }
@@ -342,7 +346,10 @@ private fun formatLocalTime(
  * how much I got done."
  */
 @Composable
-private fun LoggedTodayCard(recentDoses: List<RecentDoseUi>) {
+private fun LoggedTodayCard(
+    recentDoses: List<RecentDoseUi>,
+    onEditMedication: (petId: String, medicationId: String, scheduleId: String) -> Unit,
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -370,9 +377,15 @@ private fun LoggedTodayCard(recentDoses: List<RecentDoseUi>) {
         // Padding-only separation between rows. A Divider would feel heavy on a
         // surfaceVariant card; the extra vertical breathing room reads cleaner and
         // avoids the M3 1.0→1.2 divider-API rename.
-        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Column(modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)) {
             recentDoses.forEach { dose ->
-                LoggedDoseRow(dose = dose, now = now)
+                LoggedDoseRow(
+                    dose = dose,
+                    now = now,
+                    onEditMedication = {
+                        onEditMedication(dose.petId, dose.medicationId, "")
+                    },
+                )
             }
         }
     }
@@ -382,22 +395,28 @@ private fun LoggedTodayCard(recentDoses: List<RecentDoseUi>) {
 private fun LoggedDoseRow(
     dose: RecentDoseUi,
     now: Instant,
+    onEditMedication: () -> Unit,
 ) {
     val timeAgo = formatTimeAgo(dose.givenAt, now)
-    // Merged semantics so TalkBack announces the whole row as one node
-    // ("Luna, Methimazole, 2 hours ago") instead of three sequential text reads.
+    val a11y = "${dose.petName}, ${dose.medicationName}, $timeAgo"
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "${dose.petName}, ${dose.medicationName}, $timeAgo"
-                },
+                .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.padding(end = 12.dp)) {
+        Column(
+            modifier =
+                Modifier
+                    .padding(end = 12.dp)
+                    .clickable(onClick = onEditMedication)
+                    .semantics {
+                        contentDescription = a11y
+                        role = Role.Button
+                    },
+        ) {
             Text(
                 text = "${dose.petName} · ${dose.medicationName}",
                 style = MaterialTheme.typography.bodyLarge,
@@ -586,6 +605,7 @@ private fun HomeScreenPopulatedPreview() {
                             RecentDoseUi(
                                 id = "dose-1",
                                 petId = "pet-2",
+                                medicationId = "med-luna",
                                 petName = "Luna",
                                 petSpecies = "Cat",
                                 medicationName = "Methimazole",

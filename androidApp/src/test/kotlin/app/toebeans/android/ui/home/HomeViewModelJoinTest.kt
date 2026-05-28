@@ -98,6 +98,7 @@ class HomeViewModelJoinTest {
         assertEquals("Luna", row.petName)
         assertEquals("species is title-cased for display", "Cat", row.petSpecies)
         assertEquals("Methimazole", row.medicationName)
+        assertEquals("med-abc123", row.medicationId)
         assertEquals("givenAt prefers resolvedAt, falls back to scheduledAt", T2, row.givenAt)
     }
 
