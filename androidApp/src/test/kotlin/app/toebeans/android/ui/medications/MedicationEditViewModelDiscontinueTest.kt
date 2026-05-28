@@ -53,7 +53,7 @@ class MedicationEditViewModelDiscontinueTest {
     fun `discontinue stamps discontinuedAt on the persisted medication`() =
         runTest {
             val repo = InMemoryMedRepo(seedMed("med-1", "pet-luna", "Methimazole"))
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             val pinned = Instant.fromEpochMilliseconds(1_715_000_000_000L)
@@ -65,7 +65,7 @@ class MedicationEditViewModelDiscontinueTest {
     fun `discontinue updates state discontinuedAt in lockstep with the repo`() =
         runTest {
             val repo = InMemoryMedRepo(seedMed("med-1", "pet-luna", "Methimazole"))
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             val pinned = Instant.fromEpochMilliseconds(1_715_000_000_000L)
@@ -82,7 +82,7 @@ class MedicationEditViewModelDiscontinueTest {
                 InMemoryMedRepo(
                     seedMed("med-1", "pet-luna", "Methimazole").copy(discontinuedAt = pinned),
                 )
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             assertTrue(vm.reactivate())
@@ -97,7 +97,7 @@ class MedicationEditViewModelDiscontinueTest {
                 InMemoryMedRepo(
                     seedMed("med-1", "pet-luna", "Methimazole").copy(discontinuedAt = pinned),
                 )
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             assertEquals(pinned, vm.state.value.discontinuedAt)
@@ -111,7 +111,7 @@ class MedicationEditViewModelDiscontinueTest {
         runTest {
             val seed = seedMed("med-1", "pet-luna", "Methimazole")
             val repo = InMemoryMedRepo(seed)
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             // Never load(). The form is in new-med mode.
             assertFalse(vm.discontinue(now = Clock.System.now()))
@@ -123,7 +123,7 @@ class MedicationEditViewModelDiscontinueTest {
     fun `reactivate in new-medication mode is a no-op and returns false`() =
         runTest {
             val repo = InMemoryMedRepo(seedMed("med-1", "pet-luna", "Methimazole"))
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             // Never load(). The form is in new-med mode.
             assertFalse(vm.reactivate())
@@ -138,7 +138,7 @@ class MedicationEditViewModelDiscontinueTest {
                 InMemoryMedRepo(
                     seedMed("med-1", "pet-luna", "Methimazole").copy(discontinuedAt = pinned),
                 )
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             assertEquals(pinned, vm.state.value.discontinuedAt)
@@ -158,7 +158,7 @@ class MedicationEditViewModelDiscontinueTest {
                 InMemoryMedRepo(
                     seedMed("med-1", "pet-luna", "Methimazole").copy(discontinuedAt = pinned),
                 )
-            val vm = MedicationEditViewModel(repo)
+            val vm = medicationEditViewModel(repo)
             vm.setPetId("pet-luna")
             vm.load("med-1")
             vm.onNotesChange("New notes added while discontinued")
