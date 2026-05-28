@@ -15,8 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,31 +79,40 @@ private fun PetsScreenContent(
                 onPrimaryAction = onAddPet,
             )
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(items = state.pets, key = { it.id }) { pet ->
-                    PetRow(
-                        pet = pet,
-                        medCount = state.medCountByPetId[pet.id] ?: 0,
-                        onClick = { onPetClick(pet.id) },
-                    )
+            val petListArrangement =
+                if (state.pets.size <= 2) {
+                    Arrangement.Center
+                } else {
+                    Arrangement.spacedBy(8.dp)
+                }
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onAddPet) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add pet",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = petListArrangement,
+                ) {
+                    items(items = state.pets, key = { it.id }) { pet ->
+                        PetRow(
+                            pet = pet,
+                            medCount = state.medCountByPetId[pet.id] ?: 0,
+                            onClick = { onPetClick(pet.id) },
+                        )
+                    }
                 }
             }
-            // FAB uses the primary terracotta + onPrimary cream pairing so it sits
-            // confidently in the warm palette. Default FAB colors fall back to
-            // primaryContainer (the dusty rose) which read as off-brand against the
-            // cream surface — too washed-out for a primary CTA.
-            ExtendedFloatingActionButton(
-                onClick = onAddPet,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add pet") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            )
         }
     }
 }
