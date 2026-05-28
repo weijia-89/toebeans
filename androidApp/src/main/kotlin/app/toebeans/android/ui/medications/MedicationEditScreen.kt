@@ -62,8 +62,7 @@ public fun MedicationEditScreen(
     var showDiscontinueDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId, medicationId) {
-        viewModel.setPetId(petId)
-        if (medicationId != null) viewModel.load(medicationId)
+        viewModel.prepareRoute(petId, medicationId)
     }
 
     if (showDeleteDialog) {

@@ -171,6 +171,15 @@ public suspend fun loadDemoData(
     medicationRepository: MedicationRepository,
     scheduleRepository: ScheduleRepository,
 ) {
+    val (rufus, luna) = demoPets()
+    petRepository.upsert(rufus)
+    petRepository.upsert(luna)
+    val demoMeds = demoMedications(rufus.id, luna.id)
+    demoMeds.forEach { medicationRepository.upsert(it) }
+    demoSchedules(scheduleRepository, demoMeds)
+}
+
+private fun demoPets(): Pair<Pet, Pet> {
     val rufus =
         Pet(
             id = "pet-rufus",
@@ -193,41 +202,146 @@ public suspend fun loadDemoData(
             createdAt = seedCreatedAt,
             archivedAt = null,
         )
-    petRepository.upsert(rufus)
-    petRepository.upsert(luna)
+    return rufus to luna
+}
 
-    val methimazole =
+private fun demoMedications(
+    rufusId: String,
+    lunaId: String,
+): List<Medication> =
+    listOf(
+        Medication(
+            id = "med-rufus-carprofen",
+            petId = rufusId,
+            name = "Carprofen",
+            doseAmount = "75 mg",
+            notes = "With breakfast; skip if he skips a meal.",
+            createdAt = seedCreatedAt,
+            discontinuedAt = null,
+        ),
+        Medication(
+            id = "med-rufus-fish-oil",
+            petId = rufusId,
+            name = "Fish oil",
+            doseAmount = "1 pump",
+            notes = "Evening meal topper.",
+            createdAt = seedCreatedAt,
+            discontinuedAt = null,
+        ),
+        Medication(
+            id = "med-rufus-apoquel",
+            petId = rufusId,
+            name = "Apoquel",
+            doseAmount = "16 mg",
+            notes = null,
+            createdAt = seedCreatedAt,
+            discontinuedAt = null,
+        ),
         Medication(
             id = "med-luna-methimazole",
-            petId = luna.id,
+            petId = lunaId,
             name = "Methimazole",
             doseAmount = "2.5 mg",
             notes = "Crush and hide in churu — Luna spits out whole pills.",
             createdAt = seedCreatedAt,
             discontinuedAt = null,
-        )
-    medicationRepository.upsert(methimazole)
+        ),
+        Medication(
+            id = "med-luna-prednisolone",
+            petId = lunaId,
+            name = "Prednisolone",
+            doseAmount = "5 mg",
+            notes = "Morning only; taper per vet sheet.",
+            createdAt = seedCreatedAt,
+            discontinuedAt = null,
+        ),
+        Medication(
+            id = "med-luna-fortiflora",
+            petId = lunaId,
+            name = "FortiFlora",
+            doseAmount = "1 sachet",
+            notes = "Mix into dinner.",
+            createdAt = seedCreatedAt,
+            discontinuedAt = null,
+        ),
+    )
 
-    val methSchedule =
+private suspend fun demoSchedules(
+    scheduleRepository: ScheduleRepository,
+    meds: List<Medication>,
+) {
+    val medById = meds.associateBy { it.id }
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-rufus-carprofen",
+        medById.getValue("med-rufus-carprofen").id,
+        1,
+        listOf(LocalTime(8, 0)),
+    )
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-rufus-fish-oil",
+        medById.getValue("med-rufus-fish-oil").id,
+        1,
+        listOf(LocalTime(18, 0)),
+    )
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-rufus-apoquel",
+        medById.getValue("med-rufus-apoquel").id,
+        2,
+        listOf(LocalTime(7, 30), LocalTime(19, 30)),
+    )
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-luna-methimazole",
+        medById.getValue("med-luna-methimazole").id,
+        2,
+        listOf(LocalTime(8, 0), LocalTime(20, 0)),
+    )
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-luna-prednisolone",
+        medById.getValue("med-luna-prednisolone").id,
+        1,
+        listOf(LocalTime(9, 0)),
+    )
+    upsertDemoSchedule(
+        scheduleRepository,
+        "sched-luna-fortiflora",
+        medById.getValue("med-luna-fortiflora").id,
+        1,
+        listOf(LocalTime(17, 30)),
+    )
+}
+
+private suspend fun upsertDemoSchedule(
+    scheduleRepository: ScheduleRepository,
+    scheduleId: String,
+    medicationId: String,
+    dosesPerDay: Int,
+    doseTimesLocal: List<LocalTime>,
+) {
+    val schedule =
         Schedule(
-            id = "sched-luna-methimazole",
-            medicationId = methimazole.id,
+            id = scheduleId,
+            medicationId = medicationId,
             startDate = LocalDate(2024, 1, 1),
             endDate = null,
             createdAt = seedCreatedAt,
         )
-    val methPhase =
+    val phase =
         SchedulePhase(
-            id = "phase-luna-methimazole-0",
-            scheduleId = methSchedule.id,
+            id = "phase-$scheduleId-0",
+            scheduleId = schedule.id,
             phaseOrder = 0,
             durationDays = SchedulePhase.MAX_DURATION_DAYS,
-            dosesPerDay = 2,
-            doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
+            dosesPerDay = dosesPerDay,
+            doseTimesLocal = doseTimesLocal,
             doseAmount = null,
             dayInterval = 1,
         )
-    scheduleRepository.upsert(methSchedule, listOf(methPhase))
+    scheduleRepository.upsert(schedule, listOf(phase))
 }
 
 /** Utility for forms that need to display "now" in the device's local zone. */

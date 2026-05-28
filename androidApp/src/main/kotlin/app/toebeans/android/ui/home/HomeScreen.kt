@@ -616,7 +616,7 @@ private fun HomeScreenPopulatedPreview() {
                                 archivedAt = null,
                             ),
                         ),
-                    medCountByPetId = mapOf("pet-2" to 1),
+                    medCountByPetId = mapOf("pet-1" to 3, "pet-2" to 3),
                     recentDoses =
                         listOf(
                             RecentDoseUi(

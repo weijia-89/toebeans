@@ -36,8 +36,54 @@ public class MedicationEditViewModel(
         refreshReferenceContext()
     }
 
+    /**
+     * Single entry point from [MedicationEditScreen]'s route args. Clears stale form state
+     * before async load so a shared Koin-scoped VM does not flash the previous medication
+     * (Today Edit) or keep an old [MedicationEditUiState.medicationId] in add mode
+     * (Reminders FAB → Add medication).
+     */
+    public fun prepareRoute(
+        petId: String,
+        medicationId: String?,
+    ) {
+        _state.update { it.copy(petId = petId) }
+        if (medicationId == null) {
+            _state.update {
+                MedicationEditUiState(
+                    petId = petId,
+                    medicationId = null,
+                    name = "",
+                    doseAmount = "",
+                    notes = "",
+                    nameError = null,
+                    doseAmountError = null,
+                    discontinuedAt = null,
+                    petName = null,
+                    scheduleHint = null,
+                )
+            }
+            refreshReferenceContext()
+            return
+        }
+        load(medicationId)
+    }
+
     public fun load(medicationId: String) {
         viewModelScope.launch {
+            // Clear stale fields before fetch; shared VM across navigations.
+            _state.update {
+                it.copy(
+                    medicationId = medicationId,
+                    name = "",
+                    doseAmount = "",
+                    notes = "",
+                    nameError = null,
+                    doseAmountError = null,
+                    discontinuedAt = null,
+                    petName = null,
+                    scheduleHint = null,
+                )
+            }
             val med = medicationRepository.getById(medicationId) ?: return@launch
             _state.update {
                 it.copy(
