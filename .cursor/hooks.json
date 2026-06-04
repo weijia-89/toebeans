@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/style-lab-session-context.sh"
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": ".cursor/hooks/deny-magic-patterns-mcp.sh"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/style-lab-reminder.sh",
+        "matcher": "Write|StrReplace|search_replace"
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+---
+description: UI design handoff for toebeans — style-lab only, no Magic Patterns or cloud design SaaS. Triggers Compose UI, style lab, theme, Today screen, design handoff.
+globs:
+  - androidApp/src/main/**/*.kt
+  - shared/src/commonMain/**/*.kt
+  - docs/style-lab/**/*
+alwaysApply: false
+---
+
+# toebeans — UI design handoff (local-only)
+
+**Manifest:** `docs/design-handoff/manifest.yaml`  
+**Style lab:** `docs/style-lab/index.html`  
+**Operator doc:** `docs/design-handoff.md`
+
+## Hard rule
+
+**No Magic Patterns**, no Framer cloud handoff into product code. Third-party design SaaS violates README constraints.
+
+Hooks **deny** `magic-patterns` MCP in this repo.
+
+## Pipeline
+
+```text
+docs/style-lab/ (HTML/CSS variants, git)
+    → log in docs/style-lab/DECISIONS.md
+    → Jetpack Compose + theme tokens
+    → bash scripts/manual_qa_boot.sh / emulator screenshots
+```
+
+## When editing Compose UI
+
+1. Open or update `docs/style-lab/index.html` for layout/color experiments.
+2. Run `bash scripts/style_lab_handoff_check.sh`.
+3. `open docs/style-lab/index.html` for sign-off.
+
+## Framer
+
+`docs/framer/` may exist for **offline HTML reference only** — do not wire cloud sync or analytics.
