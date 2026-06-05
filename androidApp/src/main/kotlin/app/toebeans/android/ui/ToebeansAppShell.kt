@@ -116,6 +116,9 @@ public fun ToebeansAppShell() {
                     onScheduleClick = { scheduleId ->
                         navController.navigate(Destinations.scheduleDetail(scheduleId))
                     },
+                    onNeedsScheduleClick = { petId, medicationId ->
+                        navController.navigate(Destinations.scheduleCreate(petId, medicationId))
+                    },
                     onAddReminder = { navigateReminderAddAction(navController, it) },
                     contentPadding = innerPadding,
                 )

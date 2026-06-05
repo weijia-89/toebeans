@@ -103,9 +103,10 @@ public fun MedicationEditScreen(
             // collapses the bottomBar up against the form content instead of pinning it to
             // the bottom of the parent Box.
             modifier = Modifier.fillMaxSize(),
-            // Surface is set transparent so the PillBackground shows through. The Scaffold's
-            // own surface color would paint over our decoration.
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            // Opaque surface so the previous destination (Reminders FAB / list) does not
+            // bleed through during enter/pop transitions. PillBackground stays in the Box
+            // behind this Scaffold.
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     title = { Text(if (state.isNew) "Add medication" else "Edit medication") },

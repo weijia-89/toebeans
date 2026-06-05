@@ -27,7 +27,11 @@ public class PetsViewModel(
             PetsUiState(pets = pets, medCountByPetId = countByPet, loading = false)
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+            started =
+                SharingStarted.WhileSubscribed(
+                    stopTimeoutMillis = 5_000L,
+                    replayExpirationMillis = 0L,
+                ),
             initialValue = PetsUiState(pets = emptyList(), medCountByPetId = emptyMap(), loading = true),
         )
 }

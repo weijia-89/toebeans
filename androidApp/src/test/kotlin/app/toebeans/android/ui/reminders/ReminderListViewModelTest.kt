@@ -115,6 +115,20 @@ class ReminderListViewModelTest {
     }
 
     @Test
+    fun `unscheduled active medication yields needs-schedule placeholder row`() {
+        val p = pet(id = "p1", name = "Luna")
+        val m = med(id = "m-new", petId = "p1", name = "bbbb")
+        val state = ReminderListViewModel.joinToUiState(listOf(p), listOf(m), emptyList(), today)
+        assertEquals(1, state.rows.size)
+        val row = state.rows.single()
+        assertNull(row.scheduleId)
+        assertTrue(row.needsSchedule)
+        assertEquals("m-new", row.medicationId)
+        assertEquals("No schedule yet — tap to set up", row.phaseSummary)
+        assertEquals(ReminderAddAction.AddSchedule("p1", "m-new"), state.addAction)
+    }
+
+    @Test
     fun `resolveAddAction routes to add schedule when med has no schedule`() {
         val p = pet(id = "p1", name = "Luna")
         val m = med(id = "m1", petId = "p1", name = "Methimazole")

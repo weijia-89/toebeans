@@ -233,6 +233,14 @@ public class MedicationEditViewModel(
                 discontinuedAt = existing?.discontinuedAt,
             )
         medicationRepository.upsert(med)
+        _state.update {
+            it.copy(
+                medicationId = med.id,
+                nameError = null,
+                doseAmountError = null,
+            )
+        }
+        refreshReferenceContext()
         return true
     }
 }

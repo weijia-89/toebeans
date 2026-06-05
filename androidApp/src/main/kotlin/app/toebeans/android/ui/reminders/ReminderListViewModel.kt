@@ -64,7 +64,14 @@ public class ReminderListViewModel(
             joinToUiState(pets, meds, schedules, clock.todayIn(timeZone))
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            started =
+                SharingStarted.WhileSubscribed(
+                    stopTimeoutMillis = STOP_TIMEOUT_MS,
+                    // Drop replay when the tab leaves composition (stacked med/schedule
+                    // routes). Otherwise popBackStack() can briefly show a stale list
+                    // until upstream restarts — looks like the new med never saved.
+                    replayExpirationMillis = 0L,
+                ),
             initialValue = ReminderListUiState(rows = emptyList(), loading = true),
         )
 
@@ -88,44 +95,22 @@ public class ReminderListViewModel(
         ): ReminderListUiState {
             val petById = pets.associateBy { it.id }
             val medById = meds.associateBy { it.id }
+            val scheduledMedIds = schedules.map { it.schedule.medicationId }.toSet()
             val rows =
-                schedules.mapNotNull { swp ->
-                    val med =
-                        medById[swp.schedule.medicationId]
-                            ?: return@mapNotNull StaleEventGuard.reportMissing(
-                                site = "ReminderListViewModel.joinToUiState",
-                                eventId = swp.schedule.id,
-                                missingFieldName = "medicationId",
-                                missingValue = swp.schedule.medicationId,
-                            )
-                    val pet =
-                        petById[med.petId]
-                            ?: return@mapNotNull StaleEventGuard.reportMissing(
-                                site = "ReminderListViewModel.joinToUiState",
-                                eventId = swp.schedule.id,
-                                missingFieldName = "petId",
-                                missingValue = med.petId,
-                            )
-                    ReminderRowUi(
-                        scheduleId = swp.schedule.id,
-                        petId = pet.id,
-                        petName = pet.name,
-                        medicationId = med.id,
-                        medicationName = med.name,
-                        phaseSummary = summarizePhases(swp.phases),
-                        endsLabel = endsLabel(swp.schedule.endDate, today),
-                    )
-                }
+                scheduleRows(petById, medById, schedules, today) +
+                    unscheduledMedRows(petById, meds, scheduledMedIds)
             // Group by pet name, then medication name. Stable sort preserves
             // schedule-id order within (pet, med) tuples — useful when one medication
             // has multiple active schedules (rare; e.g. multiple tapering phases that
-            // for some reason live in separate Schedule rows).
+            // for some reason live in separate Schedule rows). Unscheduled placeholders
+            // sort after configured schedules for the same pet+med pair.
             val sorted =
                 rows.sortedWith(
                     compareBy(
                         { it.petName.lowercase() },
                         { it.medicationName.lowercase() },
-                        { it.scheduleId },
+                        { it.needsSchedule },
+                        { it.scheduleId ?: it.medicationId },
                     ),
                 )
             return ReminderListUiState(
@@ -134,6 +119,73 @@ public class ReminderListViewModel(
                 addAction = resolveAddAction(pets, meds, schedules),
             )
         }
+
+        private fun scheduleRows(
+            petById: Map<String, Pet>,
+            medById: Map<String, Medication>,
+            schedules: List<ScheduleWithPhases>,
+            today: LocalDate,
+        ): List<ReminderRowUi> =
+            schedules.mapNotNull { swp ->
+                val med =
+                    medById[swp.schedule.medicationId]
+                        ?: return@mapNotNull StaleEventGuard.reportMissing(
+                            site = "ReminderListViewModel.joinToUiState",
+                            eventId = swp.schedule.id,
+                            missingFieldName = "medicationId",
+                            missingValue = swp.schedule.medicationId,
+                        )
+                val pet =
+                    petById[med.petId]
+                        ?: return@mapNotNull StaleEventGuard.reportMissing(
+                            site = "ReminderListViewModel.joinToUiState",
+                            eventId = swp.schedule.id,
+                            missingFieldName = "petId",
+                            missingValue = med.petId,
+                        )
+                ReminderRowUi(
+                    scheduleId = swp.schedule.id,
+                    petId = pet.id,
+                    petName = pet.name,
+                    medicationId = med.id,
+                    medicationName = med.name,
+                    phaseSummary = summarizePhases(swp.phases),
+                    endsLabel = endsLabel(swp.schedule.endDate, today),
+                    needsSchedule = false,
+                )
+            }
+
+        /**
+         * Placeholder rows for active medications with no schedule. Without these, saving
+         * a new med looks like a no-op because [joinToUiState] only joined schedule rows.
+         */
+        private fun unscheduledMedRows(
+            petById: Map<String, Pet>,
+            meds: List<Medication>,
+            scheduledMedIds: Set<String>,
+        ): List<ReminderRowUi> =
+            meds
+                .filter { it.discontinuedAt == null && it.id !in scheduledMedIds }
+                .mapNotNull { med ->
+                    val pet =
+                        petById[med.petId]
+                            ?: return@mapNotNull StaleEventGuard.reportMissing(
+                                site = "ReminderListViewModel.joinToUiState",
+                                eventId = med.id,
+                                missingFieldName = "petId",
+                                missingValue = med.petId,
+                            )
+                    ReminderRowUi(
+                        scheduleId = null,
+                        petId = pet.id,
+                        petName = pet.name,
+                        medicationId = med.id,
+                        medicationName = med.name,
+                        phaseSummary = "No schedule yet — tap to set up",
+                        endsLabel = null,
+                        needsSchedule = true,
+                    )
+                }
 
         /**
          * Picks the next step in the pet → medication → schedule chain for the Reminders
@@ -226,14 +278,20 @@ public class ReminderListViewModel(
  * when Schedule Detail (B7) ships.
  */
 public data class ReminderRowUi(
-    public val scheduleId: String,
+    /** Null when [needsSchedule] — tap opens schedule create for [medicationId]. */
+    public val scheduleId: String?,
     public val petId: String,
     public val petName: String,
     public val medicationId: String,
     public val medicationName: String,
     public val phaseSummary: String,
     public val endsLabel: String?,
-)
+    /** True for medications saved without an active schedule row. */
+    public val needsSchedule: Boolean = false,
+) {
+    /** Stable LazyColumn key for scheduled and unscheduled rows. */
+    public val rowKey: String get() = scheduleId ?: "needs-schedule-$medicationId"
+}
 
 /** Next add step for the Reminders tab primary CTA (FAB / empty state). */
 public sealed interface ReminderAddAction {
