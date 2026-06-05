@@ -166,7 +166,7 @@ public fun MedicationEditScreen(
             },
         ) { inner ->
             // Opaque surface so predictive-back and transparent Scaffold do not show the
-            // previous destination (Today dose list) through the form.
+            // previous destination (Today dose list / Pet detail FAB) through the form.
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxSize(),

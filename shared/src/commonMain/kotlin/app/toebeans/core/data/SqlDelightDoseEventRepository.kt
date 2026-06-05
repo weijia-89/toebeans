@@ -113,22 +113,26 @@ public class SqlDelightDoseEventRepository(
         note: String?,
     ): DoseEvent =
         withContext(dispatcher) {
-            val existing =
+            val slotMs = scheduledAt.toEpochMilliseconds()
+            // Prefer the materialized PENDING row (stable id from ReminderRescheduler) so
+            // Today "Log dose" upgrades the same row the alarm receiver looks up.
+            val existingAtSlot =
                 queries
-                    .selectGivenForScheduleSlot(
+                    .selectDoseEventForScheduleSlot(
                         schedule_id = scheduleId,
-                        scheduled_at = scheduledAt.toEpochMilliseconds(),
+                        scheduled_at = slotMs,
                     ).executeAsOneOrNull()
+            val rowId = existingAtSlot?.id ?: doseEventId
             val event =
                 DoseEvent(
-                    id = existing?.id ?: doseEventId,
+                    id = rowId,
                     scheduleId = scheduleId,
                     medicationId = medicationId,
                     scheduledAt = scheduledAt,
-                    firedAt = existing?.fired_at?.let(Instant::fromEpochMilliseconds),
+                    firedAt = existingAtSlot?.fired_at?.let(Instant::fromEpochMilliseconds),
                     resolvedAt = resolvedAt,
                     status = DoseStatus.GIVEN,
-                    note = note ?: existing?.note,
+                    note = note ?: existingAtSlot?.note,
                 )
             queries.upsertDoseEvent(
                 id = event.id,

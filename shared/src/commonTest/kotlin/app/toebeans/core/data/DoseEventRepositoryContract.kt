@@ -47,6 +47,39 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
         }
 
     @Test
+    fun `recordGivenForSlot upgrades pending row at slot without duplicating`() =
+        runTest {
+            val slot = Instant.parse("2026-05-24T09:00:00Z")
+            val resolved = Instant.parse("2026-05-24T09:05:00Z")
+            repo.upsert(
+                DoseEvent(
+                    id = "dose-pending-slot",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = slot,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+
+            val given =
+                repo.recordGivenForSlot(
+                    doseEventId = "ignored-random-id",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = slot,
+                    resolvedAt = resolved,
+                )
+
+            assertEquals("dose-pending-slot", given.id, "must reuse materialized pending id")
+            assertEquals(DoseStatus.GIVEN, given.status)
+            assertEquals(resolved, given.resolvedAt)
+            assertEquals(1, repo.observeAll().first().size, "slot upgrade must not fork a second row")
+        }
+
+    @Test
     fun `recordGivenForSlot is idempotent on scheduleId and scheduledAt`() =
         runTest {
             val slot = Instant.parse("2026-05-24T09:00:00Z")

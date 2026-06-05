@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -27,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -118,19 +122,27 @@ private fun HomeScreenContent(
         )
         return
     }
-    Box(modifier = modifier.fillMaxSize().padding(contentPadding)) {
-        // Compute date string once per parent composition. The day-rollover-at-midnight
-        // edge case is fine — the user will close and reopen the app long before the date
-        // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
-        // rather than pulling in a heavier formatter dependency; English-only for v1
-        // (i18n lives in a future milestone alongside Plurals).
+    // Compute date string once per parent composition. The day-rollover-at-midnight
+    // edge case is fine — the user will close and reopen the app long before the date
+    // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
+    // rather than pulling in a heavier formatter dependency; English-only for v1
+    // (i18n lives in a future milestone alongside Plurals).
+    val layoutDirection = LocalLayoutDirection.current
+    // Omit shell bottom inset from this Box so the FAB does not ride the bottom-nav
+    // hide/show animation when navigating to stacked medication routes.
+    val shellPaddingWithoutBottom =
+        PaddingValues(
+            start = contentPadding.calculateStartPadding(layoutDirection),
+            top = contentPadding.calculateTopPadding(),
+            end = contentPadding.calculateEndPadding(layoutDirection),
+        )
+    Box(modifier = modifier.fillMaxSize().padding(shellPaddingWithoutBottom)) {
         val today: LocalDate =
             remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
         val dateString = formatTodayHeader(today)
 
         // LazyColumn contentPadding extends scroll range past the last row (ReminderList
-        // pattern). Modifier padding before verticalScroll did not clear the bottom nav on
-        // long dose lists; bottom = scaffold inset + slack for the Log dose button.
+        // pattern). Fixed bottom slack for FAB; not tied to tab-bar inset.
         val listContentPadding =
             PaddingValues(
                 start = 16.dp,
@@ -230,6 +242,7 @@ private fun HomeScreenContent(
                 modifier =
                     Modifier
                         .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
                         .padding(16.dp),
             )
         }

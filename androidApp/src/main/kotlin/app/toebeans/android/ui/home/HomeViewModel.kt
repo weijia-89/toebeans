@@ -14,6 +14,7 @@ import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
+import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,8 +35,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * Home / Today screen state. Joins four flows so the screen can render:
@@ -61,7 +60,7 @@ import kotlin.uuid.Uuid
  * is pure. Segregating the I/O (the flows in [buildUiState]) from the compute (the
  * companion functions) keeps the compute directly unit-testable.
  */
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 public class HomeViewModel(
     petRepository: PetRepository,
     medicationRepository: MedicationRepository,
@@ -103,9 +102,9 @@ public class HomeViewModel(
     ) {
         viewModelScope.launch {
             doseEventRepository.recordGivenForSlot(
-                // KMP-native UUID; matches Uuid.random() used elsewhere in the app
-                // (ScheduleCreateViewModel, MedicationEditViewModel, PetEditViewModel).
-                doseEventId = Uuid.random().toString(),
+                // Stable per-slot id matches ReminderRescheduler materialization so Log dose
+                // upgrades the pending row instead of inserting a duplicate the UI cannot match.
+                doseEventId = ReminderRescheduler.doseEventIdForSlot(scheduleId, scheduledAt),
                 scheduleId = scheduleId,
                 medicationId = medicationId,
                 scheduledAt = scheduledAt,
