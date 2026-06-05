@@ -84,15 +84,11 @@ public class FakeDoseEventRepository(
         note: String?,
     ): DoseEvent {
         assertScheduleMedicationConsistent(scheduleId, medicationId)
-        // Idempotent on (scheduleId, scheduledAt) per the contract. If a GIVEN event
-        // already exists for this slot, replace it with the new resolvedAt. This makes
-        // a double-tap on "Log dose" a no-op rather than a crash — important because the
-        // Today worklist's Log button is finger-sized and stress-tap-prone.
+        // Idempotent on (scheduleId, scheduledAt) per the contract. Reuse any row at the
+        // slot (PENDING from materializer or prior GIVEN) so Today does not fork a second id.
         val existing =
             doseEvents.value.values.firstOrNull { existing ->
-                existing.scheduleId == scheduleId &&
-                    existing.scheduledAt == scheduledAt &&
-                    existing.status == DoseStatus.GIVEN
+                existing.scheduleId == scheduleId && existing.scheduledAt == scheduledAt
             }
         val event =
             DoseEvent(
