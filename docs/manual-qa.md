@@ -34,5 +34,5 @@ PR test plans should reference this script for prerequisites.
 
 After boot, run the hands-on paths in [`beta-smoke-add-medication.md`](beta-smoke-add-medication.md):
 
-- **§2 Add medication** — pet detail FAB / empty-state **Add medication**
-- **§5 Log dose** — Today **Log dose** or pet detail **Log dose now** → **Given ✓** / **Logged today**, persists after restart
+- **§2 Add medication:** pet detail FAB / empty-state **Add medication**
+- **§5 Log dose:** Today **Log dose** or pet detail **Log dose now** → **Given ✓** / **Logged today**, persists after restart
