@@ -52,7 +52,8 @@ import org.koin.androidx.compose.koinViewModel
 
 /**
  * Pet detail. Shows the pet's identity card and a LazyColumn of medications. Tapping a
- * medication navigates to its edit screen; the Add FAB opens a new-medication form.
+ * medication routes to schedule create when none exists yet, otherwise to medication
+ * edit; the Add FAB opens a new-medication form.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +62,7 @@ public fun PetDetailScreen(
     onBack: () -> Unit,
     onEditPet: () -> Unit,
     onAddMedication: () -> Unit,
-    onMedicationClick: (medicationId: String) -> Unit,
+    onMedicationClick: (medicationId: String, activeScheduleId: String?) -> Unit,
     viewModel: PetDetailViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -119,7 +120,12 @@ public fun PetDetailScreen(
                             items(state.medications, key = { it.medication.id }) { withStatus ->
                                 MedicationRow(
                                     withStatus = withStatus,
-                                    onClick = { onMedicationClick(withStatus.medication.id) },
+                                    onClick = {
+                                        onMedicationClick(
+                                            withStatus.medication.id,
+                                            withStatus.activeScheduleId,
+                                        )
+                                    },
                                     onLogDose = {
                                         viewModel.logDose(
                                             medicationId = withStatus.medication.id,
