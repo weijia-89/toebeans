@@ -1,0 +1,33 @@
+# UI design handoff — toebeans (local-only; NO Magic Patterns / cloud design SaaS).
+
+version: 1
+
+screens:
+  today:
+    label: Today tab
+    compose:
+      - androidApp/src/main/kotlin/app/toebeans/android/ui/home/
+    style_lab:
+      primary: docs/style-lab/index.html
+      variants: docs/style-lab/
+    verify:
+      - bash scripts/style_lab_handoff_check.sh today
+      - open docs/style-lab/index.html
+
+  pets:
+    label: Pets tab
+    compose:
+      - androidApp/src/main/kotlin/app/toebeans/android/ui/pets/
+    style_lab:
+      primary: docs/style-lab/index.html
+    verify:
+      - bash scripts/style_lab_handoff_check.sh pets
+
+  reminders:
+    label: Reminders tab
+    compose:
+      - androidApp/src/main/kotlin/app/toebeans/android/ui/reminders/
+    style_lab:
+      primary: docs/style-lab/index.html
+    verify:
+      - bash scripts/style_lab_handoff_check.sh reminders
