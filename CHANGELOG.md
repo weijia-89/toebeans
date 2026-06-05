@@ -16,6 +16,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Security
 
+* **CVE-2023-3635 (Okio):** Force `com.squareup.okio:okio` and `okio-jvm` 3.17.0
+  on Gradle plugin and `:macrobench` classpaths (Dependabot alert #46). Not on
+  `:androidApp:releaseRuntimeClasspath` or `:shared:jvmRuntimeClasspath`.
 * **CVE-2026-45799 (Wire):** Force `com.squareup.wire:wire-runtime` 6.3.0 and
   substitute discontinued `wire-runtime-jvm` on the `:macrobench` benchmark
   classpath (Dependabot alerts #44, #45). No app-runtime classpath change.

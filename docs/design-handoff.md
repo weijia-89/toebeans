@@ -1,4 +1,4 @@
-# Design handoff — toebeans
+# Design handoff: toebeans
 
 **Local-only.** No Magic Patterns, no cloud design sync into the Android app.
 
@@ -8,7 +8,7 @@
 docs/style-lab/index.html  →  DECISIONS.md  →  Compose UI  →  emulator / CI
 ```
 
-Optional offline HTML under `docs/framer/` for reference — not cloud-connected ship path.
+Optional offline HTML under `docs/framer/` for reference; not cloud-connected ship path.
 
 ## Key files
 

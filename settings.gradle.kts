@@ -34,21 +34,38 @@ dependencyResolutionManagement {
 // CVE-2026-45799 (GHSA-7xpr-hc2w-34m9): androidx.benchmark pulls wire-runtime 4.9.7 on
 // :macrobench only. wire-runtime-jvm has no patched release; unify on wire-runtime 6.3.0+.
 val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:6.3.0"
+// CVE-2023-3635 (GHSA-w33c-445m-f8w7): transitive okio < 3.4.0 on Gradle plugin /
+// macrobench classpaths. Force patched okio (+ okio-jvm) project-wide.
+val okioVersion = "3.17.0"
+val okioCoordinate = "com.squareup.okio:okio:$okioVersion"
+val okioJvmCoordinate = "com.squareup.okio:okio-jvm:$okioVersion"
 
 gradle.beforeProject {
     configurations.configureEach {
         resolutionStrategy {
             force(wireRuntimeCoordinate)
+            force(okioCoordinate)
+            force(okioJvmCoordinate)
             eachDependency {
-                if (requested.group == "com.squareup.wire") {
-                    when (requested.name) {
-                        "wire-runtime-jvm" -> {
-                            useTarget(wireRuntimeCoordinate)
-                            because("CVE-2026-45799: wire-runtime-jvm discontinued")
+                when (requested.group) {
+                    "com.squareup.wire" -> {
+                        when (requested.name) {
+                            "wire-runtime-jvm" -> {
+                                useTarget(wireRuntimeCoordinate)
+                                because("CVE-2026-45799: wire-runtime-jvm discontinued")
+                            }
+                            "wire-runtime" -> {
+                                useVersion("6.3.0")
+                                because("CVE-2026-45799")
+                            }
                         }
-                        "wire-runtime" -> {
-                            useVersion("6.3.0")
-                            because("CVE-2026-45799")
+                    }
+                    "com.squareup.okio" -> {
+                        when (requested.name) {
+                            "okio", "okio-jvm" -> {
+                                useVersion(okioVersion)
+                                because("CVE-2023-3635")
+                            }
                         }
                     }
                 }
