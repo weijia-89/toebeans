@@ -1,4 +1,4 @@
-# Database audit + remediation plan — 2026-06-07
+# Database audit + remediation plan (2026-06-07)
 
 **Tier:** vibe-dangerous-adjacent (SQLDelight + medication-critical fire path)  
 **Reviewer posture:** trainer → form-check + review-rigor  
@@ -23,12 +23,12 @@
 
 | ID | Rubric | Finding |
 |----|--------|---------|
-| DB-01 | COR/P0 | ~~`SqlDelightReminderLookup` joins schedule only~~ **FIXED** — `selectDoseEventByIdIfChainActive` (2026-06-07). |
-| DB-02 | COR/P0 | ~~boot rehydrate without active-chain filter~~ **FIXED** — `selectPendingDoseEventsInRangeActive` (2026-06-07). |
+| DB-01 | COR/P0 | ~~`SqlDelightReminderLookup` joins schedule only~~ **FIXED** via `selectDoseEventByIdIfChainActive` (2026-06-07). |
+| DB-02 | COR/P0 | ~~boot rehydrate without active-chain filter~~ **FIXED** via `selectPendingDoseEventsInRangeActive` (2026-06-07). |
 | DB-03 | ARC/P1 | `selectAllActiveSchedules` (joins discontinued + archived) exists in `Schedule.sq:63-68` but **`observeActiveWithPhases` uses `selectSchedulesActiveOnOrAfter`** without med/pet filter; UI compensates (`HomeViewModel.kt:225`). |
 | DB-04 | COR/P3 | `dayInterval` not persisted; domain defaults to 1 (`SqlDelightScheduleRepository.kt:192`). |
 | DB-05 | COR/P3 | `dose_amount` single TEXT; unit picker needs migration (Wave 2). |
-| DB-06 | TST/P3 | ~~No contract test~~ **FIXED** — `ReminderLookupContract` + `BootReceiverTest` + `DoseAlarmReceiverLookupTest` discontinued case. |
+| DB-06 | TST/P3 | ~~No contract test~~ **FIXED** via `ReminderLookupContract` + `BootReceiverTest` + `DoseAlarmReceiverLookupTest`. |
 
 ### Bug inventory crosswalk
 
@@ -51,12 +51,12 @@
 
 | ID | Action | Prevents | Cost | Conf |
 |----|--------|----------|------|------|
-| **F1** | Add `selectDoseEventByIdIfChainActive` in `DoseEvent.sq` (join Medication + Pet; require `discontinued_at IS NULL` AND `archived_at IS NULL`). Wire `SqlDelightReminderLookup.lookup` to it. | Discontinued/archived med notifications at fire time | S | **95%** S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=0.5 |
+| **F1** | Add `selectDoseEventByIdIfChainActive` in `DoseEvent.sq` (join Schedule + Medication + Pet; require `discontinued_at IS NULL` AND `archived_at IS NULL`). Wire `SqlDelightReminderLookup.lookup` to it. | Discontinued/archived med notifications at fire time | S | **95%** S1=1 S2=1 S3=1 S4=1 S5=1 S6=1 S7=0.5 |
 | **F2** | Add `selectPendingDoseEventsInRangeActive` (same joins + pending window). Wire `ToebeansApp.loadPendingRemindersInHorizon`. | Boot rehydrate re-arming discontinued alarms | S | **95%** |
 | **F3** | Extend `ReminderLookupContract` with `lookup returns null when medication discontinued` + `archived pet`; implement in SqlDelight + in-memory subclasses. | Regression on fire path | S | **92%** |
 | **F4** | Add `BootReceiverTest` case: discontinued med pending row → **zero** alarms after `BOOT_COMPLETED`. | Boot path regression | S | **90%** |
 
-**Falsifiers:** F1 — Robolectric `DoseAlarmReceiverLookupTest` with discontinued seed still shows notification (must cancel). F2 — BootReceiverTest schedules alarm for discontinued row (must be 0). F3 — contract test fails before impl, passes after.
+**Falsifiers:** F1: Robolectric `DoseAlarmReceiverLookupTest` with discontinued seed still shows notification (must cancel). F2: BootReceiverTest schedules alarm for discontinued row (must be 0). F3: contract test fails before impl, passes after.
 
 **Reads:** `DoseEvent.sq`, `SqlDelightReminderLookup.kt`, `ToebeansApp.kt:94-109`, `ReminderLookupContractTest.kt`, `BootReceiverTest.kt`.
 
@@ -78,7 +78,7 @@
 | Issue | Severity | Resolution |
 |-------|----------|------------|
 | Plan proposed only lookup fix, missed boot rehydrate (DB-02) | **High** | Added F2 + F4 |
-| Plan suggested changing `observeActiveWithPhases` in same PR | **Medium** | Deferred D2 — fake parity + contract scope creep |
+| Plan suggested changing `observeActiveWithPhases` in same PR | **Medium** | Deferred D2 (fake parity + contract scope creep) |
 | Plan omitted archived-pet filter | **Medium** | F1/F2 include `archived_at IS NULL` (symmetric with `selectAllActiveSchedules`) |
 | Claimed "fix all bugs" including B-02 unified modal | **Low** | B-02 explicitly deferred; not a DB-only fix |
 
@@ -104,11 +104,11 @@ Manual QA (post-fix): discontinue active med with pending dose → no notificati
 
 | Item | Status |
 |------|--------|
-| F1–F4 | **Shipped** (uncommitted on `fix/pet-detail-med-edit-nav-readme`; recommend `fix/discontinued-med-fire-path` PR) |
+| F1–F4 | **Shipped** on branch `fix/discontinued-med-fire-path` |
 | Gauntlet | **BUILD SUCCESSFUL** (ktlint, detekt, jvmTest, android unit, koverVerify) |
 | B-01 P0 | **Closed** |
 | B-08 P3 | **Closed** |
-| D1–D4 | **Still deferred** — not medication-display bugs; separate slices |
+| D1–D4 | **Still deferred** (not medication-display bugs; separate slices) |
 
 ### Trainer post-review
 
@@ -116,4 +116,18 @@ Manual QA (post-fix): discontinue active med with pending dose → no notificati
 
 **Your form:** Audit → plan → adversarial plan → test-first impl completed. Split DB PR from #88 before merge.
 
-**Next session:** Branch `fix/discontinued-med-fire-path`, trainer comment, merge before Wave 2 nav work.
+**Next session:** Push `fix/discontinued-med-fire-path`, trainer comment, merge before Wave 2 nav work.
+
+---
+
+## 6. Self-review round 2 (2026-06-07)
+
+| ID | Finding (round 1) | Fix |
+|----|-------------------|-----|
+| R2-1 | Active-chain SQL dropped Schedule join (defense-in-depth regression vs old lookup) | Restored `INNER JOIN Schedule` on both active queries |
+| R2-2 | `manual_qa_boot.sh` Intel Mac path missing | Added `/usr/local/opt/openjdk@17/...` fallback |
+| R2-3 | Boot test KDoc stale query name | Updated to `selectPendingDoseEventsInRangeActive` |
+| R2-4 | No boot test for archived pet | Added `onReceive with BOOT_COMPLETED skips pending doses for archived pets` |
+| R2-5 | Discontinued receiver test missing `fired_at` falsifier | Assert `fired_at` null (ADR-0011) |
+| R2-6 | Audit doc em-dashes fail CI fitness gate | Replaced U+2014 with hyphens/parens |
+| R2-7 | **P0** `INSERT OR REPLACE` on Medication CASCADE-deletes schedules/doses on discontinue | `insertMedication` + `updateMedication`; repository branches; FK regression test |

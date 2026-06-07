@@ -56,29 +56,23 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
     override fun discontinueSeededMedication() {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
         val discontinuedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
-        database.medicationQueries.upsertMedication(
-            id = "med-lookup-contract",
+        database.medicationQueries.updateMedication(
             pet_id = "pet-lookup-contract",
             name = "Lookup Med",
             dose_amount = "2.5mg",
             notes = null,
             created_at = createdAt,
             discontinued_at = discontinuedAt,
+            id = "med-lookup-contract",
         )
     }
 
     override fun archiveSeededPet() {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
         val archivedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
-            id = "pet-lookup-contract",
-            name = "Lookup Pet",
-            species = "cat",
-            birthdate_iso = null,
-            weight_kg = 4.0,
-            notes = null,
-            created_at = createdAt,
+        database.petQueries.archivePet(
             archived_at = archivedAt,
+            id = "pet-lookup-contract",
         )
     }
 
@@ -123,7 +117,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-lookup-contract",
             pet_id = "pet-lookup-contract",
             name = "Lookup Med",

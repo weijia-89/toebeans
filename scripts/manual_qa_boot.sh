@@ -41,12 +41,16 @@ resolve_java_home() {
   if [[ -n "${JAVA_HOME:-}" && -x "${JAVA_HOME}/bin/java" ]]; then
     return 0
   fi
-  local brew_jdk="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
-  if [[ -x "${brew_jdk}/bin/java" ]]; then
-    export JAVA_HOME="$brew_jdk"
-    export PATH="$JAVA_HOME/bin:$PATH"
-    return 0
-  fi
+  local brew_jdk
+  for brew_jdk in \
+    "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" \
+    "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"; do
+    if [[ -x "${brew_jdk}/bin/java" ]]; then
+      export JAVA_HOME="$brew_jdk"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
   if command -v /usr/libexec/java_home >/dev/null 2>&1; then
     local jh
     if jh="$(/usr/libexec/java_home -v 17 2>/dev/null)"; then

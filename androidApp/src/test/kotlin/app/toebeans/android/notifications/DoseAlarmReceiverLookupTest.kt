@@ -31,6 +31,8 @@ import org.robolectric.annotation.Config
  *   posts a user-visible notification.
  * - Row gone: [ReminderLookup] returns null → receiver silently cancels the pending alarm, no crash,
  *   no notification.
+ * - Discontinued / archived chain: [ReminderLookup] returns null → same cancel path; no
+ *   [DoseEvent.fired_at] stamp (ADR-0011).
  *
  * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. Permission-denial
  * [AndroidNotificationActuator.show] outcomes and LocalCrashLog markers are a follow-on slice.
@@ -297,14 +299,14 @@ class DoseAlarmReceiverLookupTest {
             scheduledAt = reminder.scheduledAt,
         )
         val discontinuedAt = Instant.parse("2026-05-22T12:00:00Z").toEpochMilliseconds()
-        database.medicationQueries.upsertMedication(
-            id = "med-luna-methimazole",
+        database.medicationQueries.updateMedication(
             pet_id = "pet-luna",
             name = "Methimazole",
             dose_amount = "2.5mg",
             notes = null,
             created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
             discontinued_at = discontinuedAt,
+            id = "med-luna-methimazole",
         )
         val actuator =
             AndroidNotificationActuator(
@@ -333,6 +335,14 @@ class DoseAlarmReceiverLookupTest {
             0,
             shadowOf(systemNotificationManager).activeNotifications.size,
         )
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById(reminder.id)
+                .executeAsOne()
+        assertNull(
+            "discontinued path must not stamp fired_at before show (ADR-0011)",
+            row.fired_at,
+        )
     }
 
     private fun seedDoseEvent(
@@ -351,7 +361,7 @@ class DoseAlarmReceiverLookupTest {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-luna-methimazole",
             pet_id = "pet-luna",
             name = "Methimazole",

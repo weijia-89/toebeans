@@ -67,7 +67,7 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
             created_at = refCreatedAt.toEpochMilliseconds(),
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "m1",
             pet_id = "p-contract",
             name = "Contract Med",

@@ -107,7 +107,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = MED_ID,
             pet_id = PET_ID,
             name = "Contract Med",

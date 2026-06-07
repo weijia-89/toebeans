@@ -45,15 +45,29 @@ public class SqlDelightMedicationRepository(
 
     override suspend fun upsert(medication: Medication): Unit =
         withContext(dispatcher) {
-            queries.upsertMedication(
-                id = medication.id,
-                pet_id = medication.petId,
-                name = medication.name,
-                dose_amount = medication.doseAmount,
-                notes = medication.notes,
-                created_at = medication.createdAt.toEpochMilliseconds(),
-                discontinued_at = medication.discontinuedAt?.toEpochMilliseconds(),
-            )
+            database.transaction {
+                if (queries.selectMedicationById(medication.id).executeAsOneOrNull() == null) {
+                    queries.insertMedication(
+                        id = medication.id,
+                        pet_id = medication.petId,
+                        name = medication.name,
+                        dose_amount = medication.doseAmount,
+                        notes = medication.notes,
+                        created_at = medication.createdAt.toEpochMilliseconds(),
+                        discontinued_at = medication.discontinuedAt?.toEpochMilliseconds(),
+                    )
+                } else {
+                    queries.updateMedication(
+                        pet_id = medication.petId,
+                        name = medication.name,
+                        dose_amount = medication.doseAmount,
+                        notes = medication.notes,
+                        created_at = medication.createdAt.toEpochMilliseconds(),
+                        discontinued_at = medication.discontinuedAt?.toEpochMilliseconds(),
+                        id = medication.id,
+                    )
+                }
+            }
         }
 
     override suspend fun delete(id: String): Unit =
