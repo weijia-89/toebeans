@@ -120,13 +120,23 @@ public class SqlDelightScheduleRepository(
         withContext(dispatcher) {
             validatePhases(schedule, phases)
             database.transaction {
-                queries.upsertSchedule(
-                    id = schedule.id,
-                    medication_id = schedule.medicationId,
-                    start_date_iso = schedule.startDate.toString(),
-                    end_date_iso = schedule.endDate?.toString(),
-                    created_at = schedule.createdAt.toEpochMilliseconds(),
-                )
+                if (queries.selectScheduleById(schedule.id).executeAsOneOrNull() == null) {
+                    queries.insertSchedule(
+                        id = schedule.id,
+                        medication_id = schedule.medicationId,
+                        start_date_iso = schedule.startDate.toString(),
+                        end_date_iso = schedule.endDate?.toString(),
+                        created_at = schedule.createdAt.toEpochMilliseconds(),
+                    )
+                } else {
+                    queries.updateSchedule(
+                        medication_id = schedule.medicationId,
+                        start_date_iso = schedule.startDate.toString(),
+                        end_date_iso = schedule.endDate?.toString(),
+                        created_at = schedule.createdAt.toEpochMilliseconds(),
+                        id = schedule.id,
+                    )
+                }
                 queries.deletePhasesForSchedule(schedule.id)
                 for (phase in phases) {
                     queries.upsertSchedulePhase(

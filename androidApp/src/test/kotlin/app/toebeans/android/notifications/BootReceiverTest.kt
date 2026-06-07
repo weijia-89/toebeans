@@ -202,7 +202,7 @@ class BootReceiverTest {
         scheduledAt: Instant,
     ) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-luna",
             name = "Luna",
             species = "cat",
@@ -221,7 +221,7 @@ class BootReceiverTest {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = "med-luna-methimazole",
             start_date_iso = "2026-05-01",

@@ -84,7 +84,7 @@ SELECT * FROM DoseEvent WHERE id = ? LIMIT 1;
 selectDoseEventByIdIfChainActive:
 SELECT de.* FROM DoseEvent de
   INNER JOIN Schedule s ON s.id = de.schedule_id
-  INNER JOIN Medication m ON m.id = de.medication_id
+  INNER JOIN Medication m ON m.id = s.medication_id
   INNER JOIN Pet p ON p.id = m.pet_id
 WHERE de.id = ?
   AND m.discontinued_at IS NULL
@@ -95,7 +95,7 @@ LIMIT 1;
 selectPendingDoseEventsInRangeActive:
 SELECT de.* FROM DoseEvent de
   INNER JOIN Schedule s ON s.id = de.schedule_id
-  INNER JOIN Medication m ON m.id = de.medication_id
+  INNER JOIN Medication m ON m.id = s.medication_id
   INNER JOIN Pet p ON p.id = m.pet_id
 WHERE de.status = 'pending'
   AND de.scheduled_at >= ?

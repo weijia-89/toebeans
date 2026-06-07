@@ -84,16 +84,31 @@ public class SqlDelightPetRepository(
 
     override suspend fun upsert(pet: Pet): Unit =
         withContext(dispatcher) {
-            queries.upsertPet(
-                id = pet.id,
-                name = pet.name,
-                species = pet.species.wireName,
-                birthdate_iso = pet.birthdate?.toString(),
-                weight_kg = pet.weightKg,
-                notes = pet.notes,
-                created_at = pet.createdAt.toEpochMilliseconds(),
-                archived_at = pet.archivedAt?.toEpochMilliseconds(),
-            )
+            database.transaction {
+                if (queries.selectPetById(pet.id).executeAsOneOrNull() == null) {
+                    queries.insertPet(
+                        id = pet.id,
+                        name = pet.name,
+                        species = pet.species.wireName,
+                        birthdate_iso = pet.birthdate?.toString(),
+                        weight_kg = pet.weightKg,
+                        notes = pet.notes,
+                        created_at = pet.createdAt.toEpochMilliseconds(),
+                        archived_at = pet.archivedAt?.toEpochMilliseconds(),
+                    )
+                } else {
+                    queries.updatePet(
+                        name = pet.name,
+                        species = pet.species.wireName,
+                        birthdate_iso = pet.birthdate?.toString(),
+                        weight_kg = pet.weightKg,
+                        notes = pet.notes,
+                        created_at = pet.createdAt.toEpochMilliseconds(),
+                        archived_at = pet.archivedAt?.toEpochMilliseconds(),
+                        id = pet.id,
+                    )
+                }
+            }
         }
 
     override suspend fun delete(id: String): Unit =

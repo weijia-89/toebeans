@@ -60,7 +60,9 @@ resolve_java_home() {
     fi
   fi
   echo "Unable to locate JDK 17. Install: brew install openjdk@17" >&2
-  echo "Then: export JAVA_HOME=\"/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home\"" >&2
+  echo "Then export JAVA_HOME to Homebrew openjdk@17 (Apple Silicon or Intel):" >&2
+  echo "  /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" >&2
+  echo "  /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" >&2
   exit 1
 }
 resolve_java_home

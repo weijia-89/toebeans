@@ -286,6 +286,50 @@ class DoseAlarmReceiverLookupTest {
     }
 
     @Test
+    fun `archived pet silently cancels alarm without posting notification`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-archived-pet",
+                scheduleId = "sched-luna-methimazole",
+                scheduledAt = Instant.parse("2026-05-23T10:30:00Z"),
+            )
+        seedDoseEvent(
+            eventId = reminder.id,
+            scheduleId = reminder.scheduleId,
+            scheduledAt = reminder.scheduledAt,
+        )
+        val archivedAt = Instant.parse("2026-05-22T12:00:00Z").toEpochMilliseconds()
+        database.petQueries.archivePet(
+            archived_at = archivedAt,
+            id = "pet-luna",
+        )
+        val actuator =
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = alarmManager,
+                notificationManager =
+                    androidx.core.app.NotificationManagerCompat
+                        .from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            )
+        actuator.schedule(reminder)
+        DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.receiverDatabaseFactory = { database }
+
+        dispatchDoseFire(reminder.id)
+
+        assertEquals(0, shadowOf(alarmManager).scheduledAlarms.size)
+        assertEquals(0, shadowOf(systemNotificationManager).activeNotifications.size)
+        assertNull(
+            "archived pet path must not stamp fired_at before show (ADR-0011)",
+            database.doseEventQueries
+                .selectDoseEventById(reminder.id)
+                .executeAsOne()
+                .fired_at,
+        )
+    }
+
+    @Test
     fun `discontinued medication silently cancels alarm without posting notification`() {
         val reminder =
             ScheduledReminder(
@@ -351,7 +395,7 @@ class DoseAlarmReceiverLookupTest {
         scheduledAt: Instant,
     ) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-luna",
             name = "Luna",
             species = "cat",
@@ -370,7 +414,7 @@ class DoseAlarmReceiverLookupTest {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = "med-luna-methimazole",
             start_date_iso = "2026-05-01",

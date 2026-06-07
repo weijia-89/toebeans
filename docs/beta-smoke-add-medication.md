@@ -42,6 +42,10 @@ Complete **before** sending the internal-testing invite link.
     /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home; do
     [[ -x "$_jdk/bin/java" ]] && export JAVA_HOME="$_jdk" && break
   done
+  if [[ -z "${JAVA_HOME:-}" ]]; then
+    echo "JDK 17 not found. Run: brew install openjdk@17" >&2
+    exit 1
+  fi
   export PATH="$JAVA_HOME/bin:$PATH"
   cd /path/to/toebeans
   ./gradlew :androidApp:installDebug
@@ -67,6 +71,10 @@ for _jdk in \
   /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home; do
   [[ -x "$_jdk/bin/java" ]] && export JAVA_HOME="$_jdk" && break
 done
+if [[ -z "${JAVA_HOME:-}" ]]; then
+  echo "JDK 17 not found. Run: brew install openjdk@17" >&2
+  exit 1
+fi
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # Shared: medication repo contract + data smoke
