@@ -79,6 +79,29 @@ SELECT * FROM DoseEvent ORDER BY scheduled_at DESC;
 selectDoseEventById:
 SELECT * FROM DoseEvent WHERE id = ? LIMIT 1;
 
+-- Receiver fire path: dose event only when medication is active and pet is not archived.
+-- Discontinued meds keep schedule/dose rows for history; alarms must not surface.
+selectDoseEventByIdIfChainActive:
+SELECT de.* FROM DoseEvent de
+  INNER JOIN Medication m ON m.id = de.medication_id
+  INNER JOIN Pet p ON p.id = m.pet_id
+WHERE de.id = ?
+  AND m.discontinued_at IS NULL
+  AND p.archived_at IS NULL
+LIMIT 1;
+
+-- Boot rehydrate: pending doses in horizon for active medication + non-archived pet only.
+selectPendingDoseEventsInRangeActive:
+SELECT de.* FROM DoseEvent de
+  INNER JOIN Medication m ON m.id = de.medication_id
+  INNER JOIN Pet p ON p.id = m.pet_id
+WHERE de.status = 'pending'
+  AND de.scheduled_at >= ?
+  AND de.scheduled_at < ?
+  AND m.discontinued_at IS NULL
+  AND p.archived_at IS NULL
+ORDER BY de.scheduled_at ASC;
+
 -- Backs FakeDoseEventRepository.observeAllRecent (in-memory cap). status = GIVEN only.
 selectAllGivenSince:
 SELECT * FROM DoseEvent

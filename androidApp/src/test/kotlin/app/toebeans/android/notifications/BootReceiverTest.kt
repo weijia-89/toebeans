@@ -128,6 +128,34 @@ class BootReceiverTest {
     }
 
     @Test
+    fun `onReceive with BOOT_COMPLETED skips pending doses for discontinued medications`() {
+        val scheduledAt = Clock.System.now() + 12.hours
+        seedPendingDoseEvent(
+            eventId = "evt-boot-discontinued",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = scheduledAt,
+        )
+        val discontinuedAt = Clock.System.now().toEpochMilliseconds()
+        database.medicationQueries.upsertMedication(
+            id = "med-luna-methimazole",
+            pet_id = "pet-luna",
+            name = "Methimazole",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
+            discontinued_at = discontinuedAt,
+        )
+
+        dispatchBootCompleted()
+
+        assertEquals(
+            "Boot rehydration must not schedule alarms for discontinued medications",
+            0,
+            shadowOf(alarmManager).scheduledAlarms.size,
+        )
+    }
+
+    @Test
     fun `onReceive ignores unrelated actions`() {
         seedPendingDoseEvent(
             eventId = "evt-unrelated-action",

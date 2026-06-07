@@ -53,6 +53,35 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
         database.scheduleQueries.deleteSchedule(scheduleId)
     }
 
+    override fun discontinueSeededMedication() {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        val discontinuedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
+        database.medicationQueries.upsertMedication(
+            id = "med-lookup-contract",
+            pet_id = "pet-lookup-contract",
+            name = "Lookup Med",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = createdAt,
+            discontinued_at = discontinuedAt,
+        )
+    }
+
+    override fun archiveSeededPet() {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        val archivedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
+        database.petQueries.upsertPet(
+            id = "pet-lookup-contract",
+            name = "Lookup Pet",
+            species = "cat",
+            birthdate_iso = null,
+            weight_kg = 4.0,
+            notes = null,
+            created_at = createdAt,
+            archived_at = archivedAt,
+        )
+    }
+
     override fun assertAdr0011MarkFiredPersists() {
         val reminder =
             ScheduledReminder(

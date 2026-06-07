@@ -283,6 +283,58 @@ class DoseAlarmReceiverLookupTest {
         assertNull(found)
     }
 
+    @Test
+    fun `discontinued medication silently cancels alarm without posting notification`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-discontinued",
+                scheduleId = "sched-luna-methimazole",
+                scheduledAt = Instant.parse("2026-05-23T10:00:00Z"),
+            )
+        seedDoseEvent(
+            eventId = reminder.id,
+            scheduleId = reminder.scheduleId,
+            scheduledAt = reminder.scheduledAt,
+        )
+        val discontinuedAt = Instant.parse("2026-05-22T12:00:00Z").toEpochMilliseconds()
+        database.medicationQueries.upsertMedication(
+            id = "med-luna-methimazole",
+            pet_id = "pet-luna",
+            name = "Methimazole",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
+            discontinued_at = discontinuedAt,
+        )
+        val actuator =
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = alarmManager,
+                notificationManager =
+                    androidx.core.app.NotificationManagerCompat
+                        .from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            )
+        actuator.schedule(reminder)
+        assertEquals(1, shadowOf(alarmManager).scheduledAlarms.size)
+
+        DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.receiverDatabaseFactory = { database }
+
+        dispatchDoseFire(reminder.id)
+
+        assertEquals(
+            "discontinued medication must cancel stale alarm at fire time",
+            0,
+            shadowOf(alarmManager).scheduledAlarms.size,
+        )
+        assertEquals(
+            "discontinued medication must not post a notification",
+            0,
+            shadowOf(systemNotificationManager).activeNotifications.size,
+        )
+    }
+
     private fun seedDoseEvent(
         eventId: String,
         scheduleId: String,

@@ -35,7 +35,10 @@ Complete **before** sending the internal-testing invite link.
 - [ ] Build and install debug or release candidate:
 
   ```bash
-  export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+  # Homebrew JDK 17 (README path). Use java_home only if a JDK is registered in
+  # /Library/Java/JavaVirtualMachines/ (symlink or Oracle/Temurin install).
+  export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+  export PATH="$JAVA_HOME/bin:$PATH"
   cd /path/to/toebeans
   ./gradlew :androidApp:installDebug
   ```
@@ -55,7 +58,8 @@ Complete **before** sending the internal-testing invite link.
 Run from repo root on **JDK 17**. CI remains the load-bearing gate if local Robolectric is slow; AGENTS.md documents the local-JDK17 `test_verif` pattern.
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
 
 # Shared: medication repo contract + data smoke
 ./gradlew :shared:jvmTest \

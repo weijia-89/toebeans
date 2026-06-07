@@ -96,7 +96,7 @@ class ToebeansApp : Application() {
             val horizonEnd = now + REHYDRATE_HORIZON_HOURS.hours
             val database = openReceiverDatabase(context)
             return database.doseEventQueries
-                .selectPendingDoseEventsInRange(
+                .selectPendingDoseEventsInRangeActive(
                     scheduled_at = now.toEpochMilliseconds(),
                     scheduled_at_ = horizonEnd.toEpochMilliseconds(),
                 ).executeAsList()

@@ -16,6 +16,9 @@ package app.toebeans.core.notifications
  * Callers MUST silently cancel the pending alarm and return without crashing — see
  * `docs/issues/v0.1-followups.md` § 3.
  *
+ * **Discontinued / archived chain.** When the parent medication is soft-discontinued or the
+ * pet is archived, [lookup] returns null so stale alarms cancel without posting a notification.
+ *
  * **ADR-0011 ordering (deferred).** The wire-up PR for post-notifications denial UX writes
  * `DoseEvent.fired_at` synchronously before calling [NotificationActuator.show]. That write
  * belongs in the receiver dispatch path once SQLDelight is reachable here; this port covers
