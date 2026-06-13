@@ -61,9 +61,101 @@ class SqliteForeignKeysCallbackTest {
         assertCascadeTablesEmpty(database)
     }
 
+    @Test
+    fun `updatePet name must not cascade delete medications schedules or dose events`() {
+        seedCascadeChain(database)
+        database.petQueries.updatePet(
+            name = "Renamed Pet",
+            species = "dog",
+            birthdate_iso = null,
+            weight_kg = 5.0,
+            notes = null,
+            created_at = 1_715_616_000_000L,
+            archived_at = null,
+            id = "pet-cascade",
+        )
+        assertEquals(
+            1,
+            database.medicationQueries
+                .selectAllMedications()
+                .executeAsList()
+                .size,
+        )
+        assertEquals(
+            1,
+            database.scheduleQueries
+                .selectAllSchedules()
+                .executeAsList()
+                .size,
+        )
+        assertEquals(
+            1,
+            database.doseEventQueries
+                .selectAllDoseEvents()
+                .executeAsList()
+                .size,
+        )
+    }
+
+    @Test
+    fun `updateSchedule metadata must not cascade delete dose events`() {
+        seedCascadeChain(database)
+        database.scheduleQueries.updateSchedule(
+            medication_id = "med-cascade",
+            start_date_iso = "2026-05-01",
+            end_date_iso = "2026-06-30",
+            created_at = 1_715_616_000_000L,
+            id = "sched-cascade",
+        )
+        assertEquals(
+            1,
+            database.doseEventQueries
+                .selectAllDoseEvents()
+                .executeAsList()
+                .size,
+        )
+    }
+
+    @Test
+    fun `upsertMedication with discontinued_at must not cascade delete schedules or dose events`() {
+        seedCascadeChain(database)
+        val discontinuedAt = 1_715_700_000_000L
+        database.medicationQueries.updateMedication(
+            pet_id = "pet-cascade",
+            name = "Cascade Med",
+            dose_amount = "1mg",
+            notes = null,
+            created_at = 1_715_616_000_000L,
+            discontinued_at = discontinuedAt,
+            id = "med-cascade",
+        )
+        assertEquals(
+            "soft-discontinue must not DELETE+REPLACE medication row (FK CASCADE would wipe schedules)",
+            1,
+            database.scheduleQueries
+                .selectAllSchedules()
+                .executeAsList()
+                .size,
+        )
+        assertEquals(
+            1,
+            database.doseEventQueries
+                .selectAllDoseEvents()
+                .executeAsList()
+                .size,
+        )
+        assertEquals(
+            discontinuedAt,
+            database.medicationQueries
+                .selectMedicationById("med-cascade")
+                .executeAsOne()
+                .discontinued_at,
+        )
+    }
+
     private fun seedCascadeChain(database: ToebeansDatabase) {
         val createdAt = 1_715_616_000_000L
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-cascade",
             name = "Cascade Pet",
             species = "dog",
@@ -73,7 +165,7 @@ class SqliteForeignKeysCallbackTest {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-cascade",
             pet_id = "pet-cascade",
             name = "Cascade Med",
@@ -82,7 +174,7 @@ class SqliteForeignKeysCallbackTest {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = "sched-cascade",
             medication_id = "med-cascade",
             start_date_iso = "2026-05-01",

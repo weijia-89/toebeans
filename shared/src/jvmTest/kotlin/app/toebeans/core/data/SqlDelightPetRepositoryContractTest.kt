@@ -1,7 +1,15 @@
 package app.toebeans.core.data
 
-import app.toebeans.core.data.db.DatabaseFactory
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.model.Pet
+import app.toebeans.core.model.Species
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * Phase 2 concrete subclass of [PetRepositoryContract]. The factory constructs a freshly
@@ -26,19 +34,67 @@ import kotlinx.coroutines.Dispatchers
  * Production Android wiring should inject `Dispatchers.IO` for the disk-bound SQLDelight
  * calls (see [SqlDelightPetRepository] KDoc § Threading and dispatcher choice).
  *
- * Database isolation: [DatabaseFactory.create] returns a fresh in-memory database on every
- * call; each `@BeforeTest` per test method yields a clean slate. There is no shared state
- * across tests in this class.
- *
- * FK enforcement: the JVM `DatabaseFactory` does NOT enable `PRAGMA foreign_keys=ON` (per
- * its KDoc). [PetRepositoryContract] tests do not depend on FK cascade behavior (which is
- * asserted in dependent-repo contracts, Phases 3/5/7), so this is acceptable here. Future
- * cross-repo tests that DO depend on cascade behavior must enable the pragma at setup.
+ * Database isolation: each test gets a fresh in-memory database with `PRAGMA foreign_keys=ON`
+ * so FK regression cases exercise real SQLite CASCADE behavior.
  */
 class SqlDelightPetRepositoryContractTest : PetRepositoryContract() {
-    override fun createRepository(): PetRepository =
-        SqlDelightPetRepository(
-            database = DatabaseFactory().create(),
+    private lateinit var database: ToebeansDatabase
+    private lateinit var driver: SqlDriver
+
+    override fun createRepository(): PetRepository {
+        driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        ToebeansDatabase.Schema.create(driver)
+        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
+        database = ToebeansDatabase(driver)
+        return SqlDelightPetRepository(
+            database = database,
             dispatcher = Dispatchers.Unconfined,
         )
+    }
+
+    @Test
+    fun `upsert update with renamed pet preserves medication child rows`() =
+        runTest {
+            val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+            ToebeansDatabase.Schema.create(freshDriver)
+            freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
+            val localDb = ToebeansDatabase(freshDriver)
+            val repo =
+                SqlDelightPetRepository(
+                    database = localDb,
+                    dispatcher = Dispatchers.Unconfined,
+                )
+            val createdAt = Instant.parse("2026-05-19T00:00:00Z")
+            val pet =
+                Pet(
+                    id = "p-rename-fk",
+                    name = "Before",
+                    species = Species.DOG,
+                    birthdate = null,
+                    weightKg = 5.0,
+                    notes = null,
+                    createdAt = createdAt,
+                    archivedAt = null,
+                )
+            repo.upsert(pet)
+            localDb.medicationQueries.insertMedication(
+                id = "m-child",
+                pet_id = pet.id,
+                name = "Child Med",
+                dose_amount = "1mg",
+                notes = null,
+                created_at = createdAt.toEpochMilliseconds(),
+                discontinued_at = null,
+            )
+            repo.upsert(pet.copy(name = "After"))
+
+            assertEquals(
+                1,
+                localDb.medicationQueries
+                    .selectAllMedications()
+                    .executeAsList()
+                    .size,
+            )
+            assertEquals("After", repo.getById(pet.id)?.name)
+        }
 }

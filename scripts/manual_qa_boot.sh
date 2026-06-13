@@ -35,6 +35,38 @@ while [[ $# -gt 0 ]]; do
 done
 
 ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+
+# Homebrew openjdk@17 is not registered with /usr/libexec/java_home unless symlinked.
+resolve_java_home() {
+  if [[ -n "${JAVA_HOME:-}" && -x "${JAVA_HOME}/bin/java" ]]; then
+    return 0
+  fi
+  local brew_jdk
+  for brew_jdk in \
+    "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" \
+    "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"; do
+    if [[ -x "${brew_jdk}/bin/java" ]]; then
+      export JAVA_HOME="$brew_jdk"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+  if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    local jh
+    if jh="$(/usr/libexec/java_home -v 17 2>/dev/null)"; then
+      export JAVA_HOME="$jh"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  fi
+  echo "Unable to locate JDK 17. Install: brew install openjdk@17" >&2
+  echo "Then export JAVA_HOME to Homebrew openjdk@17 (Apple Silicon or Intel):" >&2
+  echo "  /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" >&2
+  echo "  /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" >&2
+  exit 1
+}
+resolve_java_home
+
 ADB="$ANDROID_HOME/platform-tools/adb"
 EMULATOR="$ANDROID_HOME/emulator/emulator"
 PKG="app.toebeans.android"

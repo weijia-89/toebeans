@@ -83,10 +83,20 @@ ORDER BY created_at ASC;
 selectAllSchedules:
 SELECT * FROM Schedule ORDER BY created_at DESC;
 
--- Backs ScheduleRepository.upsert (schedule half). Idempotent on id.
-upsertSchedule:
-INSERT OR REPLACE INTO Schedule(id, medication_id, start_date_iso, end_date_iso, created_at)
+-- Initial insert. [SqlDelightScheduleRepository.upsert] uses this for new schedule ids.
+insertSchedule:
+INSERT INTO Schedule(id, medication_id, start_date_iso, end_date_iso, created_at)
 VALUES (?, ?, ?, ?, ?);
+
+-- In-place update. INSERT OR REPLACE is forbidden: REPLACE deletes the schedule row
+-- first, which CASCADE-wipes DoseEvent children pinned to this schedule.
+updateSchedule:
+UPDATE Schedule
+SET medication_id = ?,
+    start_date_iso = ?,
+    end_date_iso = ?,
+    created_at = ?
+WHERE id = ?;
 
 -- Backs FakeScheduleRepository.delete(id). FK CASCADE removes the schedule's phases
 -- and any DoseEvents pinned to it.

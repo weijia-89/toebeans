@@ -6,6 +6,7 @@ import app.toebeans.core.data.SqlDelightDoseEventRepository
 import app.toebeans.core.db.ToebeansDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Instant
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -53,6 +54,86 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
         database.scheduleQueries.deleteSchedule(scheduleId)
     }
 
+    override fun discontinueSeededMedication() {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        val discontinuedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
+        database.medicationQueries.updateMedication(
+            pet_id = "pet-lookup-contract",
+            name = "Lookup Med",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = createdAt,
+            discontinued_at = discontinuedAt,
+            id = "med-lookup-contract",
+        )
+    }
+
+    override fun archiveSeededPet() {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        val archivedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
+        database.petQueries.archivePet(
+            archived_at = archivedAt,
+            id = "pet-lookup-contract",
+        )
+    }
+
+    @Test
+    fun `lookup returns null when schedule medication is discontinued despite stale denormalized medication_id`() {
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+        val discontinuedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
+        database.petQueries.insertPet(
+            id = "pet-mismatch",
+            name = "Mismatch Pet",
+            species = "cat",
+            birthdate_iso = null,
+            weight_kg = 4.0,
+            notes = null,
+            created_at = createdAt,
+            archived_at = null,
+        )
+        database.medicationQueries.insertMedication(
+            id = "med-active-denorm",
+            pet_id = "pet-mismatch",
+            name = "Active Denorm",
+            dose_amount = "1mg",
+            notes = null,
+            created_at = createdAt,
+            discontinued_at = null,
+        )
+        database.medicationQueries.insertMedication(
+            id = "med-discontinued-schedule",
+            pet_id = "pet-mismatch",
+            name = "Discontinued Schedule Med",
+            dose_amount = "2mg",
+            notes = null,
+            created_at = createdAt,
+            discontinued_at = discontinuedAt,
+        )
+        database.scheduleQueries.insertSchedule(
+            id = "sched-mismatch",
+            medication_id = "med-discontinued-schedule",
+            start_date_iso = "2026-05-01",
+            end_date_iso = null,
+            created_at = createdAt,
+        )
+        database.doseEventQueries.insertDoseEvent(
+            id = "evt-mismatch",
+            schedule_id = "sched-mismatch",
+            medication_id = "med-active-denorm",
+            scheduled_at = Instant.parse("2026-05-23T15:00:00Z").toEpochMilliseconds(),
+            fired_at = null,
+            resolved_at = null,
+            status = "pending",
+            note = null,
+        )
+        val mismatchLookup = SqlDelightReminderLookup(database)
+
+        assertNull(
+            mismatchLookup.lookup("evt-mismatch"),
+            "join must follow schedule.medication_id; stale de.medication_id must not bypass discontinue filter",
+        )
+    }
+
     override fun assertAdr0011MarkFiredPersists() {
         val reminder =
             ScheduledReminder(
@@ -84,7 +165,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
 
     private fun seedParentChain(scheduleId: String) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-lookup-contract",
             name = "Lookup Pet",
             species = "cat",
@@ -94,7 +175,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-lookup-contract",
             pet_id = "pet-lookup-contract",
             name = "Lookup Med",
@@ -103,7 +184,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = "med-lookup-contract",
             start_date_iso = "2026-05-01",

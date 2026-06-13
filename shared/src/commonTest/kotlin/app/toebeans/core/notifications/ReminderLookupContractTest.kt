@@ -94,12 +94,54 @@ abstract class ReminderLookupContract {
         )
     }
 
+    @Test
+    fun `lookup returns null when parent medication is discontinued`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-discontinued-med",
+                scheduleId = "sched-discontinued",
+                scheduledAt = Instant.parse("2026-05-23T13:00:00Z"),
+            )
+        seedReminder(reminder)
+        discontinueSeededMedication()
+
+        assertNull(
+            lookup.lookup(reminder.id),
+            "discontinued medication must not surface at fire time; receiver cancels stale alarm",
+        )
+    }
+
+    @Test
+    fun `lookup returns null when parent pet is archived`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-archived-pet",
+                scheduleId = "sched-archived-pet",
+                scheduledAt = Instant.parse("2026-05-23T14:00:00Z"),
+            )
+        seedReminder(reminder)
+        archiveSeededPet()
+
+        assertNull(
+            lookup.lookup(reminder.id),
+            "archived pet must not surface at fire time; receiver cancels stale alarm",
+        )
+    }
+
     protected open fun removeSeededReminder(reminderId: String) {
         // Default no-op for lookups that cannot simulate deletion yet (stub-throws path).
     }
 
     protected open fun removeSeededSchedule(scheduleId: String) {
         // Default no-op; SQLDelight subclass deletes the schedule row to exercise FK CASCADE.
+    }
+
+    protected open fun discontinueSeededMedication() {
+        // Default no-op; SQLDelight subclass stamps discontinued_at on the seeded medication.
+    }
+
+    protected open fun archiveSeededPet() {
+        // Default no-op; SQLDelight subclass stamps archived_at on the seeded pet.
     }
 
     /**
@@ -121,11 +163,20 @@ abstract class ReminderLookupContract {
  */
 class InMemoryReminderLookupContractTest : ReminderLookupContract() {
     private val store = mutableMapOf<String, ScheduledReminder>()
+    private var medicationDiscontinued = false
+    private var petArchived = false
 
-    override fun createLookup(): ReminderLookup =
-        object : ReminderLookup {
-            override fun lookup(reminderId: String): ScheduledReminder? = store[reminderId]
+    override fun createLookup(): ReminderLookup {
+        medicationDiscontinued = false
+        petArchived = false
+        store.clear()
+        return object : ReminderLookup {
+            override fun lookup(reminderId: String): ScheduledReminder? {
+                if (medicationDiscontinued || petArchived) return null
+                return store[reminderId]
+            }
         }
+    }
 
     override fun seedReminder(reminder: ScheduledReminder) {
         store[reminder.id] = reminder
@@ -137,6 +188,14 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
 
     override fun removeSeededSchedule(scheduleId: String) {
         store.entries.removeIf { (_, reminder) -> reminder.scheduleId == scheduleId }
+    }
+
+    override fun discontinueSeededMedication() {
+        medicationDiscontinued = true
+    }
+
+    override fun archiveSeededPet() {
+        petArchived = true
     }
 
     override fun assertAdr0011MarkFiredPersists() {

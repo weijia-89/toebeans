@@ -108,13 +108,12 @@ public class MedicationEditViewModel(
      * discontinued meds via `Medication.isActive`; the active-pet medications list in
      * `PetsViewModel.kt:24` does the same). Reversible via [reactivate].
      *
-     * **What this does NOT do:** the Schedule rows that reference this medication remain in
-     * the repository, and their existing AlarmManager registrations are NOT cancelled. v0.1
-     * relies on Home's discontinuedAt filter to keep reminders out of view; if a phase is
-     * still actively materializing, its alarms would still fire and [DoseAlarmReceiver]
-     * resolves the dose via [app.toebeans.core.notifications.SqlDelightReminderLookup]
-     * (M1.3). That lookup does not yet filter on [Medication.isActive], so discontinued-med
-     * firings can still render until a follow-on slice joins the medication row at fire time.
+     * **Alarm cancellation (partial).** Schedule rows remain; AlarmManager registrations are
+     * not proactively cancelled on discontinue. At fire time, [DoseAlarmReceiver] calls
+     * [app.toebeans.core.notifications.SqlDelightReminderLookup], which returns null for
+     * discontinued medications and cancels the stale alarm without posting. Boot rehydrate
+     * skips discontinued meds via `selectPendingDoseEventsInRangeActive`. Proactive cancel
+     * on discontinue is a follow-on slice (see `docs/reviews/2026-06-07-database-audit-and-plan.md` D1).
      *
      * @param now Instant to record as discontinuedAt. Injectable so tests can pin time.
      *     Default `Clock.System.now()` for production callers.
