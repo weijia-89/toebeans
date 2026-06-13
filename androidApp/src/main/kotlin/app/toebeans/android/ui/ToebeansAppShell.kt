@@ -28,6 +28,8 @@ import app.toebeans.android.ui.icons.PawIcon
 import app.toebeans.android.ui.medications.MedicationEditScreen
 import app.toebeans.android.ui.nav.BottomNavItem
 import app.toebeans.android.ui.nav.Destinations
+import app.toebeans.android.ui.nav.PetDetailMedicationDestination
+import app.toebeans.android.ui.nav.resolvePetDetailMedicationDestination
 import app.toebeans.android.ui.pets.PetDetailScreen
 import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
@@ -164,8 +166,13 @@ public fun ToebeansAppShell() {
                     onBack = { navController.popBackStack() },
                     onEditPet = { navController.navigate(Destinations.petEdit(petId)) },
                     onAddMedication = { navController.navigate(Destinations.medicationNew(petId)) },
-                    onMedicationClick = { medId ->
-                        navController.navigate(Destinations.scheduleCreate(petId, medId))
+                    onMedicationClick = { medId, activeScheduleId ->
+                        when (resolvePetDetailMedicationDestination(activeScheduleId)) {
+                            PetDetailMedicationDestination.MEDICATION_EDIT ->
+                                navController.navigate(Destinations.medicationEdit(petId, medId))
+                            PetDetailMedicationDestination.SCHEDULE_CREATE ->
+                                navController.navigate(Destinations.scheduleCreate(petId, medId))
+                        }
                     },
                 )
             }
