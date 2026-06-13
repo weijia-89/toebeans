@@ -16,6 +16,7 @@ jobs:
   rerun-trainer-pr-review-gate:
     if: |
       github.event.issue.pull_request != null &&
+      (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER') &&
       contains(github.event.comment.body, 'trainer-codereview-') &&
       contains(github.event.comment.body, format('trainer-codereview-{0}-', github.event.repository.name))
     runs-on: ubuntu-24.04
@@ -29,9 +30,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pr="${{ github.event.issue.number }}"
-          branch=$(gh pr view "$pr" --repo "${{ github.repository }}" --json headRefName -q .headRefName)
+          head_sha=$(gh pr view "$pr" --repo "${{ github.repository }}" --json headRefOid -q .headRefOid)
           for _ in $(seq 1 20); do
-            status=$(gh run list --repo "${{ github.repository }}" --branch "$branch" --workflow ci \
+            status=$(gh run list --repo "${{ github.repository }}" --commit "$head_sha" --workflow ci \
               --limit 1 --json status -q '.[0].status // "completed"')
             [[ "$status" != "in_progress" && "$status" != "queued" && "$status" != "pending" ]] && break
             sleep 15
