@@ -41,10 +41,23 @@ SELECT * FROM Pet ORDER BY name COLLATE NOCASE;
 selectPetById:
 SELECT * FROM Pet WHERE id = ?;
 
--- Backs PetRepository.upsert. Idempotent on id.
-upsertPet:
-INSERT OR REPLACE INTO Pet(id, name, species, birthdate_iso, weight_kg, notes, created_at, archived_at)
+-- Initial insert. [SqlDelightPetRepository.upsert] uses this for new ids.
+insertPet:
+INSERT INTO Pet(id, name, species, birthdate_iso, weight_kg, notes, created_at, archived_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- In-place update. INSERT OR REPLACE is forbidden: SQLite REPLACE deletes the old row
+-- first, which CASCADE-wipes Medication/Schedule/DoseEvent children (ADR-0010).
+updatePet:
+UPDATE Pet
+SET name = ?,
+    species = ?,
+    birthdate_iso = ?,
+    weight_kg = ?,
+    notes = ?,
+    created_at = ?,
+    archived_at = ?
+WHERE id = ?;
 
 -- Soft-archive a pet (sets archived_at; row remains in the table). Preserved from
 -- the consolidated schema for any future archive surface. No fake method calls this

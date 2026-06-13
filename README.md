@@ -3,11 +3,11 @@
 Pet medication tracker for Android. Local-only. No cloud, no telemetry, no
 third-party services.
 
-Status: `v0.1.0-dev`, M1 feature-complete on `main`; bottom nav is **Today → Pets → Reminders → Settings** ([#74](https://github.com/weijia-89/toebeans/pull/74) merged). M1.2 internal-beta prep and M2 IA polish in open PRs ([#75](https://github.com/weijia-89/toebeans/pull/75)–[#78](https://github.com/weijia-89/toebeans/pull/78)). Pets and their medications live in SQLDelight
+Status: `v0.1.0-dev`, M1 feature-complete on `main`; bottom nav is **Today → Pets → Reminders → Settings** ([#74](https://github.com/weijia-89/toebeans/pull/74) merged). Wave 1 UI polish ([#75](https://github.com/weijia-89/toebeans/pull/75)–[#86](https://github.com/weijia-89/toebeans/pull/86)) merged; M1.2 internal-beta prep continues. Pets and their medications live in SQLDelight
 (`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
 tab lists schedules and opens read-only schedule detail. After reboot,
 `BootReceiver` replays alarms for the next 72 hours by querying pending rows from
-SQLDelight in the receiver process. Notification firing remains on the ROADMAP.
+SQLDelight in the receiver process. Schedule-save materialization, [DoseAlarmReceiver](androidApp/src/main/kotlin/app/toebeans/android/notifications/DoseAlarmReceiver.kt) lookup, and boot rehydration are shipped on `main`.
 
 **SDK (2026-05):** BootReceiver scaffold ([PR #39](https://github.com/weijia-89/toebeans/pull/39)),
 72h rehydration ([PR #40](https://github.com/weijia-89/toebeans/pull/40), receiver SQLDelight lookup in [PR #52](https://github.com/weijia-89/toebeans/pull/52)),

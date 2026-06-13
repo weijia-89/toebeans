@@ -34,7 +34,7 @@ import kotlin.time.Duration.Companion.hours
  * **Phase 3 (shipped):**
  * - [BootReceiver.onReceive] delegates to [app.toebeans.android.ToebeansApp.rehydrateBootAlarms].
  * - [app.toebeans.android.ToebeansApp.loadPendingRemindersInHorizon] queries
- *   `selectPendingDoseEventsInRange` on the receiver-process SQLDelight database.
+ *   `selectPendingDoseEventsInRangeActive` on the receiver-process SQLDelight database.
  * - Empty DB → zero alarms, no crash. Seeded pending rows inside the horizon → AlarmManager
  *   entries scheduled.
  *
@@ -128,6 +128,57 @@ class BootReceiverTest {
     }
 
     @Test
+    fun `onReceive with BOOT_COMPLETED skips pending doses for discontinued medications`() {
+        val scheduledAt = Clock.System.now() + 12.hours
+        seedPendingDoseEvent(
+            eventId = "evt-boot-discontinued",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = scheduledAt,
+        )
+        val discontinuedAt = Clock.System.now().toEpochMilliseconds()
+        database.medicationQueries.updateMedication(
+            pet_id = "pet-luna",
+            name = "Methimazole",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
+            discontinued_at = discontinuedAt,
+            id = "med-luna-methimazole",
+        )
+
+        dispatchBootCompleted()
+
+        assertEquals(
+            "Boot rehydration must not schedule alarms for discontinued medications",
+            0,
+            shadowOf(alarmManager).scheduledAlarms.size,
+        )
+    }
+
+    @Test
+    fun `onReceive with BOOT_COMPLETED skips pending doses for archived pets`() {
+        val scheduledAt = Clock.System.now() + 12.hours
+        seedPendingDoseEvent(
+            eventId = "evt-boot-archived-pet",
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = scheduledAt,
+        )
+        val archivedAt = Clock.System.now().toEpochMilliseconds()
+        database.petQueries.archivePet(
+            archived_at = archivedAt,
+            id = "pet-luna",
+        )
+
+        dispatchBootCompleted()
+
+        assertEquals(
+            "Boot rehydration must not schedule alarms for archived pets",
+            0,
+            shadowOf(alarmManager).scheduledAlarms.size,
+        )
+    }
+
+    @Test
     fun `onReceive ignores unrelated actions`() {
         seedPendingDoseEvent(
             eventId = "evt-unrelated-action",
@@ -151,7 +202,7 @@ class BootReceiverTest {
         scheduledAt: Instant,
     ) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-luna",
             name = "Luna",
             species = "cat",
@@ -161,7 +212,7 @@ class BootReceiverTest {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-luna-methimazole",
             pet_id = "pet-luna",
             name = "Methimazole",
@@ -170,7 +221,7 @@ class BootReceiverTest {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = "med-luna-methimazole",
             start_date_iso = "2026-05-01",

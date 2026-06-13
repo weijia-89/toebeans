@@ -38,7 +38,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
     }
 
     override fun createRepository(): DoseEventRepository {
-        seedParentChain(scheduleId = SCHEDULE_ID)
+        seedParentChain(database, scheduleId = SCHEDULE_ID)
         return SqlDelightDoseEventRepository(
             database = database,
             dispatcher = Dispatchers.Unconfined,
@@ -48,7 +48,16 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
     @Test
     fun `recordGivenNow persists row visible to selectDoseEventById for receiver lookup`() =
         runTest {
-            val repo = createRepository()
+            val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+            ToebeansDatabase.Schema.create(freshDriver)
+            freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
+            val localDb = ToebeansDatabase(freshDriver)
+            seedParentChain(localDb, scheduleId = SCHEDULE_ID)
+            val repo =
+                SqlDelightDoseEventRepository(
+                    database = localDb,
+                    dispatcher = Dispatchers.Unconfined,
+                )
             val at = Instant.parse("2026-05-24T08:00:00Z")
             repo.recordGivenNow(
                 doseEventId = DOSE_ID,
@@ -59,7 +68,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             )
 
             val row =
-                database.doseEventQueries
+                localDb.doseEventQueries
                     .selectDoseEventById(DOSE_ID)
                     .executeAsOneOrNull()
             assertNotNull(row, "insert must be visible to indexed receiver lookup query")
@@ -68,7 +77,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             assertEquals(MED_ID, row.medication_id)
             assertEquals("given", row.status)
 
-            val lookup = SqlDelightReminderLookup(database)
+            val lookup = SqlDelightReminderLookup(localDb)
             val reminder = lookup.lookup(DOSE_ID)
             assertNotNull(reminder, "SqlDelightReminderLookup must resolve persisted dose id")
             assertEquals(SCHEDULE_ID, reminder.scheduleId)
@@ -78,7 +87,16 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
     @Test
     fun `delete removes row from selectDoseEventById`() =
         runTest {
-            val repo = createRepository()
+            val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+            ToebeansDatabase.Schema.create(freshDriver)
+            freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
+            val localDb = ToebeansDatabase(freshDriver)
+            seedParentChain(localDb, scheduleId = SCHEDULE_ID)
+            val repo =
+                SqlDelightDoseEventRepository(
+                    database = localDb,
+                    dispatcher = Dispatchers.Unconfined,
+                )
             val at = Instant.parse("2026-05-24T10:00:00Z")
             repo.recordGivenNow(
                 doseEventId = DOSE_ID,
@@ -89,15 +107,18 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             repo.delete(DOSE_ID)
 
             val row =
-                database.doseEventQueries
+                localDb.doseEventQueries
                     .selectDoseEventById(DOSE_ID)
                     .executeAsOneOrNull()
             assertNull(row)
         }
 
-    private fun seedParentChain(scheduleId: String) {
+    private fun seedParentChain(
+        database: ToebeansDatabase,
+        scheduleId: String,
+    ) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = PET_ID,
             name = "Contract Pet",
             species = "dog",
@@ -107,7 +128,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = MED_ID,
             pet_id = PET_ID,
             name = "Contract Med",
@@ -116,7 +137,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = MED_ID,
             start_date_iso = "2026-05-01",

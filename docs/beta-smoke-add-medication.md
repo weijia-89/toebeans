@@ -35,7 +35,18 @@ Complete **before** sending the internal-testing invite link.
 - [ ] Build and install debug or release candidate:
 
   ```bash
-  export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+  # Homebrew JDK 17 (Apple Silicon or Intel). Or: bash scripts/manual_qa_boot.sh
+  # resolves JAVA_HOME automatically before gradlew.
+  for _jdk in \
+    /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+    /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home; do
+    [[ -x "$_jdk/bin/java" ]] && export JAVA_HOME="$_jdk" && break
+  done
+  if [[ -z "${JAVA_HOME:-}" ]]; then
+    echo "JDK 17 not found. Run: brew install openjdk@17" >&2
+    exit 1
+  fi
+  export PATH="$JAVA_HOME/bin:$PATH"
   cd /path/to/toebeans
   ./gradlew :androidApp:installDebug
   ```
@@ -55,7 +66,16 @@ Complete **before** sending the internal-testing invite link.
 Run from repo root on **JDK 17**. CI remains the load-bearing gate if local Robolectric is slow; AGENTS.md documents the local-JDK17 `test_verif` pattern.
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+for _jdk in \
+  /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+  /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home; do
+  [[ -x "$_jdk/bin/java" ]] && export JAVA_HOME="$_jdk" && break
+done
+if [[ -z "${JAVA_HOME:-}" ]]; then
+  echo "JDK 17 not found. Run: brew install openjdk@17" >&2
+  exit 1
+fi
+export PATH="$JAVA_HOME/bin:$PATH"
 
 # Shared: medication repo contract + data smoke
 ./gradlew :shared:jvmTest \
@@ -191,7 +211,7 @@ If reboot does not rehydrate, record as smoke fail on the alarm path and block i
 Verified against `origin/main` at operator dispatch. Re-verify after merge.
 
 1. **Anchor-mode prompt** absent (M1.5 / ADR-0007): **accepted** per Q9; no beta blocker.
-2. **Pet detail medication tap** navigates to **Create schedule**, not **Edit medication** (`Destinations.medicationEdit` unused in nav). Edit requires knowing route or future UX fix.
+2. **Pet detail medication tap** (fixed 2026-06-05): meds **with** a schedule open **Edit medication**; meds **without** a schedule still open **Create schedule** (beta-smoke step 3). Today **Edit** and Reminders `needsSchedule` rows are the other edit entry points.
 3. **Discontinued medications:** alarms for already-materialized doses may still fire (`MedicationEditViewModel` KDoc); inactive filter on lookup deferred.
 4. **README drift:** README still says "Notification firing remains on the ROADMAP" while schedule-save materialization + receiver lookup + boot rehydration are now shipped. Treat this doc + ROADMAP as authoritative until README sync lands.
 

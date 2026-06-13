@@ -47,10 +47,22 @@ SELECT * FROM Medication ORDER BY name COLLATE NOCASE;
 selectMedicationById:
 SELECT * FROM Medication WHERE id = ?;
 
--- Backs FakeMedicationRepository.upsert. Idempotent on id.
-upsertMedication:
-INSERT OR REPLACE INTO Medication(id, pet_id, name, dose_amount, notes, created_at, discontinued_at)
+-- Initial insert. [SqlDelightMedicationRepository.upsert] uses this for new ids.
+insertMedication:
+INSERT INTO Medication(id, pet_id, name, dose_amount, notes, created_at, discontinued_at)
 VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- In-place update. Used by repository upsert for existing ids. INSERT OR REPLACE is forbidden
+-- here: SQLite REPLACE deletes the old row first, which CASCADE-wipes Schedule/DoseEvent.
+updateMedication:
+UPDATE Medication
+SET pet_id = ?,
+    name = ?,
+    dose_amount = ?,
+    notes = ?,
+    created_at = ?,
+    discontinued_at = ?
+WHERE id = ?;
 
 -- Backs FakeMedicationRepository.delete(id). Hard delete; FK CASCADE removes
 -- Schedule/SchedulePhase/DoseEvent rows tied to this medication.

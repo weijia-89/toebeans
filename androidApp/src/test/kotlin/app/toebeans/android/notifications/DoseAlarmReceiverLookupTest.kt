@@ -31,6 +31,8 @@ import org.robolectric.annotation.Config
  *   posts a user-visible notification.
  * - Row gone: [ReminderLookup] returns null → receiver silently cancels the pending alarm, no crash,
  *   no notification.
+ * - Discontinued / archived chain: [ReminderLookup] returns null → same cancel path; no
+ *   [DoseEvent.fired_at] stamp (ADR-0011).
  *
  * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. Permission-denial
  * [AndroidNotificationActuator.show] outcomes and LocalCrashLog markers are a follow-on slice.
@@ -283,13 +285,117 @@ class DoseAlarmReceiverLookupTest {
         assertNull(found)
     }
 
+    @Test
+    fun `archived pet silently cancels alarm without posting notification`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-archived-pet",
+                scheduleId = "sched-luna-methimazole",
+                scheduledAt = Instant.parse("2026-05-23T10:30:00Z"),
+            )
+        seedDoseEvent(
+            eventId = reminder.id,
+            scheduleId = reminder.scheduleId,
+            scheduledAt = reminder.scheduledAt,
+        )
+        val archivedAt = Instant.parse("2026-05-22T12:00:00Z").toEpochMilliseconds()
+        database.petQueries.archivePet(
+            archived_at = archivedAt,
+            id = "pet-luna",
+        )
+        val actuator =
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = alarmManager,
+                notificationManager =
+                    androidx.core.app.NotificationManagerCompat
+                        .from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            )
+        actuator.schedule(reminder)
+        DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.receiverDatabaseFactory = { database }
+
+        dispatchDoseFire(reminder.id)
+
+        assertEquals(0, shadowOf(alarmManager).scheduledAlarms.size)
+        assertEquals(0, shadowOf(systemNotificationManager).activeNotifications.size)
+        assertNull(
+            "archived pet path must not stamp fired_at before show (ADR-0011)",
+            database.doseEventQueries
+                .selectDoseEventById(reminder.id)
+                .executeAsOne()
+                .fired_at,
+        )
+    }
+
+    @Test
+    fun `discontinued medication silently cancels alarm without posting notification`() {
+        val reminder =
+            ScheduledReminder(
+                id = "evt-discontinued",
+                scheduleId = "sched-luna-methimazole",
+                scheduledAt = Instant.parse("2026-05-23T10:00:00Z"),
+            )
+        seedDoseEvent(
+            eventId = reminder.id,
+            scheduleId = reminder.scheduleId,
+            scheduledAt = reminder.scheduledAt,
+        )
+        val discontinuedAt = Instant.parse("2026-05-22T12:00:00Z").toEpochMilliseconds()
+        database.medicationQueries.updateMedication(
+            pet_id = "pet-luna",
+            name = "Methimazole",
+            dose_amount = "2.5mg",
+            notes = null,
+            created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
+            discontinued_at = discontinuedAt,
+            id = "med-luna-methimazole",
+        )
+        val actuator =
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = alarmManager,
+                notificationManager =
+                    androidx.core.app.NotificationManagerCompat
+                        .from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            )
+        actuator.schedule(reminder)
+        assertEquals(1, shadowOf(alarmManager).scheduledAlarms.size)
+
+        DoseAlarmReceiver.lookupOverride = null
+        ToebeansApp.receiverDatabaseFactory = { database }
+
+        dispatchDoseFire(reminder.id)
+
+        assertEquals(
+            "discontinued medication must cancel stale alarm at fire time",
+            0,
+            shadowOf(alarmManager).scheduledAlarms.size,
+        )
+        assertEquals(
+            "discontinued medication must not post a notification",
+            0,
+            shadowOf(systemNotificationManager).activeNotifications.size,
+        )
+        val row =
+            database.doseEventQueries
+                .selectDoseEventById(reminder.id)
+                .executeAsOne()
+        assertNull(
+            "discontinued path must not stamp fired_at before show (ADR-0011)",
+            row.fired_at,
+        )
+    }
+
     private fun seedDoseEvent(
         eventId: String,
         scheduleId: String,
         scheduledAt: Instant,
     ) {
         val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
-        database.petQueries.upsertPet(
+        database.petQueries.insertPet(
             id = "pet-luna",
             name = "Luna",
             species = "cat",
@@ -299,7 +405,7 @@ class DoseAlarmReceiverLookupTest {
             created_at = createdAt,
             archived_at = null,
         )
-        database.medicationQueries.upsertMedication(
+        database.medicationQueries.insertMedication(
             id = "med-luna-methimazole",
             pet_id = "pet-luna",
             name = "Methimazole",
@@ -308,7 +414,7 @@ class DoseAlarmReceiverLookupTest {
             created_at = createdAt,
             discontinued_at = null,
         )
-        database.scheduleQueries.upsertSchedule(
+        database.scheduleQueries.insertSchedule(
             id = scheduleId,
             medication_id = "med-luna-methimazole",
             start_date_iso = "2026-05-01",
