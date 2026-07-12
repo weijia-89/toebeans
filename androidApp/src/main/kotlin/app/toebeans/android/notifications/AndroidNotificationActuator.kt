@@ -102,12 +102,13 @@ public class AndroidNotificationActuator(
             // Slice 1: hook to UI banner asking the user to grant POST_NOTIFICATIONS.
             return
         }
+
         val notification =
             NotificationCompat
                 .Builder(context, CHANNEL_ID_MEDICATION_CRITICAL)
                 .setSmallIcon(android.R.drawable.ic_dialog_info) // v0.1 placeholder
-                .setContentTitle("Medication due")
-                .setContentText("Reminder ${reminder.id}") // slice 1: pull live data here
+                .setContentTitle("${reminder.petName} — ${reminder.medicationName} due")
+                .setContentText("Tap to log dose")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)

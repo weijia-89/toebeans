@@ -290,4 +290,163 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
 
             assertNull(repo.observeLastGivenForMedication(contractMedicationId).first())
         }
+
+    @Test
+    fun `markStalePendingAsMissed one pending dose inside timeout stays pending`() =
+        runTest {
+            // Scheduled 2 hours ago, cutoff is 4 hours ago → still within timeout, stays pending
+            val scheduled = Instant.parse("2026-05-24T06:00:00Z")  // 6 hours ago from reference
+            val cutoff = Instant.parse("2026-05-24T02:00:00Z")    // 2 hours after scheduled = 4h since ref
+
+            repo.upsert(
+                DoseEvent(
+                    id = "stale-within-timeout",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = scheduled,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+
+            val changed = repo.markStalePendingAsMissed(cutoff)
+            assertEquals(0, changed, "pending inside timeout should not be marked missed")
+
+            val all = repo.observeAll().first()
+            val event = all.single { it.id == "stale-within-timeout" }
+            assertEquals(DoseStatus.PENDING, event.status, "status unchanged")
+        }
+
+    @Test
+    fun `markStalePendingAsMissed one pending dose past timeout becomes missed`() =
+        runTest {
+            // Scheduled 6 hours ago, cutoff is 2 hours ago → past timeout
+            val scheduled = Instant.parse("2026-05-24T02:00:00Z")  // 6 hours ago from reference
+            val cutoff = Instant.parse("2026-05-24T06:00:00Z")    // 6 hours since reference = 4h after scheduled
+
+            repo.upsert(
+                DoseEvent(
+                    id = "stale-past-timeout",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = scheduled,
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+
+            val changed = repo.markStalePendingAsMissed(cutoff)
+            assertEquals(1, changed, "one row should be marked missed")
+
+            val all = repo.observeAll().first()
+            val event = all.single { it.id == "stale-past-timeout" }
+            assertEquals(DoseStatus.MISSED, event.status, "should be missed")
+            assertNotNull(event.resolvedAt, "resolvedAt should be set to cutoff")
+        }
+
+    @Test
+    fun `markStalePendingAsMissed one already-given dose past timeout stays given`() =
+        runTest {
+            val scheduled = Instant.parse("2026-05-24T02:00:00Z")
+            val resolved = Instant.parse("2026-05-24T02:30:00Z")
+            val cutoff = Instant.parse("2026-05-24T06:00:00Z")
+
+            repo.upsert(
+                DoseEvent(
+                    id = "given-past-timeout",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = scheduled,
+                    firedAt = scheduled,
+                    resolvedAt = resolved,
+                    status = DoseStatus.GIVEN,
+                    note = "already logged",
+                ),
+            )
+
+            val changed = repo.markStalePendingAsMissed(cutoff)
+            assertEquals(0, changed, "given dose should not be affected")
+
+            val all = repo.observeAll().first()
+            val event = all.single { it.id == "given-past-timeout" }
+            assertEquals(DoseStatus.GIVEN, event.status, "status unchanged")
+        }
+
+    @Test
+    fun `markStalePendingAsMissed mixed batch only stale pending transition`() =
+        runTest {
+            val reference = Instant.parse("2026-05-24T08:00:00Z")  // current time reference
+            val cutoff = Instant.parse("2026-05-24T04:00:00Z")    // 4 hours before reference
+
+            // Pending within timeout (scheduled at reference - 2h = 6h ago)
+            repo.upsert(
+                DoseEvent(
+                    id = "pending-within",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = Instant.parse("2026-05-24T06:00:00Z"),
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+
+            // Pending past timeout (scheduled at reference - 6h = 2h ago)
+            repo.upsert(
+                DoseEvent(
+                    id = "pending-stale",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = Instant.parse("2026-05-24T02:00:00Z"),
+                    firedAt = null,
+                    resolvedAt = null,
+                    status = DoseStatus.PENDING,
+                    note = null,
+                ),
+            )
+
+            // Skipped past timeout
+            repo.upsert(
+                DoseEvent(
+                    id = "skipped-stale",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = Instant.parse("2026-05-24T02:00:00Z"),
+                    firedAt = Instant.parse("2026-05-24T02:00:00Z"),
+                    resolvedAt = Instant.parse("2026-05-24T02:05:00Z"),
+                    status = DoseStatus.SKIPPED,
+                    note = null,
+                ),
+            )
+
+            // Given past timeout
+            repo.upsert(
+                DoseEvent(
+                    id = "given-stale",
+                    scheduleId = contractScheduleId,
+                    medicationId = contractMedicationId,
+                    scheduledAt = Instant.parse("2026-05-24T02:00:00Z"),
+                    firedAt = Instant.parse("2026-05-24T02:00:00Z"),
+                    resolvedAt = Instant.parse("2026-05-24T02:30:00Z"),
+                    status = DoseStatus.GIVEN,
+                    note = null,
+                ),
+            )
+
+            val changed = repo.markStalePendingAsMissed(cutoff)
+            assertEquals(1, changed, "only one stale pending should transition")
+
+            val all = repo.observeAll().first()
+            assertEquals(4, all.size)
+
+            assertEquals(DoseStatus.PENDING, all.single { it.id == "pending-within" }.status)
+            assertEquals(DoseStatus.MISSED, all.single { it.id == "pending-stale" }.status)
+            assertEquals(DoseStatus.SKIPPED, all.single { it.id == "skipped-stale" }.status)
+            assertEquals(DoseStatus.GIVEN, all.single { it.id == "given-stale" }.status)
+        }
 }

@@ -19,6 +19,7 @@ import kotlin.time.Duration.Companion.hours
  */
 public object ReminderRescheduler {
     public const val HORIZON_HOURS: Int = 72
+    public const val MISSED_DOSE_TIMEOUT_HOURS: Int = 4
 
     /**
      * Materialize pending dose rows in `[now, now + [HORIZON_HOURS])` and return reminders
@@ -60,10 +61,14 @@ public object ReminderRescheduler {
                     note = null,
                 ),
             )
+            // For new schedules, we don't have medication/pet names yet (they'll be fetched
+            // at receiver fire time via SqlDelightReminderLookup JOIN). Use empty for now.
             ScheduledReminder(
                 id = eventId,
                 scheduleId = schedule.id,
                 scheduledAt = dose.scheduledAt,
+                medicationName = "",
+                petName = "",
             )
         }
     }

@@ -149,4 +149,25 @@ public interface DoseEventRepository {
      * trusted backup file we just produced).
      */
     public suspend fun upsert(event: DoseEvent)
+
+    /**
+     * Transitions all PENDING [DoseEvent] rows to MISSED where [scheduledAt] is before [cutoff].
+     *
+     * **Pedagogical note on bulk update design:**
+     * - The [cutoff] parameter is passed in (not computed internally) for testability:
+     *   tests can verify behavior at exact boundaries without waiting for real time to pass.
+     * - This uses a single bulk UPDATE rather than N individual updates for two reasons:
+     *   (1) ACID: all transitions happen in one atomic transaction — no partial state if the
+     *       app crashes mid-sweep.
+     *   (2) Performance: one round-trip to the database vs. N round-trips for N rows.
+     *
+     * **Generalization:** This pattern — "deadline-based state transition" — applies to any
+     * system where items cross a time boundary and must atomically move to a failure state.
+     * Examples: appointment no-shows, job-timeout retry, insurance claim expiration. The bulk
+     * UPDATE pattern is the standard solution in relational systems.
+     *
+     * @param cutoff Instant threshold — any PENDING event with scheduledAt < cutoff becomes MISSED.
+     * @return count of rows transitioned to MISSED.
+     */
+    public suspend fun markStalePendingAsMissed(cutoff: Instant): Int
 }

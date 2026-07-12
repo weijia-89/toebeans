@@ -182,6 +182,20 @@ public class SqlDelightDoseEventRepository(
             id = doseEventId,
         )
     }
+
+    override suspend fun markStalePendingAsMissed(cutoff: Instant): Int =
+        withContext(dispatcher) {
+            // Count rows before update to return affected count.
+            // Bulk UPDATE is atomic (ACID), so this count is accurate.
+            val countBefore =
+                queries.selectPendingBefore(cutoff.toEpochMilliseconds())
+                    .executeAsOne()
+            queries.markStalePendingAsMissed(
+                resolved_at = cutoff.toEpochMilliseconds(),
+                scheduled_at = cutoff.toEpochMilliseconds(),
+            )
+            countBefore.toInt()
+        }
 }
 
 internal fun DoseEventRow.toDomain(): DoseEvent =

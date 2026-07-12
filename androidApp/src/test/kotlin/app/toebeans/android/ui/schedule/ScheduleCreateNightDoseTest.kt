@@ -362,6 +362,8 @@ private object NoopDoseRepoB9 : DoseEventRepository {
     override suspend fun delete(doseEventId: String) = Unit
 
     override suspend fun upsert(event: DoseEvent) = Unit
+
+    override suspend fun markStalePendingAsMissed(cutoff: kotlinx.datetime.Instant): Int = 0
 }
 
 private object NoopNotificationActuatorB9 : NotificationActuator {
