@@ -27,9 +27,11 @@ public class MedicationEditViewModel(
     private val medicationRepository: MedicationRepository,
     private val petRepository: PetRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val medicationNameIndex: MedicationNameIndexRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MedicationEditUiState())
     public val state: StateFlow<MedicationEditUiState> = _state.asStateFlow()
+    public val medicationNameIndexRepository: MedicationNameIndexRepository get() = medicationNameIndex
 
     public fun setPetId(petId: String) {
         _state.update { it.copy(petId = petId) }
@@ -203,6 +205,20 @@ public class MedicationEditViewModel(
         medicationRepository.delete(id)
         return true
     }
+
+    /**
+     * Search for medication name suggestions matching the query.
+     *
+     * Used by the MedicationNameSearchField composable to provide typeahead suggestions.
+     *
+     * @param query Search string (case-insensitive)
+     * @param limit Maximum number of results (default: 10)
+     * @return List of matching medication names
+     */
+    public suspend fun searchMedicationNames(
+        query: String,
+        limit: Int = 10,
+    ): List<String> = medicationNameIndex.search(query, limit)
 
     public suspend fun save(): Boolean {
         val s = _state.value

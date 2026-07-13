@@ -24,6 +24,8 @@ import app.toebeans.core.backup.BackupAggregator
 import app.toebeans.core.backup.BackupImporter
 import app.toebeans.core.backup.BackupSerializer
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.InMemoryMedicationNameIndex
+import app.toebeans.core.data.MedicationNameIndexRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -64,6 +66,9 @@ public val appModule =
         // F3: dose rows must exist in toebeans.db before NotificationActuator.schedule()
         // (receiver SqlDelightReminderLookup reads the same file at fire time).
         single<DoseEventRepository> { SqlDelightDoseEventRepository(get(), Dispatchers.IO) }
+        // Medication name index for typeahead search (Item 3, wave2-ui-backlog.md).
+        // In-memory, loaded once at app startup.
+        single<MedicationNameIndexRepository> { InMemoryMedicationNameIndex() }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
