@@ -2,6 +2,7 @@ package app.toebeans.android
 
 import android.app.Application
 import android.content.Context
+import android.database.sqlite.SQLiteException
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.crash.LocalCrashLog
@@ -9,11 +10,15 @@ import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.di.appModule
 import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.ReminderLookup
 import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.notifications.SqlDelightReminderLookup
+import app.toebeans.core.scheduler.ReminderRescheduler
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.android.ext.koin.androidContext
@@ -50,6 +55,34 @@ class ToebeansApp : Application() {
             androidContext(this@ToebeansApp)
             modules(appModule)
         }
+
+        // Sweep stale pending doses to MISSED on every app foreground.
+        // Runs after Koin is ready so DoseEventRepository is available.
+        runMissedDoseSweeper()
+    }
+
+    /**
+     * Transitions all PENDING doses whose scheduled time is older than
+     * [ReminderRescheduler.MISSED_DOSE_TIMEOUT_HOURS] to MISSED status.
+     * Called on every app cold start and after boot rehydration.
+     */
+    private fun runMissedDoseSweeper() {
+        val doseEventRepository: DoseEventRepository =
+            org.koin.java.KoinJavaComponent.get(
+                DoseEventRepository::class.java,
+            )
+        val cutoff = Clock.System.now() - ReminderRescheduler.MISSED_DOSE_TIMEOUT_HOURS.hours
+        // Fire-and-forget: if it fails, we'll sweep again on next foreground.
+        // Exceptions are logged by Koin's coroutine scope but don't crash the app.
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                doseEventRepository.markStalePendingAsMissed(cutoff)
+            } catch (e: SQLiteException) {
+                android.util.Log.w("ToebeansApp", "Missed dose sweep failed", e)
+            } catch (e: IllegalStateException) {
+                android.util.Log.w("ToebeansApp", "Missed dose sweep failed", e)
+            }
+        }
     }
 
     public companion object {
@@ -70,9 +103,16 @@ class ToebeansApp : Application() {
          * ([loadPendingRemindersInHorizon]) and re-registers each with AlarmManager. Does not
          * materialize new dose rows; schedule-create → dose-row projection is a separate slice.
          *
+         * Also runs [markStalePendingAsMissed] to transition stale pending doses to MISSED
+         * before rehydration, so boot doesn't resurface outdated alarms.
+         *
          * @return count of reminders passed to [AndroidNotificationActuator.schedule].
          */
         public fun rehydrateBootAlarms(context: Context): Int {
+            // Sweep stale pending doses BEFORE rehydrating alarms.
+            // This prevents re-scheduling alarms for doses that should already be marked missed.
+            sweepStalePendingDosesOnBoot(context)
+
             val reminders = loadPendingRemindersInHorizon(context)
             if (reminders.isEmpty()) {
                 return 0
@@ -82,6 +122,26 @@ class ToebeansApp : Application() {
                 actuator.schedule(reminder)
             }
             return reminders.size
+        }
+
+        /**
+         * Runs the missed-dose sweep outside the Koin graph for the boot receiver path.
+         * Uses direct SQLDelight to work in the receiver process.
+         */
+        private fun sweepStalePendingDosesOnBoot(context: Context) {
+            try {
+                val database = openReceiverDatabase(context)
+                val now = Clock.System.now()
+                val cutoff = now - ReminderRescheduler.MISSED_DOSE_TIMEOUT_HOURS.hours
+                database.doseEventQueries.markStalePendingAsMissed(
+                    resolved_at = cutoff.toEpochMilliseconds(),
+                    scheduled_at = cutoff.toEpochMilliseconds(),
+                )
+            } catch (e: SQLiteException) {
+                android.util.Log.w("ToebeansApp", "Boot sweep failed", e)
+            } catch (e: IllegalStateException) {
+                android.util.Log.w("ToebeansApp", "Boot sweep failed", e)
+            }
         }
 
         /**
@@ -105,6 +165,9 @@ class ToebeansApp : Application() {
                         id = row.id,
                         scheduleId = row.schedule_id,
                         scheduledAt = Instant.fromEpochMilliseconds(row.scheduled_at),
+                        // Names populated at fire time via SqlDelightReminderLookup
+                        medicationName = "",
+                        petName = "",
                     )
                 }
         }

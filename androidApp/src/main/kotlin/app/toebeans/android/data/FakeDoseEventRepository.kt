@@ -155,4 +155,22 @@ public class FakeDoseEventRepository(
         // up in [BackupImporter], which only calls upsert for IDs not already present.
         doseEvents.update { it + (event.id to event) }
     }
+
+    override suspend fun markStalePendingAsMissed(cutoff: Instant): Int {
+        val current = doseEvents.value
+        val staleCount =
+            current.values.count {
+                it.status == DoseStatus.PENDING && it.scheduledAt < cutoff
+            }
+        doseEvents.update { events ->
+            events.mapValues { (_, event) ->
+                if (event.status == DoseStatus.PENDING && event.scheduledAt < cutoff) {
+                    event.copy(status = DoseStatus.MISSED, resolvedAt = cutoff)
+                } else {
+                    event
+                }
+            }
+        }
+        return staleCount
+    }
 }

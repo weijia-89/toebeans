@@ -107,4 +107,6 @@ private class RecordingDoseRepo : DoseEventRepository {
     override suspend fun upsert(event: DoseEvent) {
         upserted.add(event)
     }
+
+    override suspend fun markStalePendingAsMissed(cutoff: Instant): Int = 0
 }

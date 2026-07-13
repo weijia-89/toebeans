@@ -84,6 +84,8 @@ class AndroidNotificationActuatorTest {
                 id = "evt-1",
                 scheduleId = "sched-1",
                 scheduledAt = Instant.fromEpochMilliseconds(1_800_000_000_000L),
+                medicationName = "Methimazole",
+                petName = "Luna",
             )
         actuator.schedule(reminder)
 
@@ -96,8 +98,10 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `schedule is idempotent, same id twice yields one alarm at the new time`() {
-        val first = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1_000_000L))
-        val second = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(2_000_000L))
+        val first =
+            ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1_000_000L), "Methimazole", "Luna")
+        val second =
+            ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(2_000_000L), "Methimazole", "Luna")
 
         actuator.schedule(first)
         actuator.schedule(second)
@@ -113,8 +117,8 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `schedule with different ids produces independent alarms`() {
-        actuator.schedule(ScheduledReminder("a", "s", Instant.fromEpochMilliseconds(1_000_000L)))
-        actuator.schedule(ScheduledReminder("b", "s", Instant.fromEpochMilliseconds(2_000_000L)))
+        actuator.schedule(ScheduledReminder("a", "s", Instant.fromEpochMilliseconds(1_000_000L), "Methimazole", "Luna"))
+        actuator.schedule(ScheduledReminder("b", "s", Instant.fromEpochMilliseconds(2_000_000L), "Gabapentin", "Max"))
 
         val triggers = shadowOf(alarmManager).scheduledAlarms.map { it.triggerAtTime }.sorted()
         assertEquals(listOf(1_000_000L, 2_000_000L), triggers)
@@ -122,7 +126,7 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `cancel removes the alarm for the given id`() {
-        val reminder = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L))
+        val reminder = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
         actuator.schedule(reminder)
         assertEquals(1, shadowOf(alarmManager).scheduledAlarms.size)
 
@@ -137,7 +141,7 @@ class AndroidNotificationActuatorTest {
     @Test
     fun `cancel with an unknown id is a no-op (does not throw)`() {
         // Schedule one, then cancel a DIFFERENT id; the first must survive.
-        actuator.schedule(ScheduledReminder("real", "s", Instant.fromEpochMilliseconds(1L)))
+        actuator.schedule(ScheduledReminder("real", "s", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna"))
         actuator.cancel("phantom")
         assertEquals(1, shadowOf(alarmManager).scheduledAlarms.size)
     }
@@ -149,7 +153,8 @@ class AndroidNotificationActuatorTest {
         // reminder ids happen to hash equally. Routing through the same allocator the
         // PendingIntent path uses keeps the two surfaces consistent. See the regression
         // test below for the canonical "Aa"/"BB" collision pair.
-        val reminder = ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L))
+        val reminder =
+            ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
         actuator.show(reminder)
 
         val active = shadowOf(systemNotificationManager).activeNotifications
@@ -173,7 +178,7 @@ class AndroidNotificationActuatorTest {
         // The allocator is idempotent for repeat calls with the same id, so two show() calls
         // for the same reminder produce the same notification id and NotificationManager
         // replaces in place. This invariant survives the move from hashCode to allocator.
-        val r1 = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L))
+        val r1 = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
         actuator.show(r1)
         actuator.show(r1)
 
@@ -198,8 +203,8 @@ class AndroidNotificationActuatorTest {
             "BB".hashCode(),
         )
 
-        actuator.show(ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1L)))
-        actuator.show(ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2L)))
+        actuator.show(ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna"))
+        actuator.show(ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2L), "Gabapentin", "Max"))
 
         val active = shadowOf(systemNotificationManager).activeNotifications
         assertEquals(
@@ -219,7 +224,7 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `re-scheduling after cancel works correctly`() {
-        val reminder = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L))
+        val reminder = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
         actuator.schedule(reminder)
         actuator.cancel(reminder.id)
         actuator.schedule(reminder.copy(scheduledAt = Instant.fromEpochMilliseconds(99_000_000L)))
@@ -246,8 +251,8 @@ class AndroidNotificationActuatorTest {
             "BB".hashCode(),
         )
 
-        val a = ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1_000_000L))
-        val b = ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2_000_000L))
+        val a = ScheduledReminder("Aa", "sched-a", Instant.fromEpochMilliseconds(1_000_000L), "Methimazole", "Luna")
+        val b = ScheduledReminder("BB", "sched-b", Instant.fromEpochMilliseconds(2_000_000L), "Gabapentin", "Max")
         actuator.schedule(a)
         actuator.schedule(b)
 

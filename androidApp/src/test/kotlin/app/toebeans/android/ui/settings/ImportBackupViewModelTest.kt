@@ -352,4 +352,6 @@ private class ImporterDoseEventRepo : DoseEventRepository {
     override suspend fun upsert(event: DoseEvent) {
         state.update { it + (event.id to event) }
     }
+
+    override suspend fun markStalePendingAsMissed(cutoff: Instant): Int = 0
 }

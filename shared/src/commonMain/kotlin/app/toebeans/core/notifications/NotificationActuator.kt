@@ -46,9 +46,26 @@ public interface NotificationActuator {
  *
  * Intentionally NOT a snapshot of the full [app.toebeans.core.model.DoseEvent] —
  * implementations re-fetch authoritative data at fire-time. See [NotificationActuator.show].
+ *
+ * **Pedagogical note on denormalization:** `medicationName` and `petName` are denormalized
+ * onto this struct (computed at lookup time via JOIN) rather than stored as foreign keys on
+ * DoseEvent. This is the right design for the receiver lookup path because:
+ * - The receiver runs in a separate process where joining is cheap (local SQLite).
+ * - We avoid a three-table join (DoseEvent → Schedule → Medication → Pet) at display time.
+ * - The tradeoff: if the medication/pet is renamed after scheduling, the notification shows
+ *   the new name. For address verification (Lob's use case), this is analogous to how you
+ *   want the latest address on file, not a frozen snapshot.
+ *
+ * **JOIN-at-read vs denormalize-at-write trade-off:**
+ * - JOIN-at-read (what we do): Always fresh data, no sync burden, simpler schema.
+ * - Denormalize-at-write: Faster reads, but requires updating historical rows when names change.
+ * At our current scale (~100 dose events), JOIN cost is negligible. At 10x scale (10K+ rows),
+ * we'd denormalize at write time to keep notification delivery fast.
  */
 public data class ScheduledReminder(
     val id: String,
     val scheduleId: String,
     val scheduledAt: Instant,
+    val medicationName: String,
+    val petName: String,
 )

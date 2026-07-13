@@ -449,6 +449,8 @@ private class InMemDoseRepo : DoseEventRepository {
         store.removeAll { it.id == event.id }
         store.add(event)
     }
+
+    override suspend fun markStalePendingAsMissed(cutoff: Instant): Int = 0
 }
 
 private class RecordingNotificationActuator : NotificationActuator {

@@ -140,6 +140,8 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
                 id = "evt-adr-sqldelight",
                 scheduleId = "sched-adr-sqldelight",
                 scheduledAt = Instant.parse("2026-05-26T09:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(reminder)
         assertNull(

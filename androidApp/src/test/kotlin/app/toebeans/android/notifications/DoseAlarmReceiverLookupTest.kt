@@ -89,6 +89,8 @@ class DoseAlarmReceiverLookupTest {
                 id = "evt-happy",
                 scheduleId = "sched-luna-methimazole",
                 scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+                medicationName = "Methimazole",
+                petName = "Luna",
             )
         DoseAlarmReceiver.lookupOverride =
             object : ReminderLookup {
@@ -112,6 +114,8 @@ class DoseAlarmReceiverLookupTest {
                 id = "evt-gone",
                 scheduleId = "sched-deleted",
                 scheduledAt = Instant.parse("2026-05-23T09:00:00Z"),
+                medicationName = "Methimazole",
+                petName = "Luna",
             )
         val actuator =
             AndroidNotificationActuator(
@@ -180,14 +184,11 @@ class DoseAlarmReceiverLookupTest {
 
         val found = DoseAlarmReceiver.defaultReminderLookup(context).lookup("evt-sqldelight")
 
-        assertEquals(
-            ScheduledReminder(
-                id = "evt-sqldelight",
-                scheduleId = "sched-luna-methimazole",
-                scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
-            ),
-            found,
-        )
+        assertEquals("evt-sqldelight", found?.id)
+        assertEquals("sched-luna-methimazole", found?.scheduleId)
+        assertEquals(Instant.parse("2026-05-23T08:00:00Z"), found?.scheduledAt)
+        assertEquals("Methimazole", found?.medicationName, "medication name must be populated")
+        assertEquals("Luna", found?.petName, "pet name must be populated")
     }
 
     @Test
@@ -292,6 +293,8 @@ class DoseAlarmReceiverLookupTest {
                 id = "evt-archived-pet",
                 scheduleId = "sched-luna-methimazole",
                 scheduledAt = Instant.parse("2026-05-23T10:30:00Z"),
+                medicationName = "Methimazole",
+                petName = "Luna",
             )
         seedDoseEvent(
             eventId = reminder.id,
@@ -336,6 +339,8 @@ class DoseAlarmReceiverLookupTest {
                 id = "evt-discontinued",
                 scheduleId = "sched-luna-methimazole",
                 scheduledAt = Instant.parse("2026-05-23T10:00:00Z"),
+                medicationName = "Methimazole",
+                petName = "Luna",
             )
         seedDoseEvent(
             eventId = reminder.id,

@@ -169,6 +169,20 @@ UPDATE DoseEvent SET status = ?, resolved_at = ?, note = ? WHERE id = ?;
 
 -- Sweep stale pending events to MISSED status. Called by the missed-dose sweeper
 -- on each app foreground / scheduler tick.
+
+-- Count pending doses before a cutoff timestamp. Used by markStalePendingAsMissed to return
+-- the number of affected rows after bulk UPDATE.
+selectPendingBefore:
+SELECT COUNT(*) FROM DoseEvent WHERE status = 'pending' AND scheduled_at < :scheduled_at;
+
+-- Bulk transition stale pending doses to missed status. The cutoff is parameterized to enable
+-- deterministic testing — we can pass a fake "now" and verify the state machine transition.
+-- We use a single bulk UPDATE rather than N individual updates because:
+--   1. ACID: the entire operation is atomic — either all stale pending doses become missed,
+--      or none do. No partial state if the process crashes mid-way.
+--   2. Performance: one round-trip to the database vs N+1.
+-- This pattern generalizes to any "deadline-based state transition" system: appointment
+-- no-shows → cancellation, invoice overdue → collections, session timeout → logout.
 markStalePendingAsMissed:
 UPDATE DoseEvent SET status = 'missed', resolved_at = ?
 WHERE status = 'pending' AND scheduled_at < ?;
@@ -177,3 +191,21 @@ WHERE status = 'pending' AND scheduled_at < ?;
 -- affordance in the UI swaps the row back via insertDoseEvent.
 deleteDoseEvent:
 DELETE FROM DoseEvent WHERE id = ?;
+
+-- Receiver fire path: enriched lookup returning medication and pet names for notification display.
+-- Returns null if dose event or any parent (schedule/medication/pet) is inactive or deleted.
+selectEnrichedReminderById:
+SELECT
+    de.id,
+    de.schedule_id,
+    de.scheduled_at,
+    m.name AS medication_name,
+    p.name AS pet_name
+FROM DoseEvent de
+  INNER JOIN Schedule s ON s.id = de.schedule_id
+  INNER JOIN Medication m ON m.id = s.medication_id
+  INNER JOIN Pet p ON p.id = m.pet_id
+WHERE de.id = ?
+  AND m.discontinued_at IS NULL
+  AND p.archived_at IS NULL
+LIMIT 1;

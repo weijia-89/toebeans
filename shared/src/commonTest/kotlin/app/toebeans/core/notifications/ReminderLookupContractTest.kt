@@ -44,12 +44,19 @@ abstract class ReminderLookupContract {
                 id = "evt-lookup-1",
                 scheduleId = "sched-luna-methimazole",
                 scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(expected)
 
         val found = lookup.lookup("evt-lookup-1")
 
-        assertEquals(expected, found)
+        assertEquals(expected.id, found?.id)
+        assertEquals(expected.scheduleId, found?.scheduleId)
+        assertEquals(expected.scheduledAt, found?.scheduledAt)
+        // Names come from the seeded parent chain (pet + medication)
+        assertEquals("Lookup Med", found?.medicationName)
+        assertEquals("Lookup Pet", found?.petName)
     }
 
     @Test
@@ -67,6 +74,8 @@ abstract class ReminderLookupContract {
                 id = "evt-deleted",
                 scheduleId = "sched-1",
                 scheduledAt = Instant.parse("2026-05-23T12:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(reminder)
         removeSeededReminder("evt-deleted")
@@ -84,6 +93,8 @@ abstract class ReminderLookupContract {
                 id = "evt-cascade-gone",
                 scheduleId = "sched-cascade",
                 scheduledAt = Instant.parse("2026-05-23T11:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(reminder)
         removeSeededSchedule(reminder.scheduleId)
@@ -101,6 +112,8 @@ abstract class ReminderLookupContract {
                 id = "evt-discontinued-med",
                 scheduleId = "sched-discontinued",
                 scheduledAt = Instant.parse("2026-05-23T13:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(reminder)
         discontinueSeededMedication()
@@ -118,6 +131,8 @@ abstract class ReminderLookupContract {
                 id = "evt-archived-pet",
                 scheduleId = "sched-archived-pet",
                 scheduledAt = Instant.parse("2026-05-23T14:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
             )
         seedReminder(reminder)
         archiveSeededPet()
@@ -126,6 +141,24 @@ abstract class ReminderLookupContract {
             lookup.lookup(reminder.id),
             "archived pet must not surface at fire time; receiver cancels stale alarm",
         )
+    }
+
+    @Test
+    fun `lookup returns medication and pet names for notification display`() {
+        val expected =
+            ScheduledReminder(
+                id = "evt-enriched-names",
+                scheduleId = "sched-enriched",
+                scheduledAt = Instant.parse("2026-05-25T09:00:00Z"),
+                medicationName = "Lookup Med",
+                petName = "Lookup Pet",
+            )
+        seedReminder(expected)
+
+        val found = lookup.lookup("evt-enriched-names")
+
+        assertEquals("Lookup Med", found?.medicationName, "medication name must be populated")
+        assertEquals("Lookup Pet", found?.petName, "pet name must be populated")
     }
 
     protected open fun removeSeededReminder(reminderId: String) {
@@ -205,6 +238,8 @@ class InMemoryReminderLookupContractTest : ReminderLookupContract() {
                 id = "evt-adr-inmem",
                 scheduleId = "sched-adr",
                 scheduledAt = Instant.parse("2026-05-26T08:00:00Z"),
+                medicationName = "TestMed",
+                petName = "TestPet",
             )
         seedReminder(reminder)
         assertEquals(reminder, lookup.lookup(reminder.id))

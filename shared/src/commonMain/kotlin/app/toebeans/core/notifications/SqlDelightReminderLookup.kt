@@ -12,8 +12,11 @@ import kotlinx.datetime.Instant
  * **Row-gone race.** Schedule delete cascades to dose events (ADR-0010); [lookup] returns null
  * so [app.toebeans.android.notifications.DoseAlarmReceiver] can silently cancel the stale alarm.
  *
- * **Discontinued / archived.** [lookup] uses `selectDoseEventByIdIfChainActive` so soft-discontinued
- * medications and archived pets do not surface at fire time.
+ * **Discontinued / archived.** [lookup] uses `selectEnrichedReminderById` which filters out
+ * soft-discontinued medications and archived pets so they don't surface at fire time.
+ *
+ * **Enriched lookup.** Returns medication and pet names for notification display, avoiding
+ * a separate lookup at notification-build time.
  *
  * **ADR-0011 write path (deferred).** Stamping `DoseEvent.fired_at` before [NotificationActuator.show]
  * is a separate wire-up slice; this class covers the read side only.
@@ -24,7 +27,7 @@ public class SqlDelightReminderLookup(
     override fun lookup(reminderId: String): ScheduledReminder? {
         val row =
             database.doseEventQueries
-                .selectDoseEventByIdIfChainActive(reminderId)
+                .selectEnrichedReminderById(reminderId)
                 .executeAsOneOrNull()
                 ?: return null
 
@@ -32,6 +35,8 @@ public class SqlDelightReminderLookup(
             id = row.id,
             scheduleId = row.schedule_id,
             scheduledAt = Instant.fromEpochMilliseconds(row.scheduled_at),
+            medicationName = row.medication_name,
+            petName = row.pet_name,
         )
     }
 }
