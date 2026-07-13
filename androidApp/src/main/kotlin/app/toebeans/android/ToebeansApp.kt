@@ -2,6 +2,7 @@ package app.toebeans.android
 
 import android.app.Application
 import android.content.Context
+import android.database.sqlite.SQLiteException
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.crash.LocalCrashLog
@@ -9,17 +10,17 @@ import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.di.appModule
 import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
-import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.ReminderLookup
 import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.notifications.SqlDelightReminderLookup
 import app.toebeans.core.scheduler.ReminderRescheduler
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -66,16 +67,19 @@ class ToebeansApp : Application() {
      * Called on every app cold start and after boot rehydration.
      */
     private fun runMissedDoseSweeper() {
-        val doseEventRepository: DoseEventRepository = org.koin.java.KoinJavaComponent.get(
-            DoseEventRepository::class.java,
-        )
+        val doseEventRepository: DoseEventRepository =
+            org.koin.java.KoinJavaComponent.get(
+                DoseEventRepository::class.java,
+            )
         val cutoff = Clock.System.now() - ReminderRescheduler.MISSED_DOSE_TIMEOUT_HOURS.hours
         // Fire-and-forget: if it fails, we'll sweep again on next foreground.
         // Exceptions are logged by Koin's coroutine scope but don't crash the app.
         kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 doseEventRepository.markStalePendingAsMissed(cutoff)
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                android.util.Log.w("ToebeansApp", "Missed dose sweep failed", e)
+            } catch (e: IllegalStateException) {
                 android.util.Log.w("ToebeansApp", "Missed dose sweep failed", e)
             }
         }
@@ -133,7 +137,9 @@ class ToebeansApp : Application() {
                     resolved_at = cutoff.toEpochMilliseconds(),
                     scheduled_at = cutoff.toEpochMilliseconds(),
                 )
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                android.util.Log.w("ToebeansApp", "Boot sweep failed", e)
+            } catch (e: IllegalStateException) {
                 android.util.Log.w("ToebeansApp", "Boot sweep failed", e)
             }
         }

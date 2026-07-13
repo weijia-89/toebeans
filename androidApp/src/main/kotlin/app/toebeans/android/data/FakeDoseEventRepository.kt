@@ -158,9 +158,10 @@ public class FakeDoseEventRepository(
 
     override suspend fun markStalePendingAsMissed(cutoff: Instant): Int {
         val current = doseEvents.value
-        val staleCount = current.values.count {
-            it.status == DoseStatus.PENDING && it.scheduledAt < cutoff
-        }
+        val staleCount =
+            current.values.count {
+                it.status == DoseStatus.PENDING && it.scheduledAt < cutoff
+            }
         doseEvents.update { events ->
             events.mapValues { (_, event) ->
                 if (event.status == DoseStatus.PENDING && event.scheduledAt < cutoff) {

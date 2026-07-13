@@ -188,7 +188,8 @@ public class SqlDelightDoseEventRepository(
             // Count rows before update to return affected count.
             // Bulk UPDATE is atomic (ACID), so this count is accurate.
             val countBefore =
-                queries.selectPendingBefore(cutoff.toEpochMilliseconds())
+                queries
+                    .selectPendingBefore(cutoff.toEpochMilliseconds())
                     .executeAsOne()
             queries.markStalePendingAsMissed(
                 resolved_at = cutoff.toEpochMilliseconds(),

@@ -422,9 +422,10 @@ private class InMemoryDoseEventRepo : DoseEventRepository {
     override suspend fun markStalePendingAsMissed(cutoff: Instant): Int {
         // Test stub: sweep pending events that are past the cutoff.
         // Count before to return the number affected.
-        val countBefore = state.value.values.count {
-            it.status == DoseStatus.PENDING && it.scheduledAt < cutoff
-        }
+        val countBefore =
+            state.value.values.count {
+                it.status == DoseStatus.PENDING && it.scheduledAt < cutoff
+            }
         state.update { current ->
             current.mapValues { (_, event) ->
                 if (event.status == DoseStatus.PENDING && event.scheduledAt < cutoff) {

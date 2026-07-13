@@ -98,8 +98,10 @@ class AndroidNotificationActuatorTest {
 
     @Test
     fun `schedule is idempotent, same id twice yields one alarm at the new time`() {
-        val first = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1_000_000L), "Methimazole", "Luna")
-        val second = ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(2_000_000L), "Methimazole", "Luna")
+        val first =
+            ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(1_000_000L), "Methimazole", "Luna")
+        val second =
+            ScheduledReminder("evt-1", "sched-1", Instant.fromEpochMilliseconds(2_000_000L), "Methimazole", "Luna")
 
         actuator.schedule(first)
         actuator.schedule(second)
@@ -151,7 +153,8 @@ class AndroidNotificationActuatorTest {
         // reminder ids happen to hash equally. Routing through the same allocator the
         // PendingIntent path uses keeps the two surfaces consistent. See the regression
         // test below for the canonical "Aa"/"BB" collision pair.
-        val reminder = ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
+        val reminder =
+            ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
         actuator.show(reminder)
 
         val active = shadowOf(systemNotificationManager).activeNotifications

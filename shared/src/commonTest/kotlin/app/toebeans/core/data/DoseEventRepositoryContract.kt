@@ -295,8 +295,8 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
     fun `markStalePendingAsMissed one pending dose inside timeout stays pending`() =
         runTest {
             // Scheduled 2 hours ago, cutoff is 4 hours ago → still within timeout, stays pending
-            val scheduled = Instant.parse("2026-05-24T06:00:00Z")  // 6 hours ago from reference
-            val cutoff = Instant.parse("2026-05-24T02:00:00Z")    // 2 hours after scheduled = 4h since ref
+            val scheduled = Instant.parse("2026-05-24T06:00:00Z") // 6 hours ago from reference
+            val cutoff = Instant.parse("2026-05-24T02:00:00Z") // 2 hours after scheduled = 4h since ref
 
             repo.upsert(
                 DoseEvent(
@@ -323,8 +323,8 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
     fun `markStalePendingAsMissed one pending dose past timeout becomes missed`() =
         runTest {
             // Scheduled 6 hours ago, cutoff is 2 hours ago → past timeout
-            val scheduled = Instant.parse("2026-05-24T02:00:00Z")  // 6 hours ago from reference
-            val cutoff = Instant.parse("2026-05-24T06:00:00Z")    // 6 hours since reference = 4h after scheduled
+            val scheduled = Instant.parse("2026-05-24T02:00:00Z") // 6 hours ago from reference
+            val cutoff = Instant.parse("2026-05-24T06:00:00Z") // 6 hours since reference = 4h after scheduled
 
             repo.upsert(
                 DoseEvent(
@@ -379,8 +379,8 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `markStalePendingAsMissed mixed batch only stale pending transition`() =
         runTest {
-            val reference = Instant.parse("2026-05-24T08:00:00Z")  // current time reference
-            val cutoff = Instant.parse("2026-05-24T04:00:00Z")    // 4 hours before reference
+            val reference = Instant.parse("2026-05-24T08:00:00Z") // current time reference
+            val cutoff = Instant.parse("2026-05-24T04:00:00Z") // 4 hours before reference
 
             // Pending within timeout (scheduled at reference - 2h = 6h ago)
             repo.upsert(

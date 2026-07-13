@@ -29,7 +29,7 @@ public class SqlDelightReminderLookup(
             database.doseEventQueries
                 .selectEnrichedReminderById(reminderId)
                 .executeAsOneOrNull()
-            ?: return null
+                ?: return null
 
         return ScheduledReminder(
             id = row.id,
