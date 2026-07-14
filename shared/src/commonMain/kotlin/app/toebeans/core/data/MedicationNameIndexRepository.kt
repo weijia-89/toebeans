@@ -10,7 +10,6 @@ package app.toebeans.core.data
  * @see InMemoryMedicationNameIndex
  */
 public interface MedicationNameIndexRepository {
-
     /**
      * Search for medication names matching the query.
      *
@@ -18,7 +17,10 @@ public interface MedicationNameIndexRepository {
      * @param limit Maximum number of results to return (default: 10)
      * @return List of matching medication names, sorted alphabetically
      */
-    public suspend fun search(query: String, limit: Int = 10): List<String>
+    public suspend fun search(
+        query: String,
+        limit: Int = 10,
+    ): List<String>
 
     /**
      * Get all medication names in the index.
