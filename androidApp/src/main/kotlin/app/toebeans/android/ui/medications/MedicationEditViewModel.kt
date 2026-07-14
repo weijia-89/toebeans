@@ -207,20 +207,6 @@ public class MedicationEditViewModel(
         return true
     }
 
-    /**
-     * Search for medication name suggestions matching the query.
-     *
-     * Used by the MedicationNameSearchField composable to provide typeahead suggestions.
-     *
-     * @param query Search string (case-insensitive)
-     * @param limit Maximum number of results (default: 10)
-     * @return List of matching medication names
-     */
-    public suspend fun searchMedicationNames(
-        query: String,
-        limit: Int = 10,
-    ): List<String> = medicationNameIndex.search(query, limit)
-
     public suspend fun save(): Boolean {
         val s = _state.value
         check(s.petId != null) { "petId must be set before save()" }

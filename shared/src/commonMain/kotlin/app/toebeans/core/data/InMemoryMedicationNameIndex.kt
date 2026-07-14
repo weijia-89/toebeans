@@ -304,7 +304,6 @@ private val BUNDLED_MEDICATION_NAMES =
         "Mebendazole",
         "Oxfendazole",
         "Levamisole",
-        "Clavamox",
         "Augmentin",
         "Cefovecin",
         "Convenia",
