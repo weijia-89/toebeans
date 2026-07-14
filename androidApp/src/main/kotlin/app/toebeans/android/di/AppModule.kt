@@ -126,6 +126,7 @@ public val appModule =
                 medicationRepository = get(),
                 petRepository = get(),
                 scheduleRepository = get(),
+                medicationNameIndex = get(),
             )
         }
         viewModel {
