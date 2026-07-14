@@ -90,6 +90,7 @@ jobs:
       - name: Require trainer code-review comment on PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_NAME: ${{ github.event.pull_request.head.ref }}
         run: |
           bash scripts/ci-trainer-pr-review-gate.sh \
             "${{ github.event.pull_request.number }}" \
@@ -119,6 +120,8 @@ jobs:
             echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
       - name: Run vibe-dangerous CI check
+        env:
+          GITHUB_REF_NAME: ${{ github.event.pull_request.head.ref }}
         run: |
           bash scripts/ci-vibe-dangerous-check.sh \
             "${{ steps.range.outputs.base }}" \

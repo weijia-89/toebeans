@@ -25,6 +25,17 @@ fi
 BASE_SHA=$1
 HEAD_SHA=$2
 
+# Exemptions for automated/tooling PRs that make procedural changes:
+# - Dependabot version bumps (dependabot/** branches)
+# - Other automated dependency tools
+# These PRs change vibe-dangerous files (libs.versions.toml) but don't
+# require human confidence scoring since they're automated security updates.
+BRANCH_NAME=${GITHUB_REF_NAME:-}
+if [[ "$BRANCH_NAME" == dependabot/* ]]; then
+    echo "ci-vibe-dangerous-check: SKIP - Dependabot PR (branch=$BRANCH_NAME)"
+    exit 0
+fi
+
 # GitHub Actions reports `github.event.before` as the all-zeros SHA when the
 # pushed branch did not previously exist on the remote (the canonical case is
 # the very first push to a new repo). `git diff <zeros>` cannot resolve to a
