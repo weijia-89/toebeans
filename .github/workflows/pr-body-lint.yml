@@ -14,7 +14,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Check if Dependabot PR (exempt)
+        id: check_dependabot
+        run: |
+          if [[ "${{ github.event.pull_request.head.ref }}" == dependabot/* ]]; then
+            echo "is_dependabot=true" >> $GITHUB_OUTPUT
+            echo "SKIP - Dependabot PR"
+          else
+            echo "is_dependabot=false" >> $GITHUB_OUTPUT
+          fi
       - name: Validate PR body (no shell output / literal \\n)
+        if: steps.check_dependabot.outputs.is_dependabot == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF_NAME: ${{ github.event.pull_request.head.ref }}
