@@ -198,14 +198,14 @@ public fun MedicationEditScreen(
                         DiscontinuedBanner(discontinuedAt = discontinuedAt)
                     }
 
-                    OutlinedTextField(
+                    MedicationNameSearchField(
                         value = state.name,
                         onValueChange = viewModel::onNameChange,
-                        label = { Text("Medication name") },
-                        singleLine = true,
+                        repository = viewModel.medicationNameIndexRepository,
+                        modifier = Modifier.fillMaxWidth(),
                         isError = state.nameError != null,
                         supportingText = state.nameError?.let { { Text(it) } },
-                        modifier = Modifier.fillMaxWidth(),
+                        label = "Medication name",
                     )
 
                     OutlinedTextField(

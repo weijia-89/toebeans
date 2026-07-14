@@ -18,6 +18,16 @@ fi
 GH_REPO=$1
 PR_NUM=$2
 
+# Exemptions for automated/tooling PRs:
+# - Dependabot branches (dependabot/**)
+# These PRs are procedural dependency updates that don't require
+# human trainer review comments since they're automated security updates.
+BRANCH_NAME=${GITHUB_REF_NAME:-}
+if [[ "$BRANCH_NAME" == dependabot/* ]]; then
+    echo "SKIP  trainer PR review gate: Dependabot PR (branch=$BRANCH_NAME)"
+    exit 0
+fi
+
 if [[ -n "${TRAINER_PR_REVIEW_FILES_FIXTURE:-}" ]]; then
   FILES=$(cat "$TRAINER_PR_REVIEW_FILES_FIXTURE")
 else

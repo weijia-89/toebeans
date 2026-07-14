@@ -2,6 +2,7 @@ package app.toebeans.android.ui.medications
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.core.data.MedicationNameIndexRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -27,9 +28,11 @@ public class MedicationEditViewModel(
     private val medicationRepository: MedicationRepository,
     private val petRepository: PetRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val medicationNameIndex: MedicationNameIndexRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MedicationEditUiState())
     public val state: StateFlow<MedicationEditUiState> = _state.asStateFlow()
+    public val medicationNameIndexRepository: MedicationNameIndexRepository get() = medicationNameIndex
 
     public fun setPetId(petId: String) {
         _state.update { it.copy(petId = petId) }
