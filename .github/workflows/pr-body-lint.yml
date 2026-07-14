@@ -17,4 +17,5 @@ jobs:
       - name: Validate PR body (no shell output / literal \\n)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_NAME: ${{ github.event.pull_request.head.ref }}
         run: bash scripts/ci_pr_body_lint.sh "${{ github.event.pull_request.number }}"

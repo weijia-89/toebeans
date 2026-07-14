@@ -16,6 +16,13 @@ fi
   exit 1
 }
 
+# Exempt Dependabot PRs - they have auto-generated descriptions
+BRANCH_NAME="${GITHUB_REF_NAME:-$(gh pr view "$PR_NUM" --json headRefName -q .headRefName 2>/dev/null || true)}"
+if [[ "$BRANCH_NAME" == dependabot/* ]]; then
+  echo "ci_pr_body_lint.sh: SKIP - Dependabot PR (branch=$BRANCH_NAME)"
+  exit 0
+fi
+
 TMP="$(mktemp "${TMPDIR:-/tmp}/pr-body-lint.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 
