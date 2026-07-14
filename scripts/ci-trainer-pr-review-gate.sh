@@ -27,7 +27,9 @@ HEAD_SHORT=${HEAD_SHA:0:7}
 
 GATE_DIR=$(cd "$(dirname "$0")" && pwd)
 if [[ -z "${TRAINER_PR_REVIEW_DISABLE_EXEMPT:-}" ]]; then
-  if bash "${GATE_DIR}/ci-trainer-pr-review-gate-exempt.sh" "$GH_REPO" "$PR_NUM"; then
+  # Export GITHUB_REF_NAME for exempt script to use
+  export GITHUB_REF_NAME="$BRANCH"
+  if bash "${GATE_DIR}/ci-trainer-pr-review-gate-exempt.sh" "$GH_REPO" "$PR_NUM" "$BRANCH"; then
     echo "SKIP  trainer PR review gate: docs-only PR (exempt paths; no comment required)"
     exit 0
   fi

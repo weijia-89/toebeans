@@ -125,7 +125,8 @@ jobs:
         run: |
           bash scripts/ci-vibe-dangerous-check.sh \
             "${{ steps.range.outputs.base }}" \
-            "${{ steps.range.outputs.head }}"
+            "${{ steps.range.outputs.head }}" \
+            "${{ github.event.pull_request.head.ref }}"
 
   secrets-scan:
     name: Secrets scan (gitleaks)

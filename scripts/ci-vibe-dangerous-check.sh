@@ -24,13 +24,13 @@ fi
 
 BASE_SHA=$1
 HEAD_SHA=$2
+BRANCH_NAME=${3:-${GITHUB_REF_NAME:-}}
 
 # Exemptions for automated/tooling PRs that make procedural changes:
 # - Dependabot version bumps (dependabot/** branches)
 # - Other automated dependency tools
 # These PRs change vibe-dangerous files (libs.versions.toml) but don't
 # require human confidence scoring since they're automated security updates.
-BRANCH_NAME=${GITHUB_REF_NAME:-}
 if [[ "$BRANCH_NAME" == dependabot/* ]]; then
     echo "ci-vibe-dangerous-check: SKIP - Dependabot PR (branch=$BRANCH_NAME)"
     exit 0

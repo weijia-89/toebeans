@@ -11,18 +11,13 @@
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
-  echo "usage: $0 <gh_repo> <pr_num>" >&2
+  echo "usage: $0 <gh_repo> <pr_num> [branch_name]" >&2
   exit 2
 fi
 
 GH_REPO=$1
 PR_NUM=$2
-
-# Exemptions for automated/tooling PRs:
-# - Dependabot branches (dependabot/**)
-# These PRs are procedural dependency updates that don't require
-# human trainer review comments since they're automated security updates.
-BRANCH_NAME=${GITHUB_REF_NAME:-}
+BRANCH_NAME=${3:-${GITHUB_REF_NAME:-}}
 if [[ "$BRANCH_NAME" == dependabot/* ]]; then
     echo "SKIP  trainer PR review gate: Dependabot PR (branch=$BRANCH_NAME)"
     exit 0
