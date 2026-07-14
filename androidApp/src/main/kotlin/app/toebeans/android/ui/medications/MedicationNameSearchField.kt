@@ -17,9 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import app.toebeans.core.data.MedicationNameIndexRepository
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * A medication name search field with typeahead suggestions.
@@ -52,26 +50,22 @@ public fun MedicationNameSearchField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
-    var searchJob by remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(value) {
-        // Cancel any pending search
-        searchJob?.cancel()
         // Debounce the search
-        searchJob =
-            launch {
-                delay(debounceMs)
-                if (value.isBlank()) {
-                    // When empty, show first 10 medications as hints
-                    suggestions = repository.getAll().take(10)
-                } else {
-                    suggestions = repository.search(value, limit = 10)
-                }
-            }
+        delay(debounceMs)
+        if (value.isBlank()) {
+            // When empty, don't show suggestions - force user to type
+            suggestions = emptyList()
+            expanded = false
+        } else {
+            suggestions = repository.search(value, limit = 10)
+            expanded = suggestions.isNotEmpty()
+        }
     }
 
     ExposedDropdownMenuBox(
-        expanded = expanded && suggestions.isNotEmpty(),
+        expanded = expanded,
         onExpandedChange = { expanded = it },
         modifier = modifier,
     ) {
@@ -79,7 +73,7 @@ public fun MedicationNameSearchField(
             value = value,
             onValueChange = { newValue ->
                 onValueChange(newValue)
-                expanded = true
+                // Don't auto-expand here; LaunchedEffect will handle it after debounce
             },
             label = { Text(label) },
             singleLine = true,
@@ -96,7 +90,7 @@ public fun MedicationNameSearchField(
         )
 
         ExposedDropdownMenu(
-            expanded = expanded && suggestions.isNotEmpty(),
+            expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier =
                 Modifier.clearAndSetSemantics {

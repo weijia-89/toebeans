@@ -3,7 +3,6 @@ package app.toebeans.core.data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 
 /**
  * In-memory implementation of [MedicationNameIndexRepository].
@@ -66,11 +65,6 @@ public class InMemoryMedicationNameIndex(
         return medicationNames ?: emptyList()
     }
 }
-
-@Serializable
-private data class MedicationNamesJson(
-    val medications: List<String>,
-)
 
 private val BUNDLED_MEDICATION_NAMES =
     listOf(
