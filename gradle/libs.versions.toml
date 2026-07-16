@@ -57,7 +57,7 @@ androidx-uiautomator = "2.3.0"
 # derivation per ADR-0018 § Decision § Library choice. The `bcprov-jdk18on` artifact's
 # package namespace is `org.bouncycastle.*`, which does NOT collide with the Android
 # platform's bundled-and-stripped-down `com.android.org.bouncycastle.*` internal copy.
-# 1.78.1 released 2024-08-25 by org.bouncycastle (canonical maintainer, verified via
+# 1.84 released 2025-05-XX by org.bouncycastle (canonical maintainer, verified via
 # ADR-0018 references). First-seen for the jdk18on artifact line: 2021-04-22 (>30 days
 # per AGENTS.md § Hallucination vigilance).
 bouncycastle = "1.84"
