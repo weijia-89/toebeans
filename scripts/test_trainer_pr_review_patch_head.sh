@@ -35,3 +35,21 @@ echo "$out" | grep -q 'already e14a5ae' || {
 
 rm -f "$FIXTURE"
 echo "trainer_pr_review_patch_head self-test passed"
+
+# Empty-response guard: gh api can return empty body when there are zero comments
+FIXTURE_EMPTY=$(mktemp)
+# Empty file = zero comments
+: >"$FIXTURE_EMPTY"
+export TRAINER_PATCH_HEAD_FIXTURE="$FIXTURE_EMPTY"
+export TRAINER_PATCH_HEAD_PR_HEAD=8fc49951e0f259d6ae90abe63a1ab5fbf9b79f72
+export TRAINER_PATCH_HEAD_BRANCH_SLUG=chore-pr-hygiene-hardening
+export TRAINER_PATCH_HEAD_DRY_RUN=1
+
+out=$(bash "$PATCH" 48 weijia-89/toebeans)
+echo "$out" | grep -q 'no canonical comment' || {
+  echo "expected 'no canonical comment' for empty response, got: $out" >&2
+  exit 1
+}
+
+rm -f "$FIXTURE_EMPTY"
+echo "trainer_pr_review_patch_head empty-response guard test passed"
