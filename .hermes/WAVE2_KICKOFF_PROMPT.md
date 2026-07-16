@@ -26,7 +26,7 @@ This prompt prepares you to execute the next wave of toebeans development. Read 
 - Notification medication enrichment (shows med name + pet name)
 
 ✅ **Compose UI Surfaces:**
-- Reminder List screen (bottom nav tab between Today and Pets)
+- Reminder List screen (bottom nav tab adjacent to Today, before Pets)
 - Schedule Detail screen with delete affordance
 - Schedule Create with inline calculator error UI (pre-flight validation)
 - Midnight-mode UX warning (doses between 00:00-06:00)

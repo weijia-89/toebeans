@@ -62,3 +62,6 @@ localonly/
 
 # Git worktrees for parallel-agent work
 .worktrees/
+
+# Agent scratchpads / local session state
+.agent/

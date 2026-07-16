@@ -84,6 +84,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Changed
 
+* **Bottom nav order** ([#95](https://github.com/weijia-89/toebeans/pull/95), merged 2026-07-16): **Today → Reminders → Pets → Settings** (Reminders adjacent to Today; unblocks contextual Reminders-screen edits).
 * **Bottom nav order** ([#74](https://github.com/weijia-89/toebeans/pull/74), merged 2026-05-28): **Today → Pets → Reminders → Settings** (Pets tab before Reminders).
 * The `medications`, `schedules`, `phasesByScheduleId`, and `doseEvents`
   fake stores moved from file-private to module-internal so the dose-event

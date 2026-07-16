@@ -43,7 +43,8 @@ export COMMENTS_JSON HEAD_SHORT BRANCH_SLUG REPO_SLUG PR_NUM DRY_RUN
 RESULT=$(python3 - <<'PY'
 import json, os, re, sys
 
-comments = json.loads(os.environ["COMMENTS_JSON"])
+comments_raw = os.environ["COMMENTS_JSON"].strip()
+comments = json.loads(comments_raw) if comments_raw else []
 head_short = os.environ["HEAD_SHORT"].lower()
 repo = os.environ["REPO_SLUG"]
 branch_slug = os.environ["BRANCH_SLUG"]
