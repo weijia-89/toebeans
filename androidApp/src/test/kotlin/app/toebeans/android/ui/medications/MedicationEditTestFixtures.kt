@@ -1,5 +1,6 @@
 package app.toebeans.android.ui.medications
 
+import app.toebeans.core.data.InMemoryMedicationNameIndex
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -131,4 +132,5 @@ internal fun medicationEditViewModel(
         medicationRepository = medRepo,
         petRepository = InMemoryPetRepo(pet),
         scheduleRepository = scheduleRepo,
+        medicationNameIndex = InMemoryMedicationNameIndex(),
     )

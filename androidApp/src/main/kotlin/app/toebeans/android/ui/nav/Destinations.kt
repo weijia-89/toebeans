@@ -62,7 +62,7 @@ public enum class BottomNavItem(
     public val label: String,
 ) {
     HOME(Destinations.HOME, "Today"),
-    PETS(Destinations.PETS, "Pets"),
     REMINDERS(Destinations.REMINDERS, "Reminders"),
+    PETS(Destinations.PETS, "Pets"),
     SETTINGS(Destinations.SETTINGS, "Settings"),
 }
