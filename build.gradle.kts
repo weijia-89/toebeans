@@ -1,5 +1,18 @@
 // Root build script — plugins are applied per-module; we only register them here.
 
+buildscript {
+    // Force-upgrade vulnerable buildscript-only transitives (AGP 8.7.0 internal deps).
+    // These do not reach the app runtime classpath; they harden the developer build environment.
+    configurations.all {
+        resolutionStrategy {
+            force("io.netty:netty-handler:4.1.135.Final")
+            force("io.netty:netty-codec-http:4.1.135.Final")
+            force("io.netty:netty-codec-http2:4.1.135.Final")
+            force("ch.qos.logback:logback-core:1.5.34")
+        }
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.android) apply false
