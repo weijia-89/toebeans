@@ -6,8 +6,8 @@ Last updated: 2026-05-28.
 
 ## Nav IA
 
-- **Target bottom-nav order (Wei 2026-05-28):** **Today → Reminders → Pets → Settings** (Reminders adjacent to Today; separate PR `feat/nav-ia-reminders-adjacent-today` after med-tap merge).
-- Current `main` order: Today → Pets → Reminders → Settings ([#74](https://github.com/weijia-89/toebeans/pull/74)).
+- ~~Target bottom-nav order (Wei 2026-05-28): **Today → Reminders → Pets → Settings** (Reminders adjacent to Today; separate PR `feat/nav-ia-reminders-adjacent-today` after med-tap merge).~~ **Shipped** in PR [#95](https://github.com/weijia-89/toebeans/pull/95) (2026-07-16).
+- Current `main` order: **Today → Reminders → Pets → Settings**.
 
 ## Reminders screen
 
