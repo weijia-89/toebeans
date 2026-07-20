@@ -80,6 +80,7 @@ class HomeViewModelApplyPetFilterTest {
             petName = petId,
             medicationName = "Med",
             doseAmount = "1 pill",
+            doseUnit = null,
             givenEventId = null,
             resolvedAt = null,
         )

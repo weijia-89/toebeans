@@ -1,6 +1,7 @@
 package app.toebeans.core.data
 
 import app.cash.turbine.test
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -90,7 +91,8 @@ abstract class MedicationRepositoryContract : MedicalRepositoryContract() {
                 id = id,
                 petId = petId,
                 name = name,
-                doseAmount = "2.5 mg",
+                doseAmount = "2.5",
+                doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = refCreatedAt,
                 discontinuedAt = null,

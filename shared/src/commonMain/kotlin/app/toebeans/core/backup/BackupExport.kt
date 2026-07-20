@@ -50,6 +50,6 @@ public data class BackupExport(
 
     public companion object {
         /** Current wire format version. Bump when fields change. */
-        public const val CURRENT_SCHEMA_VERSION: Int = 1
+        public const val CURRENT_SCHEMA_VERSION: Int = 2
     }
 }

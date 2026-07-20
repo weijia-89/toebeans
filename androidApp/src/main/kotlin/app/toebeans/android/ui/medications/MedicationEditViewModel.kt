@@ -6,6 +6,7 @@ import app.toebeans.core.data.MedicationNameIndexRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,9 +58,11 @@ public class MedicationEditViewModel(
                     medicationId = null,
                     name = "",
                     doseAmount = "",
+                    doseUnit = null,
                     notes = "",
                     nameError = null,
                     doseAmountError = null,
+                    doseUnitError = null,
                     discontinuedAt = null,
                     petName = null,
                     scheduleHint = null,
@@ -81,9 +84,11 @@ public class MedicationEditViewModel(
                     medicationId = medicationId,
                     name = "",
                     doseAmount = "",
+                    doseUnit = null,
                     notes = "",
                     nameError = null,
                     doseAmountError = null,
+                    doseUnitError = null,
                     discontinuedAt = null,
                     petName = null,
                     scheduleHint = null,
@@ -96,6 +101,7 @@ public class MedicationEditViewModel(
                     petId = med.petId,
                     name = med.name,
                     doseAmount = med.doseAmount,
+                    doseUnit = med.doseUnit,
                     notes = med.notes.orEmpty(),
                     discontinuedAt = med.discontinuedAt,
                 )
@@ -183,7 +189,11 @@ public class MedicationEditViewModel(
     }
 
     public fun onDoseAmountChange(value: String) {
-        _state.update { it.copy(doseAmount = value, doseAmountError = null) }
+        _state.update { it.copy(doseAmount = value, doseAmountError = null, doseUnitError = null) }
+    }
+
+    public fun onDoseUnitChange(value: DoseUnit?) {
+        _state.update { it.copy(doseUnit = value, doseUnitError = null, doseAmountError = null) }
     }
 
     public fun onNotesChange(value: String) {
@@ -216,10 +226,15 @@ public class MedicationEditViewModel(
             valid = false
         }
         if (s.doseAmount.isBlank()) {
-            _state.update { it.copy(doseAmountError = "Required (e.g. \"10 mg\")") }
+            _state.update { it.copy(doseAmountError = "Required") }
+            valid = false
+        }
+        if (s.doseUnit == null) {
+            _state.update { it.copy(doseUnitError = "Required") }
             valid = false
         }
         if (!valid) return false
+        val doseUnit = s.doseUnit!!
         // Preserve createdAt and (critically) discontinuedAt from the persisted record on
         // edit. Without this, editing a discontinued medication silently un-discontinues it,
         // which could resume dose reminders for a medication the caregiver had stopped.
@@ -230,6 +245,7 @@ public class MedicationEditViewModel(
                 petId = s.petId,
                 name = s.name.trim(),
                 doseAmount = s.doseAmount.trim(),
+                doseUnit = doseUnit,
                 notes = s.notes.trim().ifEmpty { null },
                 createdAt = existing?.createdAt ?: Clock.System.now(),
                 discontinuedAt = existing?.discontinuedAt,
@@ -240,6 +256,7 @@ public class MedicationEditViewModel(
                 medicationId = med.id,
                 nameError = null,
                 doseAmountError = null,
+                doseUnitError = null,
             )
         }
         refreshReferenceContext()
@@ -259,9 +276,11 @@ public data class MedicationEditUiState(
     public val scheduleHint: String? = null,
     public val name: String = "",
     public val doseAmount: String = "",
+    public val doseUnit: DoseUnit? = null,
     public val notes: String = "",
     public val nameError: String? = null,
     public val doseAmountError: String? = null,
+    public val doseUnitError: String? = null,
     /**
      * `null` for active medications. Non-null timestamp for discontinued medications.
      * Set by [MedicationEditViewModel.discontinue] / [MedicationEditViewModel.reactivate]

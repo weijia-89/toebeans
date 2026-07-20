@@ -4,6 +4,7 @@ import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -152,7 +153,8 @@ private fun rig(): Rig {
             id = MED_ID,
             petId = PET_ID,
             name = "Amoxicillin",
-            doseAmount = "50mg",
+            doseAmount = "50",
+            doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,
             discontinuedAt = null,
@@ -175,6 +177,7 @@ private fun rig(): Rig {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = DoseUnit.MG,
                 dayInterval = 1,
             ),
             SchedulePhase(
@@ -184,7 +187,8 @@ private fun rig(): Rig {
                 durationDays = 7,
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
-                doseAmount = "25mg",
+                doseAmount = "25",
+                doseUnit = DoseUnit.MG,
                 dayInterval = 1,
             ),
         )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -280,6 +281,7 @@ public class ScheduleCreateViewModel(
                     dosesPerDay = draft.doseTimes.size,
                     doseTimesLocal = draft.doseTimes.sorted(),
                     doseAmount = draft.doseAmount.trim().ifEmpty { null },
+                    doseUnit = draft.doseUnit,
                     dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
                 )
             }
@@ -397,6 +399,7 @@ public class ScheduleCreateViewModel(
             doseTimes = listOf(LocalTime(8, 0)),
             dayIntervalText = "1",
             doseAmount = "",
+            doseUnit = null,
             error = null,
         )
 }
@@ -441,6 +444,7 @@ public data class PhaseDraft(
     public val doseTimes: List<LocalTime>,
     public val dayIntervalText: String,
     public val doseAmount: String,
+    public val doseUnit: DoseUnit?,
     public val error: String?,
     public val nightDoseWarning: Boolean = false,
     public val nightDoseAffirmed: Boolean = false,

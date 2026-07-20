@@ -6,6 +6,7 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.model.parseDoseUnitOrDefault
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -147,6 +148,7 @@ public class SqlDelightScheduleRepository(
                         doses_per_day = phase.dosesPerDay.toLong(),
                         dose_times_local = encodeDoseTimesLocal(phase.doseTimesLocal),
                         dose_amount = phase.doseAmount,
+                        dose_unit = phase.doseUnit?.name,
                     )
                 }
             }
@@ -199,5 +201,6 @@ internal fun SchedulePhaseRow.toDomain(): SchedulePhase =
         dosesPerDay = doses_per_day.toInt(),
         doseTimesLocal = decodeDoseTimesLocal(dose_times_local),
         doseAmount = dose_amount,
+        doseUnit = parseDoseUnitOrDefault(dose_unit),
         dayInterval = 1,
     )

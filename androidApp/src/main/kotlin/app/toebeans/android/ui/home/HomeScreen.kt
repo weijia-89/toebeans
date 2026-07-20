@@ -48,6 +48,7 @@ import app.toebeans.android.ui.reminders.buttonLabel
 import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
+import app.toebeans.core.model.formatDose
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -314,11 +315,12 @@ private fun DueDoseRow(
     onEditDose: () -> Unit,
 ) {
     val slotLabel = remember(dose.scheduledAt, timeZone) { formatLocalTime(dose.scheduledAt, timeZone) }
+    val doseDisplay = formatDose(dose.doseAmount, dose.doseUnit)
     val a11y =
         if (dose.isGiven) {
-            "${dose.petName}, ${dose.medicationName}, ${dose.doseAmount}, $slotLabel, given"
+            "${dose.petName}, ${dose.medicationName}, $doseDisplay, $slotLabel, given"
         } else {
-            "${dose.petName}, ${dose.medicationName}, ${dose.doseAmount}, $slotLabel, pending"
+            "${dose.petName}, ${dose.medicationName}, $doseDisplay, $slotLabel, pending"
         }
     Row(
         modifier =
@@ -343,7 +345,7 @@ private fun DueDoseRow(
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                text = "${dose.doseAmount} · $slotLabel",
+                text = "$doseDisplay · $slotLabel",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

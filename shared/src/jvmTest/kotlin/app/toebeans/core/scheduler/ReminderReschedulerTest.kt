@@ -44,6 +44,7 @@ class ReminderReschedulerTest {
                         dosesPerDay = 1,
                         doseTimesLocal = listOf(LocalTime(9, 0)),
                         doseAmount = null,
+                        doseUnit = null,
                         dayInterval = 1,
                     ),
                 )

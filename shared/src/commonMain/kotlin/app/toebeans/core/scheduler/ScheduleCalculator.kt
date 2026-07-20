@@ -1,5 +1,6 @@
 package app.toebeans.core.scheduler
 
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.Instant
@@ -82,4 +83,5 @@ public data class ScheduledDose(
     val scheduledAt: Instant,
     val phaseOrder: Int,
     val doseAmount: String?,
+    val doseUnit: DoseUnit? = null,
 )

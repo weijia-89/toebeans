@@ -333,6 +333,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                 dosesPerDay = dosesPerDay,
                 doseTimesLocal = doseTimesLocal,
                 doseAmount = doseAmount,
+                doseUnit = null,
                 dayInterval = dayInterval,
             )
     }

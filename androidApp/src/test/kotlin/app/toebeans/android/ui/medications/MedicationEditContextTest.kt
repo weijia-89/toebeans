@@ -35,6 +35,7 @@ class MedicationEditContextTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
         val hint = buildMedicationEditScheduleHint(listOf(schedule), listOf(phase))
         assertEquals(

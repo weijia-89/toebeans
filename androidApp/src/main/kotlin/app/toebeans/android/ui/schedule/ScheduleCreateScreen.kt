@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.DatePickerField
 import app.toebeans.android.ui.components.PillBackground
+import app.toebeans.core.model.formatDose
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -80,7 +81,7 @@ public fun ScheduleCreateScreen(
                             Text("Create schedule")
                             state.medication?.let { med ->
                                 Text(
-                                    text = "${med.name} · ${med.doseAmount}",
+                                    text = "${med.name} · ${formatDose(med.doseAmount, med.doseUnit)}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     // onSurfaceVariant — M3-correct secondary token,
                                     // contrast-audited in Color.kt.

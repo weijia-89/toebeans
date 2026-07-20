@@ -50,6 +50,7 @@ class MedicationEditViewModelContextTest {
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             val vm =
                 medicationEditViewModel(

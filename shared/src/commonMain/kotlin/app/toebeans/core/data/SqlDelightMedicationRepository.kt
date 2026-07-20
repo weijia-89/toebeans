@@ -3,7 +3,9 @@ package app.toebeans.core.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.parseDoseUnitOrDefault
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -52,6 +54,7 @@ public class SqlDelightMedicationRepository(
                         pet_id = medication.petId,
                         name = medication.name,
                         dose_amount = medication.doseAmount,
+                        dose_unit = medication.doseUnit.name,
                         notes = medication.notes,
                         created_at = medication.createdAt.toEpochMilliseconds(),
                         discontinued_at = medication.discontinuedAt?.toEpochMilliseconds(),
@@ -61,6 +64,7 @@ public class SqlDelightMedicationRepository(
                         pet_id = medication.petId,
                         name = medication.name,
                         dose_amount = medication.doseAmount,
+                        dose_unit = medication.doseUnit.name,
                         notes = medication.notes,
                         created_at = medication.createdAt.toEpochMilliseconds(),
                         discontinued_at = medication.discontinuedAt?.toEpochMilliseconds(),
@@ -82,6 +86,7 @@ internal fun MedicationRow.toDomain(): Medication =
         petId = pet_id,
         name = name,
         doseAmount = dose_amount,
+        doseUnit = parseDoseUnitOrDefault(dose_unit, DoseUnit.MG) ?: DoseUnit.MG,
         notes = notes,
         createdAt = Instant.fromEpochMilliseconds(created_at),
         discontinuedAt = discontinued_at?.let(Instant::fromEpochMilliseconds),

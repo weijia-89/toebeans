@@ -7,6 +7,7 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -81,7 +82,7 @@ class BackupAggregatorTest {
             val doseEventRepo = InMemoryDoseEventRepo()
 
             val pet = samplePet(id = "pet-rufus", name = "Rufus")
-            val med = sampleMed(id = "med-apoquel", petId = pet.id, name = "Apoquel", doseAmount = "5.4mg")
+            val med = sampleMed(id = "med-apoquel", petId = pet.id, name = "Apoquel", doseAmount = "5.4")
             val schedule = sampleSchedule(id = "sched-rufus-apoquel", medicationId = med.id)
             val phase =
                 SchedulePhase(
@@ -92,6 +93,7 @@ class BackupAggregatorTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             val event =
                 DoseEvent(
@@ -161,6 +163,7 @@ class BackupAggregatorTest {
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(7, 0), LocalTime(19, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
 
             petRepo.upsert(archivedPet)
@@ -228,7 +231,7 @@ class BackupAggregatorTest {
         id: String,
         petId: String,
         name: String,
-        doseAmount: String = "10mg",
+        doseAmount: String = "10",
         discontinuedAt: Instant? = null,
     ): Medication =
         Medication(
@@ -236,6 +239,7 @@ class BackupAggregatorTest {
             petId = petId,
             name = name,
             doseAmount = doseAmount,
+            doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,
             discontinuedAt = discontinuedAt,

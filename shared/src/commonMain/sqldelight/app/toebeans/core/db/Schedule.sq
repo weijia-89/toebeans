@@ -29,6 +29,7 @@ CREATE TABLE SchedulePhase (
     doses_per_day    INTEGER NOT NULL CHECK (doses_per_day BETWEEN 1 AND 6),
     dose_times_local TEXT NOT NULL,                          -- JSON array of HH:MM strings, length = doses_per_day
     dose_amount      TEXT,                                   -- overrides Medication.dose_amount when non-null
+    dose_unit        TEXT,                                   -- overrides Medication.dose_unit when non-null
     FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE,
     UNIQUE (schedule_id, phase_order)
 );
@@ -120,8 +121,8 @@ SELECT * FROM SchedulePhase;
 -- Backs ScheduleRepository.upsert (phases half). Idempotent on id; the UNIQUE
 -- (schedule_id, phase_order) constraint enforces dense ordering.
 upsertSchedulePhase:
-INSERT OR REPLACE INTO SchedulePhase(id, schedule_id, phase_order, duration_days, doses_per_day, dose_times_local, dose_amount)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO SchedulePhase(id, schedule_id, phase_order, duration_days, doses_per_day, dose_times_local, dose_amount, dose_unit)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Backs ScheduleRepository.upsert replace semantics: remove stale phases before re-inserting
 -- the full dense 0..N-1 set (matches FakeScheduleRepository's full-list replacement).

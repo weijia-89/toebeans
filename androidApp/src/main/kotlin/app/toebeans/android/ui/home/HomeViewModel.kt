@@ -12,6 +12,7 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.scheduler.ReminderRescheduler
@@ -353,6 +354,7 @@ public class HomeViewModel(
                                 petName = pet.name,
                                 medicationName = med.name,
                                 doseAmount = dose.doseAmount ?: med.doseAmount,
+                                doseUnit = dose.doseUnit ?: med.doseUnit,
                                 givenEventId = given?.id,
                                 resolvedAt = given?.resolvedAt,
                             )
@@ -415,6 +417,7 @@ public data class DueDoseUi(
     public val petName: String,
     public val medicationName: String,
     public val doseAmount: String,
+    public val doseUnit: DoseUnit?,
     public val givenEventId: String?,
     public val resolvedAt: Instant?,
 ) {

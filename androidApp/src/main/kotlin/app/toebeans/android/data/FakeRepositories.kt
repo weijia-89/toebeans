@@ -4,6 +4,7 @@ import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -210,60 +211,74 @@ private fun demoMedications(
     lunaId: String,
 ): List<Medication> =
     listOf(
-        Medication(
+        demoMed(
             id = "med-rufus-carprofen",
             petId = rufusId,
             name = "Carprofen",
-            doseAmount = "75 mg",
+            doseAmount = "75",
+            doseUnit = DoseUnit.MG,
             notes = "With breakfast; skip if he skips a meal.",
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
-        Medication(
+        demoMed(
             id = "med-rufus-fish-oil",
             petId = rufusId,
             name = "Fish oil",
-            doseAmount = "1 pump",
+            doseAmount = "1",
+            doseUnit = DoseUnit.PUMP,
             notes = "Evening meal topper.",
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
-        Medication(
+        demoMed(
             id = "med-rufus-apoquel",
             petId = rufusId,
             name = "Apoquel",
-            doseAmount = "16 mg",
+            doseAmount = "16",
+            doseUnit = DoseUnit.MG,
             notes = null,
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
-        Medication(
+        demoMed(
             id = "med-luna-methimazole",
             petId = lunaId,
             name = "Methimazole",
-            doseAmount = "2.5 mg",
+            doseAmount = "2.5",
+            doseUnit = DoseUnit.MG,
             notes = "Crush and hide in churu — Luna spits out whole pills.",
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
-        Medication(
+        demoMed(
             id = "med-luna-prednisolone",
             petId = lunaId,
             name = "Prednisolone",
-            doseAmount = "5 mg",
+            doseAmount = "5",
+            doseUnit = DoseUnit.MG,
             notes = "Morning only; taper per vet sheet.",
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
-        Medication(
+        demoMed(
             id = "med-luna-fortiflora",
             petId = lunaId,
             name = "FortiFlora",
-            doseAmount = "1 sachet",
+            doseAmount = "1",
+            doseUnit = DoseUnit.SACHET,
             notes = "Mix into dinner.",
-            createdAt = seedCreatedAt,
-            discontinuedAt = null,
         ),
+    )
+
+@Suppress("LongParameterList")
+private fun demoMed(
+    id: String,
+    petId: String,
+    name: String,
+    doseAmount: String,
+    doseUnit: DoseUnit,
+    notes: String?,
+): Medication =
+    Medication(
+        id = id,
+        petId = petId,
+        name = name,
+        doseAmount = doseAmount,
+        doseUnit = doseUnit,
+        notes = notes,
+        createdAt = seedCreatedAt,
+        discontinuedAt = null,
     )
 
 private suspend fun demoSchedules(
@@ -339,6 +354,7 @@ private suspend fun upsertDemoSchedule(
             dosesPerDay = dosesPerDay,
             doseTimesLocal = doseTimesLocal,
             doseAmount = null,
+            doseUnit = null,
             dayInterval = 1,
         )
     scheduleRepository.upsert(schedule, listOf(phase))

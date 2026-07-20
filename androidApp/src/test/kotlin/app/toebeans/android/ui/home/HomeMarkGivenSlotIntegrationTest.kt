@@ -8,6 +8,7 @@ import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -99,7 +100,8 @@ class HomeMarkGivenSlotIntegrationTest {
                     id = medId,
                     petId = petId,
                     name = "Methimazole",
-                    doseAmount = "2.5 mg",
+                    doseAmount = "2.5",
+                    doseUnit = DoseUnit.MG,
                     notes = null,
                     createdAt = Instant.parse("2024-01-01T00:00:00Z"),
                     discontinuedAt = null,
@@ -122,6 +124,7 @@ class HomeMarkGivenSlotIntegrationTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                     dayInterval = 1,
                 )
             schedRepo.upsert(schedule, listOf(phase))

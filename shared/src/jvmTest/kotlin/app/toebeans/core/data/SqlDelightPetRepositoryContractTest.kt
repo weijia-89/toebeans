@@ -82,6 +82,7 @@ class SqlDelightPetRepositoryContractTest : PetRepositoryContract() {
                 pet_id = pet.id,
                 name = "Child Med",
                 dose_amount = "1mg",
+                dose_unit = "MG",
                 notes = null,
                 created_at = createdAt.toEpochMilliseconds(),
                 discontinued_at = null,

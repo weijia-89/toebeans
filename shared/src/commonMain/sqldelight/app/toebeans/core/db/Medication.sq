@@ -12,7 +12,8 @@ CREATE TABLE Medication (
     id              TEXT NOT NULL PRIMARY KEY,
     pet_id          TEXT NOT NULL,
     name            TEXT NOT NULL,                           -- 'Prednisone'
-    dose_amount     TEXT NOT NULL,                           -- '10mg' — free text at MVP
+    dose_amount     TEXT NOT NULL,                           -- '10' — free text amount (unit lives in dose_unit)
+    dose_unit       TEXT NOT NULL,                           -- 'MG', 'TABLET', etc.
     notes           TEXT,
     created_at      INTEGER NOT NULL,
     discontinued_at INTEGER,                                 -- soft retire
@@ -49,8 +50,8 @@ SELECT * FROM Medication WHERE id = ?;
 
 -- Initial insert. [SqlDelightMedicationRepository.upsert] uses this for new ids.
 insertMedication:
-INSERT INTO Medication(id, pet_id, name, dose_amount, notes, created_at, discontinued_at)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Medication(id, pet_id, name, dose_amount, dose_unit, notes, created_at, discontinued_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- In-place update. Used by repository upsert for existing ids. INSERT OR REPLACE is forbidden
 -- here: SQLite REPLACE deletes the old row first, which CASCADE-wipes Schedule/DoseEvent.
@@ -59,6 +60,7 @@ UPDATE Medication
 SET pet_id = ?,
     name = ?,
     dose_amount = ?,
+    dose_unit = ?,
     notes = ?,
     created_at = ?,
     discontinued_at = ?

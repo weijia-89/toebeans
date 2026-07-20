@@ -129,6 +129,7 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
                                 scheduledAt = instant,
                                 phaseOrder = phase.phaseOrder,
                                 doseAmount = phase.doseAmount,
+                                doseUnit = phase.doseUnit,
                             ),
                         )
                         if (results.size > MAX_EVENT_COUNT) {

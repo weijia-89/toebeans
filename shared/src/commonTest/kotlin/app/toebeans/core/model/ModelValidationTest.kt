@@ -110,7 +110,8 @@ class ModelValidationTest {
                 id = "m1",
                 petId = "p1",
                 name = "Pred",
-                doseAmount = "10mg",
+                doseAmount = "10",
+                doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = now,
                 discontinuedAt = null,
@@ -171,6 +172,7 @@ class ModelValidationTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0)), // only 1 time but 2 dosesPerDay
                 doseAmount = null,
+                doseUnit = null,
             )
         }
     }
@@ -190,6 +192,7 @@ class ModelValidationTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(20, 0), LocalTime(8, 0)), // descending
                 doseAmount = null,
+                doseUnit = null,
             )
         }
     }
@@ -208,6 +211,7 @@ class ModelValidationTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(8, 0)), // equal
                 doseAmount = null,
+                doseUnit = null,
             )
         }
     }

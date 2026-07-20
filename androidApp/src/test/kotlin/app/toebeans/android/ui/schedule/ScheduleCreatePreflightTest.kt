@@ -6,6 +6,7 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -26,10 +27,14 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -135,7 +140,7 @@ class ScheduleCreatePreflightTest {
             // Touching a phase field should also clear it (independent path).
             vm.save() // re-populate
             assertNotNull(vm.state.value.formError)
-            vm.updatePhase(0) { it.copy(doseAmount = "5mg") }
+            vm.updatePhase(0) { it.copy(doseAmount = "5") }
             assertNull("formError should clear on phase change", vm.state.value.formError)
         }
 
@@ -185,8 +190,13 @@ class ScheduleCreatePreflightTest {
                 )
             vm.setMedicationId(MED_ID)
             // Start today so the 72h materializer window intersects an active schedule.
-            vm.onStartDateChange(LocalDate(2026, 5, 26))
-            vm.onEndDateChange(LocalDate(2026, 6, 30))
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                    .date
+            vm.onStartDateChange(today)
+            vm.onEndDateChange(today.plus(35, DateTimeUnit.DAY))
             // Replace the default single 7-day phase with a 2-phase taper to push the calculator
             // through actual phase concatenation (the most complex code path in the algorithm).
             vm.updatePhase(0) {
@@ -270,7 +280,8 @@ private val MED =
         id = MED_ID,
         petId = PET_ID,
         name = "Amoxicillin",
-        doseAmount = "50mg",
+        doseAmount = "50",
+        doseUnit = DoseUnit.MG,
         notes = null,
         createdAt = Instant.fromEpochMilliseconds(0),
         discontinuedAt = null,
@@ -294,6 +305,7 @@ private fun samplePhase(): SchedulePhase =
         dosesPerDay = 1,
         doseTimesLocal = listOf(LocalTime(8, 0)),
         doseAmount = null,
+        doseUnit = DoseUnit.MG,
         dayInterval = 1,
     )
 

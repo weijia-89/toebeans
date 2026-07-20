@@ -5,6 +5,7 @@ import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -214,7 +215,8 @@ class ScheduleCreateMidnightStraddleTest {
                 id = MED_ID,
                 petId = PET_ID,
                 name = "Amoxicillin",
-                doseAmount = "50mg",
+                doseAmount = "50",
+                doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = Instant.fromEpochMilliseconds(0),
                 discontinuedAt = null,

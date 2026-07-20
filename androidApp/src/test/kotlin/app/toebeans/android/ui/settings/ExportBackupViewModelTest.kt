@@ -9,6 +9,7 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -214,7 +215,8 @@ class ExportBackupViewModelTest {
             id = id,
             petId = petId,
             name = name,
-            doseAmount = "10mg",
+            doseAmount = "10",
+            doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,
             discontinuedAt = null,
