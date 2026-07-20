@@ -6,6 +6,7 @@ import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
@@ -92,6 +93,7 @@ class BackupAggregatorTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             val event =
                 DoseEvent(
@@ -161,6 +163,7 @@ class BackupAggregatorTest {
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(7, 0), LocalTime(19, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
 
             petRepo.upsert(archivedPet)
@@ -236,6 +239,7 @@ class BackupAggregatorTest {
             petId = petId,
             name = name,
             doseAmount = doseAmount,
+            doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,
             discontinuedAt = discontinuedAt,

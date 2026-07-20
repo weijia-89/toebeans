@@ -3,21 +3,27 @@ package app.toebeans.android.ui.medications
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +47,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.PillBackground
+import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.formatDose
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -185,6 +193,7 @@ public fun MedicationEditScreen(
                         petName = state.petName,
                         medicationName = state.name.takeIf { it.isNotBlank() },
                         doseAmount = state.doseAmount.takeIf { it.isNotBlank() },
+                        doseUnit = state.doseUnit,
                         scheduleHint = state.scheduleHint,
                         isNew = state.isNew,
                     )
@@ -208,27 +217,27 @@ public fun MedicationEditScreen(
                         label = "Medication name",
                     )
 
-                    OutlinedTextField(
-                        value = state.doseAmount,
-                        onValueChange = viewModel::onDoseAmountChange,
-                        // Short label so it does not clip when it floats up on focus. The
-                        // example moved to placeholder + supportingText so the user still sees
-                        // the format hint, but only when the field is empty / errored.
-                        label = { Text("Dose amount") },
-                        placeholder = { Text("e.g. 10 mg, 1 tablet, 0.5 mL") },
-                        singleLine = true,
-                        isError = state.doseAmountError != null,
-                        supportingText =
-                            state.doseAmountError?.let {
-                                { Text(it) }
-                            } ?: {
-                                Text(
-                                    "Confirm with your vet. We will use this on every reminder " +
-                                        "unless a phase overrides it.",
-                                )
-                            },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = state.doseAmount,
+                            onValueChange = viewModel::onDoseAmountChange,
+                            label = { Text("Dose amount") },
+                            placeholder = { Text("e.g. 10, 1, 0.5") },
+                            singleLine = true,
+                            isError = state.doseAmountError != null,
+                            supportingText = state.doseAmountError?.let { { Text(it) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                        DoseUnitDropdown(
+                            selected = state.doseUnit,
+                            onSelect = viewModel::onDoseUnitChange,
+                            isError = state.doseUnitError != null,
+                            modifier = Modifier.width(140.dp),
+                        )
+                    }
 
                     OutlinedTextField(
                         value = state.notes,
@@ -324,13 +333,15 @@ private fun MedicationEditContextCard(
     petName: String?,
     medicationName: String?,
     doseAmount: String?,
+    doseUnit: DoseUnit?,
     scheduleHint: String?,
     isNew: Boolean,
 ) {
     if (petName == null && medicationName == null && scheduleHint == null) return
+    val doseDisplay = doseAmount?.let { formatDose(it, doseUnit) }
     val medLine =
         when {
-            medicationName != null && doseAmount != null -> "$medicationName · $doseAmount"
+            medicationName != null && doseDisplay != null -> "$medicationName · $doseDisplay"
             medicationName != null -> medicationName
             isNew -> "New medication"
             else -> null
@@ -509,4 +520,56 @@ private fun DiscontinueMedicationDialog(
             }
         },
     )
+}
+
+/**
+ * Dropdown picker for [DoseUnit]. Uses ExposedDropdownMenuBox for Material 3 compliance.
+ * Shows the unit label ("mg", "tablet", etc.) in the collapsed field and a scrollable
+ * list of all enum values when expanded.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+public fun DoseUnitDropdown(
+    selected: DoseUnit?,
+    onSelect: (DoseUnit?) -> Unit,
+    isError: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = selected?.label ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Unit") },
+            isError = isError,
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse unit picker" else "Expand unit picker",
+                )
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DoseUnit.entries.forEach { unit ->
+                DropdownMenuItem(
+                    text = { Text(unit.label) },
+                    onClick = {
+                        onSelect(unit)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }

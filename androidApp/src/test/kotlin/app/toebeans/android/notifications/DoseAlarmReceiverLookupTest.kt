@@ -1,5 +1,6 @@
 package app.toebeans.android.notifications
 
+import app.toebeans.core.model.DoseUnit
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
@@ -187,8 +188,8 @@ class DoseAlarmReceiverLookupTest {
         assertEquals("evt-sqldelight", found?.id)
         assertEquals("sched-luna-methimazole", found?.scheduleId)
         assertEquals(Instant.parse("2026-05-23T08:00:00Z"), found?.scheduledAt)
-        assertEquals("Methimazole", found?.medicationName, "medication name must be populated")
-        assertEquals("Luna", found?.petName, "pet name must be populated")
+        assertEquals("Methimazole", found?.medicationName)
+        assertEquals("Luna", found?.petName)
     }
 
     @Test
@@ -352,6 +353,7 @@ class DoseAlarmReceiverLookupTest {
             pet_id = "pet-luna",
             name = "Methimazole",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
             discontinued_at = discontinuedAt,
@@ -415,6 +417,7 @@ class DoseAlarmReceiverLookupTest {
             pet_id = "pet-luna",
             name = "Methimazole",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,

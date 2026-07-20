@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.DoseUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -62,6 +63,7 @@ class SqlDelightMedicationRepositoryContractTest : MedicationRepositoryContract(
                     petId = "p1",
                     name = "FK Med",
                     doseAmount = "1mg",
+                    doseUnit = DoseUnit.MG,
                     notes = null,
                     createdAt = Instant.fromEpochMilliseconds(createdAt),
                     discontinuedAt = null,

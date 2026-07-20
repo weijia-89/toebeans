@@ -1,5 +1,6 @@
 package app.toebeans.android.data
 
+import app.toebeans.core.model.DoseUnit
 import android.content.Context
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.data.db.probeForeignKeysEnabled
@@ -124,6 +125,7 @@ class SqliteForeignKeysCallbackTest {
             pet_id = "pet-cascade",
             name = "Cascade Med",
             dose_amount = "1mg",
+            dose_unit = "MG",
             notes = null,
             created_at = 1_715_616_000_000L,
             discontinued_at = discontinuedAt,
@@ -170,6 +172,7 @@ class SqliteForeignKeysCallbackTest {
             pet_id = "pet-cascade",
             name = "Cascade Med",
             dose_amount = "1mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,
@@ -189,6 +192,7 @@ class SqliteForeignKeysCallbackTest {
             doses_per_day = 1,
             dose_times_local = "[\"08:00\"]",
             dose_amount = "1mg",
+            dose_unit = "MG",
         )
         database.doseEventQueries.insertDoseEvent(
             id = "dose-cascade",

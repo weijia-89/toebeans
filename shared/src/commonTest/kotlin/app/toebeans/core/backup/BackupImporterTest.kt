@@ -6,6 +6,7 @@ import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
@@ -65,6 +66,7 @@ class BackupImporterTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             val event = sampleEvent(id = "dose-1", scheduleId = schedule.id, medicationId = med.id)
 
@@ -162,6 +164,7 @@ class BackupImporterTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(9, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             scheduleRepo.upsert(existingSchedule, listOf(existingPhase))
 
@@ -174,6 +177,7 @@ class BackupImporterTest {
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(7, 0), LocalTime(19, 0)),
                     doseAmount = "2mg",
+                    doseUnit = null,
                 )
 
             val backup =
@@ -218,6 +222,7 @@ class BackupImporterTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = "5mg",
+                    doseUnit = null,
                 )
             val phase2 =
                 SchedulePhase(
@@ -228,6 +233,7 @@ class BackupImporterTest {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
                     doseAmount = "2.5mg",
+                    doseUnit = null,
                 )
 
             val backup =
@@ -314,6 +320,7 @@ class BackupImporterTest {
             petId = petId,
             name = "Test-Med",
             doseAmount = "10mg",
+            doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,
             discontinuedAt = null,

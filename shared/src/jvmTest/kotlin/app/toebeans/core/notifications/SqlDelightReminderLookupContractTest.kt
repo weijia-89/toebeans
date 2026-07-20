@@ -1,5 +1,6 @@
 package app.toebeans.core.notifications
 
+import app.toebeans.core.model.DoseUnit
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.data.SqlDelightDoseEventRepository
@@ -61,6 +62,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             pet_id = "pet-lookup-contract",
             name = "Lookup Med",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = discontinuedAt,
@@ -96,6 +98,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             pet_id = "pet-mismatch",
             name = "Active Denorm",
             dose_amount = "1mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,
@@ -105,6 +108,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             pet_id = "pet-mismatch",
             name = "Discontinued Schedule Med",
             dose_amount = "2mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = discontinuedAt,
@@ -182,6 +186,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             pet_id = "pet-lookup-contract",
             name = "Lookup Med",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,

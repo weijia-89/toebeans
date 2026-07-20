@@ -7,9 +7,11 @@ import kotlinx.serialization.Serializable
  * A medication prescribed to one [Pet]. Decoupled from [Schedule]: a single medication may have
  * multiple historical schedules (e.g. a steroid course, then a maintenance dose later).
  *
- * @property doseAmount free-text default amount (e.g. "10mg"). At v1 we do not parse this — we
+ * @property doseAmount free-text default amount (e.g. "10"). At v1 we do not parse this — we
  *           render it next to the dose reminder. The amount may be overridden per
  *           [SchedulePhase.doseAmount] for tapers.
+ * @property doseUnit the unit of measure for [doseAmount]. Required so every medication carries
+ *           an unambiguous dosing instruction.
  */
 @Serializable
 public data class Medication(
@@ -17,6 +19,7 @@ public data class Medication(
     val petId: String,
     val name: String,
     val doseAmount: String,
+    val doseUnit: DoseUnit,
     val notes: String?,
     val createdAt: Instant,
     val discontinuedAt: Instant?,

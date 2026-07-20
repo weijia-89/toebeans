@@ -1,5 +1,6 @@
 package app.toebeans.core.data
 
+import app.toebeans.core.model.DoseUnit
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
@@ -133,6 +134,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             pet_id = PET_ID,
             name = "Contract Med",
             dose_amount = "5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,

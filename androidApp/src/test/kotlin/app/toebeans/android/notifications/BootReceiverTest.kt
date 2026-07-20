@@ -1,5 +1,6 @@
 package app.toebeans.android.notifications
 
+import app.toebeans.core.model.DoseUnit
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
@@ -140,6 +141,7 @@ class BootReceiverTest {
             pet_id = "pet-luna",
             name = "Methimazole",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds(),
             discontinued_at = discontinuedAt,
@@ -217,6 +219,7 @@ class BootReceiverTest {
             pet_id = "pet-luna",
             name = "Methimazole",
             dose_amount = "2.5mg",
+            dose_unit = "MG",
             notes = null,
             created_at = createdAt,
             discontinued_at = null,

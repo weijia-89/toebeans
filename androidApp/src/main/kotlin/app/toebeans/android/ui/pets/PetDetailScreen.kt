@@ -43,6 +43,7 @@ import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeHero
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
+import app.toebeans.core.model.formatDose
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -292,7 +293,7 @@ private fun MedicationRow(
         ) {
             Text(text = med.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = med.doseAmount,
+                text = formatDose(med.doseAmount, med.doseUnit),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

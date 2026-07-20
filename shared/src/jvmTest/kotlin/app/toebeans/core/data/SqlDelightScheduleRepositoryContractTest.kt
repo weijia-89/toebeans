@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -86,6 +87,7 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
                 pet_id = "p-fk-sched",
                 name = "FK Med",
                 dose_amount = "1mg",
+                dose_unit = "MG",
                 notes = null,
                 created_at = createdAtMs,
                 discontinued_at = null,
@@ -113,6 +115,7 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime.parse("08:00")),
                     doseAmount = "1mg",
+                    doseUnit = DoseUnit.MG,
                 )
             repo.upsert(schedule, listOf(phase))
             localDb.doseEventQueries.insertDoseEvent(
@@ -160,6 +163,7 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
             pet_id = "p-contract",
             name = "Contract Med",
             dose_amount = "1mg",
+            dose_unit = "MG",
             notes = null,
             created_at = refCreatedAt.toEpochMilliseconds(),
             discontinued_at = null,

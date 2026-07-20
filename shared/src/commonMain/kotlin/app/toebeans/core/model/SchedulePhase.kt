@@ -17,7 +17,9 @@ import kotlinx.serialization.Serializable
  *           are not allowed (would produce duplicate doses). Stored as `HH:MM` strings on disk;
  *           parsed to [LocalTime] in memory.
  * @property doseAmount optional override of the parent [Medication]'s dose amount for this phase.
- *           Used for tapers: e.g. phase 0 doseAmount = "10mg", phase 1 doseAmount = "5mg".
+ *           Used for tapers: e.g. phase 0 doseAmount = "10", phase 1 doseAmount = "5".
+ * @property doseUnit optional override of the parent [Medication]'s dose unit for this phase.
+ *           When null the renderer falls back to [Medication.doseUnit].
  * @property dayInterval calendar-day interval between dosing days. Defaults to 1 (daily).
  *           Range: 1..[MAX_DAY_INTERVAL]. Monthly dosing is the realistic ceiling
  *           (e.g., bravecto). Phase day 0 is always a dosing day; phase day 1 is a dosing
@@ -32,6 +34,7 @@ public data class SchedulePhase(
     val dosesPerDay: Int,
     val doseTimesLocal: List<LocalTime>,
     val doseAmount: String?,
+    val doseUnit: DoseUnit?,
     val dayInterval: Int = 1,
 ) {
     init {

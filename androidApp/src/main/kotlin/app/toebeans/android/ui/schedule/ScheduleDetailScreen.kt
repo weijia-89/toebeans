@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.model.formatDose
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.koin.androidx.compose.koinViewModel
@@ -296,7 +297,7 @@ private fun PhaseRow(
         phase.doseAmount?.let { amount ->
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "Dose amount: $amount",
+                text = "Dose amount: ${formatDose(amount, phase.doseUnit)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -1,5 +1,6 @@
 package app.toebeans.android.ui.medications
 
+import app.toebeans.core.model.DoseUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -37,6 +38,7 @@ class MedicationEditViewModelSaveTest {
             vm.setPetId("pet-1")
             vm.onNameChange("bbbb")
             vm.onDoseAmountChange("44")
+            vm.onDoseUnitChange(DoseUnit.MG)
             assertTrue(vm.save())
             val savedId = vm.state.value.medicationId
             requireNotNull(savedId)

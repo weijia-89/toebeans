@@ -6,6 +6,7 @@ import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -31,6 +32,7 @@ internal fun seedMed(
         petId = petId,
         name = name,
         doseAmount = "2.5 mg",
+        doseUnit = DoseUnit.MG,
         notes = null,
         createdAt = Clock.System.now(),
         discontinuedAt = null,

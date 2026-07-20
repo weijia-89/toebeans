@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.toebeans.android.ui.components.TimePickerField
+import app.toebeans.android.ui.medications.DoseUnitDropdown
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.LocalTime
 
@@ -226,8 +227,16 @@ public fun PhaseEditorCard(
             OutlinedTextField(
                 value = draft.doseAmount,
                 onValueChange = { onChange(draft.copy(doseAmount = it)) },
-                label = { Text("Dose amount override (optional, e.g. \"5 mg\")") },
+                label = { Text("Dose amount override (optional)") },
+                placeholder = { Text("e.g. 5, 2.5") },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            DoseUnitDropdown(
+                selected = draft.doseUnit,
+                onSelect = { onChange(draft.copy(doseUnit = it)) },
+                isError = false,
                 modifier = Modifier.fillMaxWidth(),
             )
 

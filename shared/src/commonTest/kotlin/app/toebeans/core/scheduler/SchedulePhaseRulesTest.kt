@@ -1,6 +1,7 @@
 package app.toebeans.core.scheduler
 
 import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -60,6 +61,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val window = baseDate.atTime(0, 0).toInstant(utc)..baseDate.plusDays(5).atTime(0, 0).toInstant(utc)
@@ -107,6 +109,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = "10mg",
+                doseUnit = null,
             )
         val phase1 =
             SchedulePhase(
@@ -117,6 +120,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = "5mg",
+                doseUnit = null,
             )
 
         val result =
@@ -176,6 +180,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         // 72-hour window starting on day 2 morning.
@@ -213,6 +218,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =
@@ -255,6 +261,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(0, 0), LocalTime(12, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =
@@ -311,6 +318,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
         val phaseB = phaseA.copy(id = "phase-d3a-2") // same phaseOrder = 0
 
@@ -354,6 +362,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
         val phase2 = phase0.copy(id = "phase-d3b-2", phaseOrder = 2) // skips 1
 
@@ -432,6 +441,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =
@@ -469,6 +479,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         // Query 7 days AFTER the schedule ended.
@@ -510,6 +521,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
         val from = baseDate.atTime(12, 0).toInstant(utc)
         val to = baseDate.atTime(8, 0).toInstant(utc) // to < from on purpose
@@ -551,6 +563,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
                 dayInterval = 2,
             )
 
@@ -598,6 +611,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val thrown =
@@ -653,6 +667,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =
@@ -710,6 +725,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(8, 0)),
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =
@@ -777,6 +793,7 @@ class SchedulePhaseRulesTest {
                 dosesPerDay = 1,
                 doseTimesLocal = listOf(LocalTime(2, 30)), // inside the non-existent 2-3 AM PT hour
                 doseAmount = null,
+                doseUnit = null,
             )
 
         val result =

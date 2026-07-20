@@ -1,6 +1,7 @@
 package app.toebeans.core.data
 
 import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

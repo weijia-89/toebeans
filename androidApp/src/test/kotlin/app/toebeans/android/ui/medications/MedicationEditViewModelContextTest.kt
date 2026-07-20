@@ -1,6 +1,7 @@
 package app.toebeans.android.ui.medications
 
 import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,6 +51,7 @@ class MedicationEditViewModelContextTest {
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                     doseAmount = null,
+                    doseUnit = null,
                 )
             val vm =
                 medicationEditViewModel(

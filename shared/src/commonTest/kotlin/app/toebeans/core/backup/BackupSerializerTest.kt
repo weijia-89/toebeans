@@ -1,6 +1,7 @@
 package app.toebeans.core.backup
 
 import app.toebeans.core.model.DoseEvent
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
@@ -139,6 +140,7 @@ class BackupSerializerTest {
                 petId = pet.id,
                 name = "Prednisone",
                 doseAmount = "10mg",
+                doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = now,
                 discontinuedAt = null,
@@ -160,6 +162,7 @@ class BackupSerializerTest {
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 doseAmount = "10mg",
+                doseUnit = DoseUnit.MG,
             )
         val event =
             DoseEvent(

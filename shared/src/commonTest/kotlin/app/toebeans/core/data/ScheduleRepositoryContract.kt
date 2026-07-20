@@ -2,6 +2,7 @@ package app.toebeans.core.data
 
 import app.cash.turbine.test
 import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -333,6 +334,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                 dosesPerDay = dosesPerDay,
                 doseTimesLocal = doseTimesLocal,
                 doseAmount = doseAmount,
+                doseUnit = null,
                 dayInterval = dayInterval,
             )
     }
