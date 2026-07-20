@@ -7,7 +7,6 @@ import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseStatus
-import app.toebeans.core.model.DoseUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant

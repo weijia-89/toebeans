@@ -53,20 +53,20 @@ public class MedicationEditViewModel(
         _state.update { it.copy(petId = petId) }
         if (medicationId == null) {
             _state.update {
-            MedicationEditUiState(
-                petId = petId,
-                medicationId = null,
-                name = "",
-                doseAmount = "",
-                doseUnit = null,
-                notes = "",
-                nameError = null,
-                doseAmountError = null,
-                doseUnitError = null,
-                discontinuedAt = null,
-                petName = null,
-                scheduleHint = null,
-            )
+                MedicationEditUiState(
+                    petId = petId,
+                    medicationId = null,
+                    name = "",
+                    doseAmount = "",
+                    doseUnit = null,
+                    notes = "",
+                    nameError = null,
+                    doseAmountError = null,
+                    doseUnitError = null,
+                    discontinuedAt = null,
+                    petName = null,
+                    scheduleHint = null,
+                )
             }
             refreshReferenceContext()
             return

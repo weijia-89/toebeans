@@ -1,6 +1,5 @@
 package app.toebeans.core.data
 
-import app.toebeans.core.model.DoseUnit
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase

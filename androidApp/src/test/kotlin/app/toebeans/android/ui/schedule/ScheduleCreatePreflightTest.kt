@@ -5,8 +5,8 @@ import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -190,7 +190,11 @@ class ScheduleCreatePreflightTest {
                 )
             vm.setMedicationId(MED_ID)
             // Start today so the 72h materializer window intersects an active schedule.
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val today =
+                Clock.System
+                    .now()
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                    .date
             vm.onStartDateChange(today)
             vm.onEndDateChange(today.plus(35, DateTimeUnit.DAY))
             // Replace the default single 7-day phase with a 2-phase taper to push the calculator

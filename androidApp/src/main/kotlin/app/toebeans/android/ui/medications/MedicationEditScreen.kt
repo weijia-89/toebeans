@@ -20,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -338,14 +337,7 @@ private fun MedicationEditContextCard(
     isNew: Boolean,
 ) {
     if (petName == null && medicationName == null && scheduleHint == null) return
-    val doseDisplay = doseAmount?.let { formatDose(it, doseUnit) }
-    val medLine =
-        when {
-            medicationName != null && doseDisplay != null -> "$medicationName · $doseDisplay"
-            medicationName != null -> medicationName
-            isNew -> "New medication"
-            else -> null
-        }
+    val medLine = buildMedLine(medicationName, doseAmount, doseUnit, isNew)
     val a11y =
         listOfNotNull(
             petName?.let { "For $it" },
@@ -393,6 +385,21 @@ private fun MedicationEditContextCard(
                 )
             }
         }
+    }
+}
+
+private fun buildMedLine(
+    medicationName: String?,
+    doseAmount: String?,
+    doseUnit: DoseUnit?,
+    isNew: Boolean,
+): String? {
+    val doseDisplay = doseAmount?.let { formatDose(it, doseUnit) }
+    return when {
+        medicationName != null && doseDisplay != null -> "$medicationName · $doseDisplay"
+        medicationName != null -> medicationName
+        isNew -> "New medication"
+        else -> null
     }
 }
 
@@ -553,9 +560,10 @@ public fun DoseUnitDropdown(
                     contentDescription = if (expanded) "Collapse unit picker" else "Expand unit picker",
                 )
             },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = expanded,

@@ -4,8 +4,8 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseUnit
-import app.toebeans.core.model.parseDoseUnitOrDefault
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.parseDoseUnitOrDefault
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

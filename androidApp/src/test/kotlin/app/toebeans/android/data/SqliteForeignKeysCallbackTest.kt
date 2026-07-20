@@ -1,6 +1,5 @@
 package app.toebeans.android.data
 
-import app.toebeans.core.model.DoseUnit
 import android.content.Context
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.data.db.probeForeignKeysEnabled

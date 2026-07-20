@@ -1,6 +1,5 @@
 package app.toebeans.android.notifications
 
-import app.toebeans.core.model.DoseUnit
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent

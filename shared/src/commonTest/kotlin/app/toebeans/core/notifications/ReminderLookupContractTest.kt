@@ -1,6 +1,5 @@
 package app.toebeans.core.notifications
 
-import app.toebeans.core.model.DoseUnit
 import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
 import kotlin.test.Test

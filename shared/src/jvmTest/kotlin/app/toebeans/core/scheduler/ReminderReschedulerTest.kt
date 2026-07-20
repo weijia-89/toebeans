@@ -2,7 +2,6 @@ package app.toebeans.core.scheduler
 
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.model.DoseEvent
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase

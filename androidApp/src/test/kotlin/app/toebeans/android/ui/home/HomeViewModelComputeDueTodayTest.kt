@@ -2,8 +2,8 @@ package app.toebeans.android.ui.home
 
 import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
@@ -286,7 +286,14 @@ class HomeViewModelComputeDueTodayTest {
         ): List<ScheduledDose> =
             (byScheduleId[schedule.id] ?: emptyList())
                 .filter { it in fromInclusive..<toExclusive }
-                .map { ScheduledDose(scheduledAt = it, phaseOrder = 0, doseAmount = doseAmountOverride, doseUnit = null) }
+                .map {
+                    ScheduledDose(
+                        scheduledAt = it,
+                        phaseOrder = 0,
+                        doseAmount = doseAmountOverride,
+                        doseUnit = null,
+                    )
+                }
     }
 
     private fun scheduleBundle(

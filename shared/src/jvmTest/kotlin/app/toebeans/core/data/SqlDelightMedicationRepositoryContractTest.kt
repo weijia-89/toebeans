@@ -3,8 +3,8 @@ package app.toebeans.core.data
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
-import app.toebeans.core.model.Medication
 import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.Medication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant

@@ -9,7 +9,10 @@ package app.toebeans.core.model
  *   - formatDose("1", DoseUnit.TABLET) → "1 tablet"
  *   - formatDose("10mg", null) → "10mg" (legacy, pre-unit-picker data)
  */
-public fun formatDose(amount: String, unit: DoseUnit?): String =
+public fun formatDose(
+    amount: String,
+    unit: DoseUnit?,
+): String =
     if (unit != null) {
         "$amount ${unit.label}"
     } else {

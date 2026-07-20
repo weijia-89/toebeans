@@ -1,8 +1,8 @@
 package app.toebeans.core.data
 
 import app.cash.turbine.test
-import app.toebeans.core.model.Medication
 import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.Medication
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant

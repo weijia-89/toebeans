@@ -1,6 +1,5 @@
 package app.toebeans.core.model
 
-import app.toebeans.core.model.DoseUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime

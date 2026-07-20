@@ -1,7 +1,6 @@
 package app.toebeans.core.scheduler
 
 import app.toebeans.core.model.Schedule
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant

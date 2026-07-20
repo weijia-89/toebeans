@@ -4,7 +4,6 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.Pet
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Species
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest

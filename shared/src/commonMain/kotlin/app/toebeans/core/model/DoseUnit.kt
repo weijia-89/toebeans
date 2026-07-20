@@ -12,7 +12,9 @@ import kotlinx.serialization.Serializable
  * already carries cardinality, and plural rules vary by locale.
  */
 @Serializable
-public enum class DoseUnit(public val label: String) {
+public enum class DoseUnit(
+    public val label: String,
+) {
     MG("mg"),
     ML("mL"),
     G("g"),
@@ -39,7 +41,10 @@ public enum class DoseUnit(public val label: String) {
  * Used by repository mappers so a corrupted or future-unrecognized DB value does not
  * crash the app at read time. A null default preserves legacy display behavior.
  */
-public fun parseDoseUnitOrDefault(name: String?, default: DoseUnit? = null): DoseUnit? =
+public fun parseDoseUnitOrDefault(
+    name: String?,
+    default: DoseUnit? = null,
+): DoseUnit? =
     if (name.isNullOrBlank()) {
         default
     } else {

@@ -1,7 +1,6 @@
 package app.toebeans.android.ui.medications
 
 import app.toebeans.core.model.Schedule
-import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
