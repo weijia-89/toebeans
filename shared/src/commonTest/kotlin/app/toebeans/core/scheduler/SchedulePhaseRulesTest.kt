@@ -108,7 +108,7 @@ class SchedulePhaseRulesTest {
                 durationDays = 5,
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
-                doseAmount = "10mg",
+                doseAmount = "10",
                 doseUnit = null,
             )
         val phase1 =
@@ -119,7 +119,7 @@ class SchedulePhaseRulesTest {
                 durationDays = 5,
                 dosesPerDay = 2,
                 doseTimesLocal = listOf(LocalTime(8, 0), LocalTime(20, 0)),
-                doseAmount = "5mg",
+                doseAmount = "5",
                 doseUnit = null,
             )
 
@@ -145,7 +145,7 @@ class SchedulePhaseRulesTest {
         assertEquals(10, phase1Doses.size, "phase 1 contributes 10 doses")
 
         assertTrue(
-            phase0Doses.all { it.doseAmount == "10mg" } && phase1Doses.all { it.doseAmount == "5mg" },
+            phase0Doses.all { it.doseAmount == "10" } && phase1Doses.all { it.doseAmount == "5" },
             "dose amounts must reflect each phase's override",
         )
 

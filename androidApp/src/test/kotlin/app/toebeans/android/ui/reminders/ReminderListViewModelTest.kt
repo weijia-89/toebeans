@@ -58,7 +58,7 @@ class ReminderListViewModelTest {
         id = id,
         petId = petId,
         name = name,
-        doseAmount = "10mg",
+        doseAmount = "10",
         doseUnit = DoseUnit.MG,
         notes = null,
         createdAt = seedCreatedAt,

@@ -140,7 +140,7 @@ class ScheduleCreatePreflightTest {
             // Touching a phase field should also clear it (independent path).
             vm.save() // re-populate
             assertNotNull(vm.state.value.formError)
-            vm.updatePhase(0) { it.copy(doseAmount = "5mg") }
+            vm.updatePhase(0) { it.copy(doseAmount = "5") }
             assertNull("formError should clear on phase change", vm.state.value.formError)
         }
 
@@ -276,7 +276,7 @@ private val MED =
         id = MED_ID,
         petId = PET_ID,
         name = "Amoxicillin",
-        doseAmount = "50mg",
+        doseAmount = "50",
         doseUnit = DoseUnit.MG,
         notes = null,
         createdAt = Instant.fromEpochMilliseconds(0),

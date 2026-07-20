@@ -83,5 +83,5 @@ public data class ScheduledDose(
     val scheduledAt: Instant,
     val phaseOrder: Int,
     val doseAmount: String?,
-    val doseUnit: DoseUnit?,
+    val doseUnit: DoseUnit? = null,
 )

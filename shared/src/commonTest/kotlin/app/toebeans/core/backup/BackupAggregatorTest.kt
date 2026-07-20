@@ -82,7 +82,7 @@ class BackupAggregatorTest {
             val doseEventRepo = InMemoryDoseEventRepo()
 
             val pet = samplePet(id = "pet-rufus", name = "Rufus")
-            val med = sampleMed(id = "med-apoquel", petId = pet.id, name = "Apoquel", doseAmount = "5.4mg")
+            val med = sampleMed(id = "med-apoquel", petId = pet.id, name = "Apoquel", doseAmount = "5.4")
             val schedule = sampleSchedule(id = "sched-rufus-apoquel", medicationId = med.id)
             val phase =
                 SchedulePhase(
@@ -231,7 +231,7 @@ class BackupAggregatorTest {
         id: String,
         petId: String,
         name: String,
-        doseAmount: String = "10mg",
+        doseAmount: String = "10",
         discontinuedAt: Instant? = null,
     ): Medication =
         Medication(

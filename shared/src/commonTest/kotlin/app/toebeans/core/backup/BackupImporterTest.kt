@@ -176,7 +176,7 @@ class BackupImporterTest {
                     durationDays = 60,
                     dosesPerDay = 2,
                     doseTimesLocal = listOf(LocalTime(7, 0), LocalTime(19, 0)),
-                    doseAmount = "2mg",
+                    doseAmount = "2",
                     doseUnit = null,
                 )
 
@@ -221,7 +221,7 @@ class BackupImporterTest {
                     durationDays = 14,
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
-                    doseAmount = "5mg",
+                    doseAmount = "5",
                     doseUnit = null,
                 )
             val phase2 =
@@ -232,7 +232,7 @@ class BackupImporterTest {
                     durationDays = 14,
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime(8, 0)),
-                    doseAmount = "2.5mg",
+                    doseAmount = "2.5",
                     doseUnit = null,
                 )
 
@@ -319,7 +319,7 @@ class BackupImporterTest {
             id = id,
             petId = petId,
             name = "Test-Med",
-            doseAmount = "10mg",
+            doseAmount = "10",
             doseUnit = DoseUnit.MG,
             notes = null,
             createdAt = now,

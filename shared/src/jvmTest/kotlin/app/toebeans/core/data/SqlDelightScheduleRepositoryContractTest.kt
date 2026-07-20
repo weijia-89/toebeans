@@ -114,7 +114,7 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
                     durationDays = 7,
                     dosesPerDay = 1,
                     doseTimesLocal = listOf(LocalTime.parse("08:00")),
-                    doseAmount = "1mg",
+                    doseAmount = "1",
                     doseUnit = DoseUnit.MG,
                 )
             repo.upsert(schedule, listOf(phase))

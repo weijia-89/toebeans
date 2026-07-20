@@ -62,7 +62,7 @@ class SqlDelightMedicationRepositoryContractTest : MedicationRepositoryContract(
                     id = "m-discontinue-fk",
                     petId = "p1",
                     name = "FK Med",
-                    doseAmount = "1mg",
+                    doseAmount = "1",
                     doseUnit = DoseUnit.MG,
                     notes = null,
                     createdAt = Instant.fromEpochMilliseconds(createdAt),

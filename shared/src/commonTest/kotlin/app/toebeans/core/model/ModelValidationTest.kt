@@ -111,7 +111,7 @@ class ModelValidationTest {
                 id = "m1",
                 petId = "p1",
                 name = "Pred",
-                doseAmount = "10mg",
+                doseAmount = "10",
                 doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = now,

@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.parseDoseUnitOrDefault
 import app.toebeans.core.model.Medication
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -85,7 +86,7 @@ internal fun MedicationRow.toDomain(): Medication =
         petId = pet_id,
         name = name,
         doseAmount = dose_amount,
-        doseUnit = enumValueOf<DoseUnit>(dose_unit),
+        doseUnit = parseDoseUnitOrDefault(dose_unit, DoseUnit.MG) ?: DoseUnit.MG,
         notes = notes,
         createdAt = Instant.fromEpochMilliseconds(created_at),
         discontinuedAt = discontinued_at?.let(Instant::fromEpochMilliseconds),

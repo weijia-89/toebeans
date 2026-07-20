@@ -91,7 +91,7 @@ abstract class MedicationRepositoryContract : MedicalRepositoryContract() {
                 id = id,
                 petId = petId,
                 name = name,
-                doseAmount = "2.5 mg",
+                doseAmount = "2.5",
                 doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = refCreatedAt,

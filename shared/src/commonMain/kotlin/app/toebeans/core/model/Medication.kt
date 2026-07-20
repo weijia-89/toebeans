@@ -19,7 +19,7 @@ public data class Medication(
     val petId: String,
     val name: String,
     val doseAmount: String,
-    val doseUnit: DoseUnit,
+    val doseUnit: DoseUnit = DoseUnit.MG,
     val notes: String?,
     val createdAt: Instant,
     val discontinuedAt: Instant?,

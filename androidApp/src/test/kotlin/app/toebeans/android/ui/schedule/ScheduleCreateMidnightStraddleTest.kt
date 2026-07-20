@@ -215,7 +215,7 @@ class ScheduleCreateMidnightStraddleTest {
                 id = MED_ID,
                 petId = PET_ID,
                 name = "Amoxicillin",
-                doseAmount = "50mg",
+                doseAmount = "50",
                 doseUnit = DoseUnit.MG,
                 notes = null,
                 createdAt = Instant.fromEpochMilliseconds(0),

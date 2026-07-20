@@ -1,0 +1,11 @@
+-- Migration 1 → 2: Add dose_unit columns for the dose unit picker (M1.2).
+--
+-- Medication.dose_unit is required (NOT NULL) with a default of 'MG' for existing rows.
+-- SchedulePhase.dose_unit is optional (nullable) for per-phase taper overrides.
+--
+-- Note: existing dose_amount values may still contain legacy unit suffixes (e.g. "10mg").
+-- The app displays via formatDose() which falls back gracefully; users can edit
+-- medications to clean up the separation.
+
+ALTER TABLE Medication ADD COLUMN dose_unit TEXT NOT NULL DEFAULT 'MG';
+ALTER TABLE SchedulePhase ADD COLUMN dose_unit TEXT;

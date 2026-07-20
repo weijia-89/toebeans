@@ -100,7 +100,7 @@ class HomeMarkGivenSlotIntegrationTest {
                     id = medId,
                     petId = petId,
                     name = "Methimazole",
-                    doseAmount = "2.5 mg",
+                    doseAmount = "2.5",
                     doseUnit = DoseUnit.MG,
                     notes = null,
                     createdAt = Instant.parse("2024-01-01T00:00:00Z"),

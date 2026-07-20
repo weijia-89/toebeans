@@ -229,7 +229,7 @@ class HomeViewModelComputeDueTodayTest {
         val rows =
             HomeViewModel.computeDueToday(
                 schedulesWithPhases = listOf(swp),
-                medications = listOf(med("m-1", "p-1", doseAmount = "10mg")),
+                medications = listOf(med("m-1", "p-1", doseAmount = "10")),
                 pets = listOf(pet("p-1")),
                 recentDoses = emptyList(),
                 calculator =
@@ -242,7 +242,7 @@ class HomeViewModelComputeDueTodayTest {
                 todayStart = TODAY_START,
                 todayEnd = TODAY_END,
             )
-        assertEquals("10mg", rows.single().doseAmount)
+        assertEquals("10", rows.single().doseAmount)
     }
 
     @Test
@@ -251,7 +251,7 @@ class HomeViewModelComputeDueTodayTest {
         val rows =
             HomeViewModel.computeDueToday(
                 schedulesWithPhases = listOf(swp),
-                medications = listOf(med("m-1", "p-1", doseAmount = "10mg")),
+                medications = listOf(med("m-1", "p-1", doseAmount = "10")),
                 pets = listOf(pet("p-1")),
                 recentDoses = emptyList(),
                 calculator =

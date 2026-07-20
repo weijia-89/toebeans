@@ -31,7 +31,7 @@ internal fun seedMed(
         id = id,
         petId = petId,
         name = name,
-        doseAmount = "2.5 mg",
+        doseAmount = "2.5",
         doseUnit = DoseUnit.MG,
         notes = null,
         createdAt = Clock.System.now(),

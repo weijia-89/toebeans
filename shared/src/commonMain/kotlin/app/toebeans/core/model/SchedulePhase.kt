@@ -34,7 +34,7 @@ public data class SchedulePhase(
     val dosesPerDay: Int,
     val doseTimesLocal: List<LocalTime>,
     val doseAmount: String?,
-    val doseUnit: DoseUnit?,
+    val doseUnit: DoseUnit? = null,
     val dayInterval: Int = 1,
 ) {
     init {

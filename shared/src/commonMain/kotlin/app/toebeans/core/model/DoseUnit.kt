@@ -31,3 +31,21 @@ public enum class DoseUnit(public val label: String) {
     SCOOP("scoop"),
     PILL("pill"),
 }
+
+/**
+ * Safely parse a [DoseUnit] from its enum name (e.g. "MG", "TABLET").
+ * Returns [default] if [name] is null, blank, or not a known unit.
+ *
+ * Used by repository mappers so a corrupted or future-unrecognized DB value does not
+ * crash the app at read time. A null default preserves legacy display behavior.
+ */
+public fun parseDoseUnitOrDefault(name: String?, default: DoseUnit? = null): DoseUnit? =
+    if (name.isNullOrBlank()) {
+        default
+    } else {
+        try {
+            enumValueOf<DoseUnit>(name)
+        } catch (_: IllegalArgumentException) {
+            default
+        }
+    }
