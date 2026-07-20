@@ -1,15 +1,21 @@
 package app.toebeans.core.scheduler
 
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Default implementation of [ScheduleCalculator]. Pure-functional; no I/O, no platform clock,
@@ -34,10 +40,12 @@ import kotlin.time.Duration.Companion.days
  *     D4 empty-phases empty-result, D5 not-yet-started empty-result, D6 caller-supplied TZ,
  *     D7 name, F5 global sort).
  *   - ADR-0007 v0.1 TZ behavior (FOLLOW_PHONE; DST handling deferred to a follow-up).
+ *   - ADR-0007 ELAPSED_INTERVAL anchor mode: doses spaced by gaps derived from
+ *     [SchedulePhase.doseTimesLocal] with wrap-to-24h semantics.
  *   - ADR-0008 mechanical bounds: window ≤ 30 days, event count ≤ 100,000.
  *
  * Not yet honored (deferred):
- *   - ADR-0007 anchor modes (`STAY_HOME_TZ`, `ELAPSED_INTERVAL`) — milestone 1.5.
+ *   - ADR-0007 anchor mode `STAY_HOME_TZ` — caller-side policy, no calculator change.
  *   - DST detection (`DST_SKIP` / `DST_DUPLICATE_RESOLVED`) — milestone 1.5.
  *   - Pre-call event-count estimation (currently checked post-allocation) — milestone 2.
  */
@@ -73,7 +81,6 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         if (phases.isEmpty()) return emptyList()
 
         // --- 3. Validate phase ordering ------------------------------------------------------
-        // Detect duplicate phaseOrder values before sorting.
         val byOrder = phases.groupBy { it.phaseOrder }
         byOrder.entries.firstOrNull { it.value.size > 1 }?.let { dup ->
             throw MalformedScheduleException.DuplicatePhaseOrder(
@@ -88,28 +95,42 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         }
 
         // --- 4. Compute effective end date ---------------------------------------------------
-        // Phase 0 occupies calendar days [startDate, startDate + duration0).
-        // Phase 1 occupies the next contiguous range, etc.
-        // The schedule ENDS (inclusive) at startDate + sum(durations) - 1.
         val totalPhaseDays = sorted.sumOf { it.durationDays }
         val phaseEndInclusive =
             schedule.startDate.plus(totalPhaseDays.toLong() - 1, DateTimeUnit.DAY)
         val effectiveEnd = schedule.endDate?.let { minOf(it, phaseEndInclusive) } ?: phaseEndInclusive
 
-        // --- 5. Schedule-not-yet-started and schedule-already-over fast paths ----------------
-        // "Not yet started" = the schedule's first dose (startDate at earliest local time) is
-        // on or after toExclusive. Compare in the supplied timeZone.
+        // --- 5. Schedule-not-yet-started fast path -------------------------------------------
         val scheduleStartInstant = schedule.startDate.atStartOfDayIn(timeZone)
         if (scheduleStartInstant >= toExclusive) return emptyList()
 
-        // "Already over" = the last possible dose (effectiveEnd at end of day local) is before
-        // fromInclusive. Use start-of-next-day as the strict upper bound for the effectiveEnd
-        // calendar day.
+        // --- 6. Emit doses -------------------------------------------------------------------
+        return if (schedule.anchorMode == AnchorMode.ELAPSED_INTERVAL) {
+            computeElapsedIntervalDoses(schedule, sorted, timeZone, effectiveEnd, fromInclusive, toExclusive)
+        } else {
+            computeWallClockDoses(schedule, sorted, timeZone, effectiveEnd, fromInclusive, toExclusive)
+        }
+    }
+
+    /**
+     * FOLLOW_PHONE (and STAY_HOME_TZ) path: wall-clock calendar-day walking.
+     *
+     * Each dose is anchored to a calendar date + local wall-clock time, converted to UTC via
+     * [timeZone]. DST shifts the UTC instant but preserves the local wall-clock time.
+     */
+    private fun computeWallClockDoses(
+        schedule: Schedule,
+        sorted: List<SchedulePhase>,
+        timeZone: TimeZone,
+        effectiveEnd: LocalDate,
+        fromInclusive: Instant,
+        toExclusive: Instant,
+    ): List<ScheduledDose> {
+        // Already-over fast path (calendar-day semantics).
         val effectiveEndExclusiveInstant =
             effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
         if (effectiveEndExclusiveInstant <= fromInclusive) return emptyList()
 
-        // --- 6. Walk calendar days, emitting doses --------------------------------------------
         val results = ArrayList<ScheduledDose>(64)
         var currentDate = schedule.startDate
         var phaseIndex = 0
@@ -118,11 +139,14 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         while (phaseIndex < sorted.size && currentDate <= effectiveEnd) {
             val phase = sorted[phaseIndex]
 
-            // dayInPhase 0 is always a dosing day. After that, dose every `dayInterval` days.
             if (dayInPhase % phase.dayInterval == 0) {
                 for (localTime in phase.doseTimesLocal) {
                     val ldt = LocalDateTime(currentDate, localTime)
                     val instant = ldt.toInstant(timeZone)
+                    // ADR-0004 contract: endDate is inclusive; no dose strictly after effectiveEnd.
+                    val doseDate = instant.toLocalDateTime(timeZone).date
+                    if (doseDate > effectiveEnd) return results
+
                     if (instant >= fromInclusive && instant < toExclusive) {
                         results.add(
                             ScheduledDose(
@@ -150,12 +174,118 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
             }
         }
 
-        // --- 7. Global ordering guarantee (F5) -----------------------------------------------
-        // doseTimesLocal is enforced strictly-ascending within a day by SchedulePhase.init.
-        // Days advance monotonically. Phases are processed in phaseOrder. Therefore the
-        // results list is already globally ascending by `scheduledAt`. No re-sort needed.
-        // This is asserted-by-construction, not by a sort call — the test catches a regression
-        // if this invariant is ever broken.
+        // Global ordering is asserted-by-construction (ascending dates + times).
         return results
+    }
+
+    /**
+     * ELAPSED_INTERVAL path: fixed UTC intervals from the first dose.
+     *
+     * 1. Compute gaps between consecutive [SchedulePhase.doseTimesLocal] values.
+     * 2. Force a wrap-around gap so the sum of all gaps equals 24h (one full cycle).
+     * 3. First dose = [schedule.startDate] @ first local time, projected through [timeZone].
+     * 4. Every subsequent dose = previous dose + next gap in the cycle.
+     * 5. Phases are concatenated: phase N+1 starts immediately after phase N's last dose,
+     *    using phase N+1's own gap pattern.
+     *
+     * DST has no effect on the interval; it only affects the first-dose projection and any
+     * UI rendering that converts UTC back to local time.
+     *
+     * Unsupported combinations:
+     *  - `dayInterval != 1` is rejected because "skip days" and "fixed interval" are
+     *    contradictory concepts.
+     */
+    private fun computeElapsedIntervalDoses(
+        schedule: Schedule,
+        sorted: List<SchedulePhase>,
+        timeZone: TimeZone,
+        effectiveEnd: LocalDate,
+        fromInclusive: Instant,
+        toExclusive: Instant,
+    ): List<ScheduledDose> {
+        // Already-over fast path.
+        val effectiveEndExclusiveInstant =
+            effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+        if (effectiveEndExclusiveInstant <= fromInclusive) return emptyList()
+
+        val results = ArrayList<ScheduledDose>(64)
+        var lastInstant: Instant? = null
+
+        for (phase in sorted) {
+            if (phase.dayInterval != 1) {
+                throw MalformedScheduleException.ElapsedIntervalDayIntervalUnsupported(
+                    phaseId = phase.id,
+                    dayInterval = phase.dayInterval,
+                )
+            }
+
+            val gaps = computeGaps(phase.doseTimesLocal)
+            val totalDoses = phase.durationDays * phase.dosesPerDay
+
+            for (doseInPhase in 0 until totalDoses) {
+                val instant =
+                    when {
+                        lastInstant == null -> {
+                            // First dose of the entire schedule.
+                            LocalDateTime(schedule.startDate, phase.doseTimesLocal.first())
+                                .toInstant(timeZone)
+                        }
+                        doseInPhase == 0 -> {
+                            // First dose of a subsequent phase: continue from previous phase's
+                            // last dose using this phase's first gap.
+                            lastInstant + gaps[0]
+                        }
+                        else -> {
+                            // Subsequent dose in this phase: cycle through gaps.
+                            val gapIndex = (doseInPhase - 1) % gaps.size
+                            lastInstant + gaps[gapIndex]
+                        }
+                    }
+
+                val doseDate = instant.toLocalDateTime(timeZone).date
+                if (doseDate > effectiveEnd) return results
+
+                if (instant >= fromInclusive && instant < toExclusive) {
+                    results.add(
+                        ScheduledDose(
+                            scheduledAt = instant,
+                            phaseOrder = phase.phaseOrder,
+                            doseAmount = phase.doseAmount,
+                            doseUnit = phase.doseUnit,
+                        ),
+                    )
+                    if (results.size > MAX_EVENT_COUNT) {
+                        throw MalformedScheduleException.EventCountExceeded(
+                            attemptedCount = results.size.toLong(),
+                            maxCount = MAX_EVENT_COUNT,
+                        )
+                    }
+                }
+
+                lastInstant = instant
+            }
+        }
+
+        // Results are generated in chronological order by construction.
+        return results
+    }
+
+    /**
+     * Derive the elapsed-time gaps from a list of local wall-clock times.
+     *
+     * For `[t0, t1, t2]` the gaps are `[t1-t0, t2-t1, (24h-t2)+t0]`.
+     * The last gap wraps around midnight so that `sum(gaps) == 24h`.
+     */
+    private fun computeGaps(doseTimesLocal: List<LocalTime>): List<Duration> {
+        val gaps = mutableListOf<Duration>()
+        for (i in 0 until doseTimesLocal.size - 1) {
+            val seconds = doseTimesLocal[i + 1].toSecondOfDay() - doseTimesLocal[i].toSecondOfDay()
+            gaps += seconds.seconds
+        }
+        val firstSeconds = doseTimesLocal.first().toSecondOfDay()
+        val lastSeconds = doseTimesLocal.last().toSecondOfDay()
+        val wrapSeconds = (24 * 3600 - lastSeconds) + firstSeconds
+        gaps += wrapSeconds.seconds
+        return gaps
     }
 }

@@ -1,6 +1,7 @@
 package app.toebeans.core.data
 
 import app.cash.turbine.test
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.first
@@ -292,6 +293,25 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             )
         }
 
+    @Test
+    fun `upsert with ELAPSED_INTERVAL anchor mode round-trips through observeById`() =
+        runTest {
+            val sched =
+                schedule(
+                    id = "s-anchor",
+                    medicationId = "m1",
+                    anchorMode = AnchorMode.ELAPSED_INTERVAL,
+                )
+            repo.upsert(sched, listOf(phase("s-anchor", 0)))
+
+            val emitted = repo.observeById("s-anchor").first()
+            assertEquals(
+                AnchorMode.ELAPSED_INTERVAL,
+                emitted?.anchorMode,
+                "anchorMode must survive the DB round-trip; silent default to FOLLOW_PHONE is a data-loss bug",
+            )
+        }
+
     companion object {
         // Reference time anchored at 2026-05-19T00:00:00Z, matching PetRepositoryContract's pattern.
         // The createdAt value is not load-bearing for the contract; it just needs to be a valid
@@ -307,6 +327,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             medicationId: String,
             startDate: LocalDate = refStartDate,
             endDate: LocalDate? = null,
+            anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
         ): Schedule =
             Schedule(
                 id = id,
@@ -314,6 +335,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                 startDate = startDate,
                 endDate = endDate,
                 createdAt = refCreatedAt,
+                anchorMode = anchorMode,
             )
 
         private fun phase(

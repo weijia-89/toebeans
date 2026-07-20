@@ -105,6 +105,7 @@ class SqliteForeignKeysCallbackTest {
             start_date_iso = "2026-05-01",
             end_date_iso = "2026-06-30",
             created_at = 1_715_616_000_000L,
+            anchor_mode = "FOLLOW_PHONE",
             id = "sched-cascade",
         )
         assertEquals(
@@ -182,6 +183,7 @@ class SqliteForeignKeysCallbackTest {
             start_date_iso = "2026-05-01",
             end_date_iso = null,
             created_at = createdAt,
+            anchor_mode = "FOLLOW_PHONE",
         )
         database.scheduleQueries.upsertSchedulePhase(
             id = "phase-cascade",

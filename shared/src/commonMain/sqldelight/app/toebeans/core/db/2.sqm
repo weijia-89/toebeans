@@ -1,0 +1,13 @@
+-- Migration 2 → 3: Add anchor_mode column for ADR-0007 Anchor Mode & Timezone.
+--
+-- Existing schedules default to FOLLOW_PHONE (the v0.1 behavior) so the migration
+-- is backward-compatible and requires no data transformation.
+--
+-- Rollback (downgrade v3 → v2):
+--   SQLite >= 3.35.0 (Android 11+): ALTER TABLE Schedule DROP COLUMN anchor_mode;
+--   Older SQLite: table recreation required (CREATE new_table AS SELECT ... without
+--   anchor_mode, DROP old, RENAME new). FK CASCADE must be preserved.
+--   In practice, a code downgrade without schema downgrade is safe because v2 code
+--   simply ignores the extra column.
+
+ALTER TABLE Schedule ADD COLUMN anchor_mode TEXT NOT NULL DEFAULT 'FOLLOW_PHONE';

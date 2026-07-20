@@ -16,6 +16,7 @@ CREATE TABLE Schedule (
     start_date_iso TEXT NOT NULL,                            -- ISO-8601 yyyy-MM-dd, local-date semantics
     end_date_iso   TEXT,                                     -- nullable = "until I stop it"
     created_at    INTEGER NOT NULL,
+    anchor_mode   TEXT NOT NULL DEFAULT 'FOLLOW_PHONE',      -- per ADR-0007
     FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
 );
 
@@ -86,8 +87,8 @@ SELECT * FROM Schedule ORDER BY created_at DESC;
 
 -- Initial insert. [SqlDelightScheduleRepository.upsert] uses this for new schedule ids.
 insertSchedule:
-INSERT INTO Schedule(id, medication_id, start_date_iso, end_date_iso, created_at)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO Schedule(id, medication_id, start_date_iso, end_date_iso, created_at, anchor_mode)
+VALUES (?, ?, ?, ?, ?, ?);
 
 -- In-place update. INSERT OR REPLACE is forbidden: REPLACE deletes the schedule row
 -- first, which CASCADE-wipes DoseEvent children pinned to this schedule.
@@ -96,7 +97,8 @@ UPDATE Schedule
 SET medication_id = ?,
     start_date_iso = ?,
     end_date_iso = ?,
-    created_at = ?
+    created_at = ?,
+    anchor_mode = ?
 WHERE id = ?;
 
 -- Backs FakeScheduleRepository.delete(id). FK CASCADE removes the schedule's phases

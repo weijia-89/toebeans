@@ -118,6 +118,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             start_date_iso = "2026-05-01",
             end_date_iso = null,
             created_at = createdAt,
+            anchor_mode = "FOLLOW_PHONE",
         )
         database.doseEventQueries.insertDoseEvent(
             id = "evt-mismatch",
@@ -196,6 +197,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
             start_date_iso = "2026-05-01",
             end_date_iso = null,
             created_at = createdAt,
+            anchor_mode = "FOLLOW_PHONE",
         )
     }
 }
