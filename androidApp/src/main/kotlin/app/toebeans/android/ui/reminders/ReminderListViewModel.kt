@@ -97,6 +97,7 @@ public class ReminderListViewModel(
          * Home screen contract from Tier A #4. Debug builds throw; release builds log
          * and skip.
          */
+        @Suppress("LongParameterList")
         internal fun joinToUiState(
             pets: List<Pet>,
             meds: List<Medication>,
@@ -139,6 +140,7 @@ public class ReminderListViewModel(
             )
         }
 
+        @Suppress("LongParameterList")
         private fun scheduleRows(
             petById: Map<String, Pet>,
             medById: Map<String, Medication>,
