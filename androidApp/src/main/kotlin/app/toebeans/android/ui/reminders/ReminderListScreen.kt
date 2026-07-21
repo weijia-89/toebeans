@@ -5,15 +5,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
+import app.toebeans.core.scheduler.DstWarning
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -181,6 +186,10 @@ private fun ReminderRow(
                                 append(", ")
                                 append(it)
                             }
+                            row.dstWarning?.let {
+                                append(", ")
+                                append(it.warningText())
+                            }
                         }
                 },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -212,6 +221,29 @@ private fun ReminderRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            row.dstWarning?.let { warning ->
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = warning.warningText(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
         }
     }
 }
+
+private fun DstWarning.warningText(): String =
+    when (this) {
+        DstWarning.DST_SKIP -> "DST spring-forward: one dose shifted forward"
+        DstWarning.DST_DUPLICATE_RESOLVED -> "DST fall-back: duplicate dose resolved"
+    }
