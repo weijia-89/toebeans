@@ -277,6 +277,9 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
      * The last gap wraps around midnight so that `sum(gaps) == 24h`.
      */
     private fun computeGaps(doseTimesLocal: List<LocalTime>): List<Duration> {
+        require(doseTimesLocal.isNotEmpty()) {
+            "computeGaps requires at least one dose time; empty list is a programmer error"
+        }
         val gaps = mutableListOf<Duration>()
         for (i in 0 until doseTimesLocal.size - 1) {
             val seconds = doseTimesLocal[i + 1].toSecondOfDay() - doseTimesLocal[i].toSecondOfDay()
