@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
@@ -74,6 +75,10 @@ public class ScheduleCreateViewModel(
 
     public fun onEndDateChange(value: LocalDate?) {
         _state.update { it.copy(endDate = value, formError = null) }
+    }
+
+    public fun onAnchorModeChange(anchorMode: AnchorMode) {
+        _state.update { it.copy(anchorMode = anchorMode, formError = null) }
     }
 
     public fun addPhase() {
@@ -292,6 +297,7 @@ public class ScheduleCreateViewModel(
                 startDate = s.startDate!!,
                 endDate = s.endDate,
                 createdAt = Clock.System.now(),
+                anchorMode = s.anchorMode,
             )
         return schedule to phases
     }
@@ -410,6 +416,7 @@ public data class ScheduleCreateUiState(
     public val startDate: LocalDate?,
     public val endDate: LocalDate? = null,
     public val phases: List<PhaseDraft>,
+    public val anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
     public val startDateError: String? = null,
     /**
      * Form-level error surfaced by the calculator pre-flight in [ScheduleCreateViewModel.save].

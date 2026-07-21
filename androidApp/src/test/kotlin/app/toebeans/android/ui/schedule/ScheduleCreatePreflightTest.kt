@@ -4,6 +4,7 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
@@ -72,6 +73,65 @@ class ScheduleCreatePreflightTest {
     fun tearDown() {
         Dispatchers.resetMain()
     }
+
+    @Test
+    fun `default anchorMode is FOLLOW_PHONE`() =
+        runTest {
+            val vm =
+                scheduleCreateVm(
+                    medRepo = InMemMedRepo(MED),
+                    schedRepo = InMemSchedRepo(),
+                    calc = DefaultScheduleCalculator(),
+                )
+            assertEquals(AnchorMode.FOLLOW_PHONE, vm.state.value.anchorMode)
+        }
+
+    @Test
+    fun `ELAPSED_INTERVAL anchorMode persists through save`() =
+        runTest {
+            val medRepo = InMemMedRepo(MED)
+            val schedRepo = InMemSchedRepo()
+            val vm =
+                scheduleCreateVm(
+                    medRepo = medRepo,
+                    schedRepo = schedRepo,
+                    calc = DefaultScheduleCalculator(),
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 1))
+            vm.onAnchorModeChange(AnchorMode.ELAPSED_INTERVAL)
+
+            val id = vm.save()
+            assertNotNull(id)
+            val saved = schedRepo.snapshot()[id!!]
+            assertNotNull(saved)
+            assertEquals(AnchorMode.ELAPSED_INTERVAL, saved!!.anchorMode)
+        }
+
+    @Test
+    fun `field mutation after anchorMode change clears formError`() =
+        runTest {
+            val calc =
+                FakeCalculator(
+                    throws =
+                        MalformedScheduleException.EventCountExceeded(
+                            attemptedCount = 250_000L,
+                            maxCount = DefaultScheduleCalculator.MAX_EVENT_COUNT,
+                        ),
+                )
+            val vm =
+                scheduleCreateVm(
+                    medRepo = InMemMedRepo(MED),
+                    schedRepo = InMemSchedRepo(),
+                    calc = calc,
+                )
+            vm.setMedicationId(MED_ID)
+            vm.onStartDateChange(LocalDate(2026, 5, 1))
+            vm.save()
+            assertNotNull(vm.state.value.formError)
+            vm.onAnchorModeChange(AnchorMode.ELAPSED_INTERVAL)
+            assertNull("anchorMode change must clear formError", vm.state.value.formError)
+        }
 
     @Test
     fun `pre-flight EventCountExceeded surfaces a friendly message and skips upsert`() =

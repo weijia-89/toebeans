@@ -3,10 +3,16 @@ package app.toebeans.android.ui.schedule
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -35,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.DatePickerField
 import app.toebeans.android.ui.components.PillBackground
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.formatDose
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -185,6 +194,71 @@ public fun ScheduleCreateScreen(
                     onValueChange = viewModel::onEndDateChange,
                     allowClear = true,
                 )
+
+                Text("Scheduling mode", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text =
+                        "Most medications work fine with normal scheduling. " +
+                            "Time-sensitive medications (e.g. insulin, anti-seizure) need evenly spaced doses.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Column(Modifier.selectableGroup()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = state.anchorMode == AnchorMode.FOLLOW_PHONE,
+                                onClick = { viewModel.onAnchorModeChange(AnchorMode.FOLLOW_PHONE) },
+                            )
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = state.anchorMode == AnchorMode.FOLLOW_PHONE,
+                            onClick = null,
+                        )
+                        Spacer(Modifier.padding(horizontal = 8.dp))
+                        Column {
+                            Text(
+                                text = "Normal scheduling",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                text = "Dose times follow your phone's clock (default for most meds)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = state.anchorMode == AnchorMode.ELAPSED_INTERVAL,
+                                onClick = { viewModel.onAnchorModeChange(AnchorMode.ELAPSED_INTERVAL) },
+                            )
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = state.anchorMode == AnchorMode.ELAPSED_INTERVAL,
+                            onClick = null,
+                        )
+                        Spacer(Modifier.padding(horizontal = 8.dp))
+                        Column {
+                            Text(
+                                text = "Time-sensitive: keep interval constant",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                text = "For insulin, anti-seizure, and other narrow-therapeutic-window drugs",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
 
                 Text("Phases", style = MaterialTheme.typography.titleMedium)
                 Text(
