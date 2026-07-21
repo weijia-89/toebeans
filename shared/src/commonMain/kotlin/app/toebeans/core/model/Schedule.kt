@@ -20,6 +20,7 @@ public data class Schedule(
     val startDate: LocalDate,
     val endDate: LocalDate?,
     val createdAt: Instant,
+    val anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
 ) {
     init {
         require(id.isNotBlank()) { "Schedule.id must not be blank" }

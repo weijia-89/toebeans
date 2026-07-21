@@ -144,6 +144,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             start_date_iso = "2026-05-01",
             end_date_iso = null,
             created_at = createdAt,
+            anchor_mode = "FOLLOW_PHONE",
         )
     }
 

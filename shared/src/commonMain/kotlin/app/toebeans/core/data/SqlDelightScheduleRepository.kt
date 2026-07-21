@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import app.toebeans.core.db.ToebeansDatabase
+import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.model.parseDoseUnitOrDefault
@@ -128,6 +129,7 @@ public class SqlDelightScheduleRepository(
                         start_date_iso = schedule.startDate.toString(),
                         end_date_iso = schedule.endDate?.toString(),
                         created_at = schedule.createdAt.toEpochMilliseconds(),
+                        anchor_mode = schedule.anchorMode.name,
                     )
                 } else {
                     queries.updateSchedule(
@@ -135,6 +137,7 @@ public class SqlDelightScheduleRepository(
                         start_date_iso = schedule.startDate.toString(),
                         end_date_iso = schedule.endDate?.toString(),
                         created_at = schedule.createdAt.toEpochMilliseconds(),
+                        anchor_mode = schedule.anchorMode.name,
                         id = schedule.id,
                     )
                 }
@@ -190,6 +193,14 @@ internal fun ScheduleRow.toDomain(): Schedule =
         startDate = LocalDate.parse(start_date_iso),
         endDate = end_date_iso?.let(LocalDate::parse),
         createdAt = Instant.fromEpochMilliseconds(created_at),
+        anchorMode =
+            try {
+                AnchorMode.valueOf(anchor_mode)
+            } catch (_: IllegalArgumentException) {
+                // Corrupt/unknown anchor_mode in DB — default to FOLLOW_PHONE to avoid crashing
+                // the app on launch. A data-integrity alarm can be raised upstream if needed.
+                AnchorMode.FOLLOW_PHONE
+            },
     )
 
 internal fun SchedulePhaseRow.toDomain(): SchedulePhase =

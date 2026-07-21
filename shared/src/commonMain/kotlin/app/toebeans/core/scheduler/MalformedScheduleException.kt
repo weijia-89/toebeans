@@ -101,4 +101,15 @@ public sealed class MalformedScheduleException(
     ) : MalformedScheduleException(
             "would allocate $attemptedCount events; max is $maxCount (ADR-0008 perf-class cap)",
         )
+
+    /**
+     * ELAPSED_INTERVAL anchor mode requires `dayInterval == 1`. A `dayInterval > 1` means
+     * "skip days", which is semantically incompatible with fixed UTC intervals.
+     */
+    public class ElapsedIntervalDayIntervalUnsupported(
+        public val phaseId: String,
+        public val dayInterval: Int,
+    ) : MalformedScheduleException(
+            "ELAPSED_INTERVAL requires dayInterval=1; phase $phaseId has dayInterval=$dayInterval",
+        )
 }
