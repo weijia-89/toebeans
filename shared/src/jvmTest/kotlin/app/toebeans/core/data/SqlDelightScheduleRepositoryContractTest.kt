@@ -146,6 +146,57 @@ class SqlDelightScheduleRepositoryContractTest : ScheduleRepositoryContract() {
             )
         }
 
+    @Test
+    fun `corrupt anchor_mode defaults to FOLLOW_PHONE on read`() =
+        runTest {
+            val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+            ToebeansDatabase.Schema.create(freshDriver)
+            freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
+            val localDb = ToebeansDatabase(freshDriver)
+            val createdAtMs = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
+            localDb.petQueries.insertPet(
+                id = "p-corrupt",
+                name = "Corrupt Pet",
+                species = "dog",
+                birthdate_iso = null,
+                weight_kg = 1.0,
+                notes = null,
+                created_at = createdAtMs,
+                archived_at = null,
+            )
+            localDb.medicationQueries.insertMedication(
+                id = "m-corrupt",
+                pet_id = "p-corrupt",
+                name = "Corrupt Med",
+                dose_amount = "1mg",
+                dose_unit = "MG",
+                notes = null,
+                created_at = createdAtMs,
+                discontinued_at = null,
+            )
+            // Insert raw row with an invalid anchor_mode value.
+            localDb.scheduleQueries.insertSchedule(
+                id = "sched-corrupt",
+                medication_id = "m-corrupt",
+                start_date_iso = "2026-05-01",
+                end_date_iso = null,
+                created_at = createdAtMs,
+                anchor_mode = "CORRUPT_VALUE",
+            )
+            val repo =
+                SqlDelightScheduleRepository(
+                    database = localDb,
+                    dispatcher = Dispatchers.Unconfined,
+                )
+
+            val observed = repo.observeById("sched-corrupt").first()
+            assertEquals(
+                app.toebeans.core.model.AnchorMode.FOLLOW_PHONE,
+                observed?.anchorMode,
+                "corrupt anchor_mode in DB must default to FOLLOW_PHONE to avoid crashing the app",
+            )
+        }
+
     private fun seedParentMedication() {
         val refCreatedAt = Instant.parse("2026-05-19T00:00:00Z")
         database.petQueries.insertPet(

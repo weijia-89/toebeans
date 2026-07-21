@@ -119,6 +119,46 @@ class BackupSerializerTest {
         )
     }
 
+    @Test
+    fun `ELAPSED_INTERVAL anchorMode survives encode-decode round-trip`() {
+        val now = Instant.parse("2026-05-15T12:00:00Z")
+        val schedule =
+            Schedule(
+                id = "sched-elapsed",
+                medicationId = "med-1",
+                startDate = LocalDate(2026, 6, 1),
+                endDate = null,
+                createdAt = now,
+                anchorMode = app.toebeans.core.model.AnchorMode.ELAPSED_INTERVAL,
+            )
+        val export =
+            BackupExport(
+                schemaVersion = BackupExport.CURRENT_SCHEMA_VERSION,
+                exportedAt = now,
+                appVersion = "0.1.0",
+                pets = emptyList(),
+                medications = emptyList(),
+                schedules = listOf(schedule),
+                schedulePhases = emptyList(),
+                doseEvents = emptyList(),
+            )
+
+        val json = serializer.encodeToString(export)
+        val parsed = serializer.decodeFromString(json)
+
+        assertEquals(
+            app.toebeans.core.model.AnchorMode.ELAPSED_INTERVAL,
+            parsed.schedules.single().anchorMode,
+            "anchorMode must survive round-trip",
+        )
+    }
+
+    @Test
+    fun `current export has schemaVersion 3`() {
+        val export = sampleExport()
+        assertEquals(3, export.schemaVersion, "schemaVersion must be 3 after ADR-0007 anchorMode addition")
+    }
+
     // ----- fixtures -----
 
     private fun sampleExport(): BackupExport {

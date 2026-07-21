@@ -47,6 +47,50 @@ class BackupImporterTest {
     private val now = Instant.parse("2026-05-17T12:00:00Z")
 
     @Test
+    fun `import of v2 backup without anchorMode defaults to FOLLOW_PHONE`() =
+        runTest {
+            val petRepo = ImporterPetRepo()
+            val medRepo = ImporterMedRepo()
+            val scheduleRepo = ImporterScheduleRepo()
+            val doseEventRepo = ImporterDoseEventRepo()
+
+            // Raw v2 JSON: schemaVersion=2, Schedule has no anchorMode field.
+            val v2Json =
+                """
+                {
+                  "schemaVersion": 2,
+                  "exportedAt": "2026-05-15T12:00:00Z",
+                  "appVersion": "0.1.0",
+                  "pets": [],
+                  "medications": [],
+                  "schedules": [
+                    {
+                      "id": "sched-v2",
+                      "medicationId": "med-v2",
+                      "startDate": "2026-06-01",
+                      "endDate": null,
+                      "createdAt": "2026-05-15T12:00:00Z"
+                    }
+                  ],
+                  "schedulePhases": [],
+                  "doseEvents": []
+                }
+                """.trimIndent()
+
+            val parsed = BackupSerializer().decodeFromString(v2Json)
+            val importer = BackupImporter(petRepo, medRepo, scheduleRepo, doseEventRepo)
+            val summary = importer.import(parsed)
+
+            assertEquals(1, summary.schedulesAdded)
+            val imported = scheduleRepo.observeAll().first().single()
+            assertEquals(
+                app.toebeans.core.model.AnchorMode.FOLLOW_PHONE,
+                imported.anchorMode,
+                "v2 backup missing anchorMode must default to FOLLOW_PHONE on import",
+            )
+        }
+
+    @Test
     fun `import into empty repositories inserts everything`() =
         runTest {
             val petRepo = ImporterPetRepo()

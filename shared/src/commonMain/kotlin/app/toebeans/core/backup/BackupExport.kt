@@ -49,7 +49,11 @@ public data class BackupExport(
     }
 
     public companion object {
-        /** Current wire format version. Bump when fields change. */
-        public const val CURRENT_SCHEMA_VERSION: Int = 2
+        /** Current wire format version. Bump when fields change.
+         *  v1 = initial
+         *  v2 = doseUnit on Medication + SchedulePhase
+         *  v3 = Schedule.anchorMode per ADR-0007
+         */
+        public const val CURRENT_SCHEMA_VERSION: Int = 3
     }
 }
