@@ -377,5 +377,7 @@ class SchedulePhaseDstRulesTest {
 }
 
 // Small extension to keep test setup readable.
-private fun LocalDate.atTime(hour: Int, minute: Int): LocalDateTime =
-    LocalDateTime(year, month, dayOfMonth, hour, minute)
+private fun LocalDate.atTime(
+    hour: Int,
+    minute: Int,
+): LocalDateTime = LocalDateTime(year, month, dayOfMonth, hour, minute)
