@@ -234,5 +234,9 @@ export ANDROID_HOME=/opt/android-sdk
 ./gradlew :androidApp:testDebugUnitTest             # Robolectric Android tests
 ./gradlew :androidApp:assembleDebug                 # Build debug APK
 ./gradlew detekt                                    # Lint (detekt only in cloud)
+./gradlew :shared:koverHtmlReport --console=plain   # Coverage report (open shared/build/reports/kover/html/index.html)
+./gradlew :shared:koverVerify --console=plain       # Coverage threshold gate (scheduler + backup ≥ 85%)
+bash scripts/verify_before_push.sh                  # Deterministic pre-push verify (lint + tests + fitness functions)
+bash scripts/verify_before_push.sh --fast           # Lint + fitness functions only (skip tests)
 bash scripts/test_no_network.sh .                   # Fitness functions (no Gradle needed)
 ```
