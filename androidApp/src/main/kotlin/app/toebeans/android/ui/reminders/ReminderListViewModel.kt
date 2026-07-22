@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -217,6 +216,7 @@ public class ReminderListViewModel(
                 null
             }
         }
+
         private fun unscheduledMedRows(
             petById: Map<String, Pet>,
             meds: List<Medication>,

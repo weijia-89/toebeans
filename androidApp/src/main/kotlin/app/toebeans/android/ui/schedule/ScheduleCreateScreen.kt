@@ -3,12 +3,10 @@ package app.toebeans.android.ui.schedule
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -210,8 +208,7 @@ public fun ScheduleCreateScreen(
                             .selectable(
                                 selected = state.anchorMode == AnchorMode.FOLLOW_PHONE,
                                 onClick = { viewModel.onAnchorModeChange(AnchorMode.FOLLOW_PHONE) },
-                            )
-                            .padding(vertical = 8.dp),
+                            ).padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
@@ -237,8 +234,7 @@ public fun ScheduleCreateScreen(
                             .selectable(
                                 selected = state.anchorMode == AnchorMode.ELAPSED_INTERVAL,
                                 onClick = { viewModel.onAnchorModeChange(AnchorMode.ELAPSED_INTERVAL) },
-                            )
-                            .padding(vertical = 8.dp),
+                            ).padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
