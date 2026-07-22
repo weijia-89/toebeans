@@ -40,14 +40,14 @@ import kotlin.time.Duration.Companion.seconds
  *   - ADR-0004 § Test-as-spec review (D1 endDate-inclusive, D2 midnight anchor, D3 throws,
  *     D4 empty-phases empty-result, D5 not-yet-started empty-result, D6 caller-supplied TZ,
  *     D7 name, F5 global sort).
- *   - ADR-0007 v0.1 TZ behavior (FOLLOW_PHONE; DST handling deferred to a follow-up).
+ *   - ADR-0007 v0.1 TZ behavior (FOLLOW_PHONE; DST warnings implemented, non-1-hour
+ *     zone detection deferred to a follow-up).
  *   - ADR-0007 ELAPSED_INTERVAL anchor mode: doses spaced by gaps derived from
  *     [SchedulePhase.doseTimesLocal] with wrap-to-24h semantics.
  *   - ADR-0008 mechanical bounds: window ≤ 30 days, event count ≤ 100,000.
  *
  * Not yet honored (deferred):
  *   - ADR-0007 anchor mode `STAY_HOME_TZ` — caller-side policy, no calculator change.
- *   - DST detection (`DST_SKIP` / `DST_DUPLICATE_RESOLVED`) — milestone 1.5.
  *   - Pre-call event-count estimation (currently checked post-allocation) — milestone 2.
  */
 public class DefaultScheduleCalculator : ScheduleCalculator {

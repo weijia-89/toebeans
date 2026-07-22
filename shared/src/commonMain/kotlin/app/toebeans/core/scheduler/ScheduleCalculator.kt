@@ -22,8 +22,10 @@ import kotlinx.datetime.TimeZone
  *    calendar day. The "two phases on the same calendar date" case from earlier drafts is
  *    impossible by construction.
  *  - **DST.** Times are computed in local wall-clock per [timeZone]; a 23h or 25h day may
- *    therefore have the usual number of doses, just shifted in UTC instants. DST edge-case
- *    test coverage is deferred — tracked by ADR-0007.
+ *    therefore have the usual number of doses, just shifted in UTC instants. DST warning
+ *    detection (`DST_SKIP`, `DST_DUPLICATE_RESOLVED`) is implemented for standard 1-hour
+ *    shifts; non-1-hour zones are a documented v1 limitation. Coverage:
+ *    [SchedulePhaseDstRulesTest].
  *  - **End-date semantics — INCLUSIVE.** If [Schedule.endDate] is non-null, doses ARE produced
  *    on `endDate` itself. No dose with a calendar date strictly after `endDate` is produced.
  *    This convention is intentionally asymmetric with the [toExclusive] window param:
