@@ -10,14 +10,22 @@ import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.SchedulePhase
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
+import app.toebeans.core.scheduler.DstWarning
+import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
+import kotlin.time.Duration.Companion.days
 
 /**
  * ViewModel for the Reminders bottom-nav tab.
@@ -52,6 +60,7 @@ public class ReminderListViewModel(
     petRepository: PetRepository,
     medicationRepository: MedicationRepository,
     scheduleRepository: ScheduleRepository,
+    private val scheduleCalculator: ScheduleCalculator = DefaultScheduleCalculator(),
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
@@ -87,17 +96,27 @@ public class ReminderListViewModel(
          * Home screen contract from Tier A #4. Debug builds throw; release builds log
          * and skip.
          */
+        @Suppress("LongParameterList")
         internal fun joinToUiState(
             pets: List<Pet>,
             meds: List<Medication>,
             schedules: List<ScheduleWithPhases>,
             today: LocalDate,
+            scheduleCalculator: ScheduleCalculator = DefaultScheduleCalculator(),
+            timeZone: TimeZone = TimeZone.currentSystemDefault(),
         ): ReminderListUiState {
             val petById = pets.associateBy { it.id }
             val medById = meds.associateBy { it.id }
             val scheduledMedIds = schedules.map { it.schedule.medicationId }.toSet()
             val rows =
-                scheduleRows(petById, medById, schedules, today) +
+                scheduleRows(
+                    petById,
+                    medById,
+                    schedules,
+                    today,
+                    scheduleCalculator,
+                    timeZone,
+                ) +
                     unscheduledMedRows(petById, meds, scheduledMedIds)
             // Group by pet name, then medication name. Stable sort preserves
             // schedule-id order within (pet, med) tuples — useful when one medication
@@ -120,11 +139,14 @@ public class ReminderListViewModel(
             )
         }
 
+        @Suppress("LongParameterList")
         private fun scheduleRows(
             petById: Map<String, Pet>,
             medById: Map<String, Medication>,
             schedules: List<ScheduleWithPhases>,
             today: LocalDate,
+            scheduleCalculator: ScheduleCalculator,
+            timeZone: TimeZone,
         ): List<ReminderRowUi> =
             schedules.mapNotNull { swp ->
                 val med =
@@ -143,6 +165,13 @@ public class ReminderListViewModel(
                             missingFieldName = "petId",
                             missingValue = med.petId,
                         )
+                val dstWarning =
+                    computeDstWarningForSchedule(
+                        swp,
+                        scheduleCalculator,
+                        timeZone,
+                        today,
+                    )
                 ReminderRowUi(
                     scheduleId = swp.schedule.id,
                     petId = pet.id,
@@ -151,14 +180,43 @@ public class ReminderListViewModel(
                     medicationName = med.name,
                     phaseSummary = summarizePhases(swp.phases),
                     endsLabel = endsLabel(swp.schedule.endDate, today),
-                    needsSchedule = false,
+                    dstWarning = dstWarning,
                 )
             }
 
         /**
-         * Placeholder rows for active medications with no schedule. Without these, saving
-         * a new med looks like a no-op because [joinToUiState] only joined schedule rows.
+         * Compute the most severe DST warning for a schedule by materializing a 7-day
+         * window around today and checking if any dose carries a warning.
+         *
+         * ELAPSED_INTERVAL schedules never produce warnings. The calculation is lightweight:
+         * a typical schedule yields < 50 doses in a 7-day window.
          */
+        private fun computeDstWarningForSchedule(
+            swp: ScheduleWithPhases,
+            scheduleCalculator: ScheduleCalculator,
+            timeZone: TimeZone,
+            today: LocalDate,
+        ): DstWarning? {
+            if (swp.schedule.anchorMode == app.toebeans.core.model.AnchorMode.ELAPSED_INTERVAL) {
+                return null
+            }
+            val from = LocalDateTime(today, LocalTime(0, 0)).toInstant(timeZone)
+            val to = from.plus(7.days)
+            return try {
+                val doses =
+                    scheduleCalculator.computeScheduledDoses(
+                        schedule = swp.schedule,
+                        phases = swp.phases,
+                        timeZone = timeZone,
+                        fromInclusive = from,
+                        toExclusive = to,
+                    )
+                doses.firstNotNullOfOrNull { it.dstWarning }
+            } catch (_: app.toebeans.core.scheduler.MalformedScheduleException) {
+                null
+            }
+        }
+
         private fun unscheduledMedRows(
             petById: Map<String, Pet>,
             meds: List<Medication>,
@@ -286,6 +344,8 @@ public data class ReminderRowUi(
     public val medicationName: String,
     public val phaseSummary: String,
     public val endsLabel: String?,
+    /** DST warning for upcoming doses in this schedule (next 7 days). Null = no warning. */
+    public val dstWarning: DstWarning? = null,
     /** True for medications saved without an active schedule row. */
     public val needsSchedule: Boolean = false,
 ) {

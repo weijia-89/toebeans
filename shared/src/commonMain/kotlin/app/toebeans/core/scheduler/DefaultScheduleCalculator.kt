@@ -15,6 +15,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -39,14 +40,14 @@ import kotlin.time.Duration.Companion.seconds
  *   - ADR-0004 § Test-as-spec review (D1 endDate-inclusive, D2 midnight anchor, D3 throws,
  *     D4 empty-phases empty-result, D5 not-yet-started empty-result, D6 caller-supplied TZ,
  *     D7 name, F5 global sort).
- *   - ADR-0007 v0.1 TZ behavior (FOLLOW_PHONE; DST handling deferred to a follow-up).
+ *   - ADR-0007 v0.1 TZ behavior (FOLLOW_PHONE; DST warnings implemented, non-1-hour
+ *     zone detection deferred to a follow-up).
  *   - ADR-0007 ELAPSED_INTERVAL anchor mode: doses spaced by gaps derived from
  *     [SchedulePhase.doseTimesLocal] with wrap-to-24h semantics.
  *   - ADR-0008 mechanical bounds: window ≤ 30 days, event count ≤ 100,000.
  *
  * Not yet honored (deferred):
  *   - ADR-0007 anchor mode `STAY_HOME_TZ` — caller-side policy, no calculator change.
- *   - DST detection (`DST_SKIP` / `DST_DUPLICATE_RESOLVED`) — milestone 1.5.
  *   - Pre-call event-count estimation (currently checked post-allocation) — milestone 2.
  */
 public class DefaultScheduleCalculator : ScheduleCalculator {
@@ -148,12 +149,14 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
                     if (doseDate > effectiveEnd) return results
 
                     if (instant >= fromInclusive && instant < toExclusive) {
+                        val dstWarning = computeDstWarning(ldt, instant, timeZone)
                         results.add(
                             ScheduledDose(
                                 scheduledAt = instant,
                                 phaseOrder = phase.phaseOrder,
                                 doseAmount = phase.doseAmount,
                                 doseUnit = phase.doseUnit,
+                                dstWarning = dstWarning,
                             ),
                         )
                         if (results.size > MAX_EVENT_COUNT) {
@@ -290,5 +293,38 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         val wrapSeconds = (24 * 3600 - lastSeconds) + firstSeconds
         gaps += wrapSeconds.seconds
         return gaps
+    }
+
+    /**
+     * Detect DST transition warnings for a single dose in wall-clock mode.
+     *
+     * Algorithm (linear-time per dose, negligible overhead):
+     *   1. Round-trip the instant back to local time.
+     *      If the local time changed, the original was in a spring-forward gap
+     *      → [DstWarning.DST_SKIP].
+     *   2. Otherwise, check if the same local time exists 1 hour later in UTC.
+     *      If yes, the original was in a fall-back overlap
+     *      → [DstWarning.DST_DUPLICATE_RESOLVED].
+     *   3. Otherwise → no warning.
+     *
+     * The "1 hour later" heuristic covers all standard 1-hour DST shifts.
+     * Timezones with non-1-hour shifts (e.g. Lord Howe Island, 30 min) may not
+     * be detected; this is documented and acceptable for v1.
+     */
+    private fun computeDstWarning(
+        ldt: LocalDateTime,
+        instant: Instant,
+        timeZone: TimeZone,
+    ): DstWarning? {
+        val roundTripped = instant.toLocalDateTime(timeZone)
+        if (roundTripped.time != ldt.time) {
+            // Spring-forward gap: the local wall-clock time does not exist.
+            return DstWarning.DST_SKIP
+        }
+        // Fall-back overlap check: does the same local time exist 1h later in UTC?
+        if ((instant + 1.hours).toLocalDateTime(timeZone).time == ldt.time) {
+            return DstWarning.DST_DUPLICATE_RESOLVED
+        }
+        return null
     }
 }

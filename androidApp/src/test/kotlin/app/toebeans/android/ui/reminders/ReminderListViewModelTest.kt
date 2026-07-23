@@ -301,6 +301,94 @@ class ReminderListViewModelTest {
         assertTrue(ex.message?.contains("s-1") == true)
         assertTrue(ex.message?.contains("p-ghost") == true)
     }
+
+    @Test
+    fun `DST spring-forward gap dose produces DST_SKIP warning on row`() {
+        val p = pet(id = "p-luna", name = "Luna")
+        val m = med(id = "m-methimazole", petId = "p-luna", name = "Methimazole")
+        val s =
+            Schedule(
+                id = "s-dst",
+                medicationId = "m-methimazole",
+                startDate = LocalDate(2026, 3, 8), // spring-forward Sunday
+                endDate = null,
+                createdAt = seedCreatedAt,
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-dst",
+                scheduleId = "s-dst",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(2, 30)), // inside the gap
+                doseAmount = null,
+                doseUnit = DoseUnit.MG,
+            )
+        val swp = ScheduleWithPhases(s, listOf(phase))
+        val pt = kotlinx.datetime.TimeZone.of("America/Los_Angeles")
+
+        val state =
+            ReminderListViewModel.joinToUiState(
+                listOf(p),
+                listOf(m),
+                listOf(swp),
+                today = LocalDate(2026, 3, 8),
+                timeZone = pt,
+            )
+
+        assertEquals(1, state.rows.size)
+        val row = state.rows.single()
+        assertEquals(
+            "dose at 02:30 on spring-forward day must carry DST_SKIP",
+            app.toebeans.core.scheduler.DstWarning.DST_SKIP,
+            row.dstWarning,
+        )
+    }
+
+    @Test
+    fun `ELAPSED_INTERVAL schedule produces no DST warning`() {
+        val p = pet(id = "p-luna", name = "Luna")
+        val m = med(id = "m-methimazole", petId = "p-luna", name = "Methimazole")
+        val s =
+            Schedule(
+                id = "s-elapsed",
+                medicationId = "m-methimazole",
+                startDate = LocalDate(2026, 3, 8),
+                endDate = null,
+                createdAt = seedCreatedAt,
+                anchorMode = app.toebeans.core.model.AnchorMode.ELAPSED_INTERVAL,
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-elapsed",
+                scheduleId = "s-elapsed",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(2, 30)),
+                doseAmount = null,
+                doseUnit = DoseUnit.MG,
+            )
+        val swp = ScheduleWithPhases(s, listOf(phase))
+        val pt = kotlinx.datetime.TimeZone.of("America/Los_Angeles")
+
+        val state =
+            ReminderListViewModel.joinToUiState(
+                listOf(p),
+                listOf(m),
+                listOf(swp),
+                today = LocalDate(2026, 3, 8),
+                timeZone = pt,
+            )
+
+        assertEquals(1, state.rows.size)
+        val row = state.rows.single()
+        assertNull(
+            "ELAPSED_INTERVAL must not produce DST warnings",
+            row.dstWarning,
+        )
+    }
 }
 
 private fun LocalDate.plus(days: Int): LocalDate = LocalDate.fromEpochDays(this.toEpochDays() + days)
