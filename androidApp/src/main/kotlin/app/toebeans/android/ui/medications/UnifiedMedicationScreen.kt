@@ -31,7 +31,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -223,6 +222,7 @@ public fun UnifiedMedicationScreen(
                                 label = "End date (optional)",
                                 value = state.endDate,
                                 onValueChange = viewModel::onEndDateChange,
+                                supportingText = state.endDateError,
                                 allowClear = true,
                             )
                             Text(
@@ -292,21 +292,20 @@ public fun UnifiedMedicationScreen(
                     )
 
                     state.phases.forEachIndexed { idx, draft ->
-                        key(idx) {
-                            PhaseEditorCard(
-                                index = idx,
-                                draft = draft,
-                                isOnlyPhase = state.phases.size == 1,
-                                onChange = { updated -> viewModel.updatePhase(idx) { updated } },
-                                onRemove = { viewModel.removePhase(idx) },
-                                onAffirmNightDose = { viewModel.affirmNightDose(idx) },
-                                onDismissMidnightStraddle = { viewModel.dismissMidnightStraddle(idx) },
-                            )
-                        }
+                        PhaseEditorCard(
+                            index = idx,
+                            draft = draft,
+                            isOnlyPhase = state.phases.size == 1,
+                            onChange = { updated -> viewModel.updatePhase(idx) { updated } },
+                            onRemove = { viewModel.removePhase(idx) },
+                            onAffirmNightDose = { viewModel.affirmNightDose(idx) },
+                            onDismissMidnightStraddle = { viewModel.dismissMidnightStraddle(idx) },
+                        )
                     }
 
                     OutlinedButton(
                         onClick = viewModel::addPhase,
+                        enabled = state.phases.size < UnifiedMedicationViewModel.MAX_PHASES,
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)

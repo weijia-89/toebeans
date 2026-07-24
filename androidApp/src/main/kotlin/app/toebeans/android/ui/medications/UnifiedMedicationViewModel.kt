@@ -48,6 +48,7 @@ public data class UnifiedMedicationUiState(
     public val endDate: LocalDate? = null,
     public val anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
     public val startDateError: String? = null,
+    public val endDateError: String? = null,
     public val phases: List<PhaseDraft> = listOf(blankPhaseDraft()),
     public val isSaving: Boolean = false,
     public val formError: String? = null,
@@ -64,6 +65,15 @@ public class UnifiedMedicationViewModel(
     public val medicationNameIndex: MedicationNameIndexRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
+    public companion object {
+        /**
+         * Maximum number of phases in a single schedule. Ten is generous for any realistic
+         * pet-medication taper (most have 1-3 phases) and keeps recomposition and validation
+         * bounded.
+         */
+        public const val MAX_PHASES: Int = 10
+    }
+
     private val _state = MutableStateFlow(UnifiedMedicationUiState())
     public val state: StateFlow<UnifiedMedicationUiState> = _state.asStateFlow()
 
@@ -88,11 +98,11 @@ public class UnifiedMedicationViewModel(
     }
 
     public fun onStartDateChange(value: LocalDate?) {
-        _state.update { it.copy(startDate = value, startDateError = null, formError = null) }
+        _state.update { it.copy(startDate = value, startDateError = null, endDateError = null, formError = null) }
     }
 
     public fun onEndDateChange(value: LocalDate?) {
-        _state.update { it.copy(endDate = value, formError = null) }
+        _state.update { it.copy(endDate = value, endDateError = null, formError = null) }
     }
 
     public fun onAnchorModeChange(anchorMode: AnchorMode) {
@@ -184,13 +194,19 @@ public class UnifiedMedicationViewModel(
     private fun LocalTime.isInNightWindow(): Boolean = this.hour < 6
 
     public suspend fun save(): String? {
-        val s = _state.value
-        if (s.isSaving) return null
-        val petId = s.petId ?: return null
+        val petId = _state.value.petId ?: return null
 
-        _state.update { it.copy(isSaving = true) }
+        // Atomic check-and-set for isSaving to prevent double-submit races.
+        while (true) {
+            val current = _state.value
+            if (current.isSaving) return null
+            if (_state.compareAndSet(current, current.copy(isSaving = true))) {
+                break
+            }
+        }
 
         try {
+            val s = _state.value
             if (!validateMedicationFields(s)) return null
             if (!validatePhases(s.phases)) return null
 
@@ -247,10 +263,18 @@ public class UnifiedMedicationViewModel(
             _state.update { it.copy(startDateError = "Required") }
             valid = false
         }
+        if (s.endDate != null && s.startDate != null && s.endDate < s.startDate) {
+            _state.update { it.copy(endDateError = "End date must be on or after start date") }
+            valid = false
+        }
         return valid
     }
 
     private fun validatePhases(phases: List<PhaseDraft>): Boolean {
+        if (phases.size > MAX_PHASES) {
+            _state.update { it.copy(formError = "Maximum $MAX_PHASES phases allowed") }
+            return false
+        }
         val phasesWithErrors = phases.mapIndexed { idx, draft -> validatePhase(draft, idx) }
         if (phasesWithErrors.any { it.second != null }) {
             _state.update {
@@ -269,22 +293,25 @@ public class UnifiedMedicationViewModel(
     private fun buildMedication(
         s: UnifiedMedicationUiState,
         petId: String,
-    ): Medication =
-        Medication(
+    ): Medication {
+        val doseUnit = checkNotNull(s.doseUnit) { "doseUnit must not be null after validation" }
+        return Medication(
             id = "med-${Uuid.random()}",
             petId = petId,
             name = s.name.trim(),
             doseAmount = s.doseAmount.trim(),
-            doseUnit = s.doseUnit!!,
+            doseUnit = doseUnit,
             notes = s.notes.trim().ifEmpty { null },
             createdAt = Clock.System.now(),
             discontinuedAt = null,
         )
+    }
 
     private fun newSchedulePayload(
         s: UnifiedMedicationUiState,
         medId: String,
     ): Pair<Schedule, List<SchedulePhase>> {
+        val startDate = checkNotNull(s.startDate) { "startDate must not be null after validation" }
         val scheduleId = "sched-${Uuid.random()}"
         val phases =
             s.phases.mapIndexed { idx, draft ->
@@ -304,7 +331,7 @@ public class UnifiedMedicationViewModel(
             Schedule(
                 id = scheduleId,
                 medicationId = medId,
-                startDate = s.startDate!!,
+                startDate = startDate,
                 endDate = s.endDate,
                 createdAt = Clock.System.now(),
                 anchorMode = s.anchorMode,
@@ -353,7 +380,8 @@ public class UnifiedMedicationViewModel(
             )
             null
         } catch (e: MalformedScheduleException.EventCountExceeded) {
-            "This schedule would generate ${e.attemptedCount} doses in 30 days — more than " +
+            "This schedule would generate ${e.attemptedCount} doses in " +
+                "${DefaultScheduleCalculator.MAX_WINDOW_DAYS} days — more than " +
                 "the safe limit (${e.maxCount}). Reduce the number of phases, doses per day, " +
                 "or stretch the skip-day interval."
         } catch (e: MalformedScheduleException.DuplicatePhaseOrder) {
