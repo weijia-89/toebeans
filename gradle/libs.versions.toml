@@ -60,7 +60,7 @@ androidx-uiautomator = "2.3.0"
 # 1.84 released 2025-05-XX by org.bouncycastle (canonical maintainer, verified via
 # ADR-0018 references). First-seen for the jdk18on artifact line: 2021-04-22 (>30 days
 # per AGENTS.md § Hallucination vigilance).
-bouncycastle = "1.84"
+bouncycastle = "1.85"
 
 [libraries]
 # kotlinx
