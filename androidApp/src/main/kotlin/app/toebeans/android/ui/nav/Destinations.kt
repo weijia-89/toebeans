@@ -23,7 +23,6 @@ public object Destinations {
     public const val MEDICATION_NEW_ROUTE: String = "pets/detail/{petId}/medications/new"
     public const val MEDICATION_EDIT_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/edit"
     public const val SCHEDULE_CREATE_ROUTE: String = "pets/detail/{petId}/medications/{medicationId}/schedule/new"
-    public const val UNIFIED_MEDICATION_ROUTE: String = "pets/detail/{petId}/medications/unified"
 
     // Schedule Detail is reached from the Reminders tab (top-level surface). Using a
     // flat top-level route keeps the URL short and avoids forcing the Reminder List to
@@ -46,8 +45,6 @@ public object Destinations {
         petId: String,
         medicationId: String,
     ): String = "pets/detail/$petId/medications/$medicationId/schedule/new"
-
-    public fun unifiedMedication(petId: String): String = "pets/detail/$petId/medications/unified"
 
     public fun scheduleDetail(scheduleId: String): String = "schedule/$scheduleId"
 

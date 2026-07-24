@@ -262,7 +262,7 @@ private fun navigateReminderAddAction(
     when (action) {
         ReminderAddAction.AddPet -> navController.navigate(Destinations.PET_NEW_ROUTE)
         is ReminderAddAction.AddMedication ->
-            navController.navigate(Destinations.unifiedMedication(action.petId))
+            navController.navigate(Destinations.medicationNew(action.petId))
         is ReminderAddAction.AddSchedule ->
             navController.navigate(
                 Destinations.scheduleCreate(action.petId, action.medicationId),
