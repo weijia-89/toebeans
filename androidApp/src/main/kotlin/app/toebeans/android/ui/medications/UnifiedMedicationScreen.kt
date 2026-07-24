@@ -81,7 +81,11 @@ public fun UnifiedMedicationScreen(
                     tonalElevation = 3.dp,
                 ) {
                     Button(
-                        enabled = state.name.isNotBlank() && state.doseAmount.isNotBlank() && state.doseUnit != null,
+                        enabled =
+                            !state.isSaving &&
+                                state.name.isNotBlank() &&
+                                state.doseAmount.isNotBlank() &&
+                                state.doseUnit != null,
                         onClick = {
                             scope.launch {
                                 val id = viewModel.save()

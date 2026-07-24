@@ -49,6 +49,7 @@ public data class UnifiedMedicationUiState(
     public val anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
     public val startDateError: String? = null,
     public val phases: List<PhaseDraft> = listOf(blankPhaseDraft()),
+    public val isSaving: Boolean = false,
     public val formError: String? = null,
 )
 
@@ -184,36 +185,48 @@ public class UnifiedMedicationViewModel(
 
     public suspend fun save(): String? {
         val s = _state.value
+        if (s.isSaving) return null
         val petId = s.petId ?: return null
 
-        if (!validateMedicationFields(s)) return null
-        if (!validatePhases(s.phases)) return null
+        _state.update { it.copy(isSaving = true) }
 
-        val medication = buildMedication(s, petId)
-        val (schedule, phases) = newSchedulePayload(s, medication.id)
+        try {
+            if (!validateMedicationFields(s)) return null
+            if (!validatePhases(s.phases)) return null
 
-        val preflightError = runPreflight(schedule, phases)
-        if (preflightError != null) {
-            _state.update { it.copy(formError = preflightError) }
-            return null
+            val medication = buildMedication(s, petId)
+            val (schedule, phases) = newSchedulePayload(s, medication.id)
+
+            val preflightError = runPreflight(schedule, phases)
+            if (preflightError != null) {
+                _state.update { it.copy(formError = preflightError) }
+                return null
+            }
+
+            // TODO(transaction): medication + schedule upserts should be atomic.
+            // Current architecture uses separate repository interfaces without a
+            // cross-repository transaction boundary. A future refactor should
+            // introduce a MedScheduleRepository facade or SQLDelight Transacter
+            // to guarantee atomicity and prevent orphaned medications on failure.
+            medicationRepository.upsert(medication)
+            scheduleRepository.upsert(schedule, phases)
+            val reminders =
+                ReminderRescheduler.materializeHorizonForSchedule(
+                    schedule = schedule,
+                    phases = phases,
+                    medicationId = medication.id,
+                    doseEventRepository = doseEventRepository,
+                    scheduleCalculator = scheduleCalculator,
+                    timeZone = timeZone,
+                    now = Clock.System.now(),
+                )
+            for (reminder in reminders) {
+                notificationActuator.schedule(reminder)
+            }
+            return schedule.id
+        } finally {
+            _state.update { it.copy(isSaving = false) }
         }
-
-        medicationRepository.upsert(medication)
-        scheduleRepository.upsert(schedule, phases)
-        val reminders =
-            ReminderRescheduler.materializeHorizonForSchedule(
-                schedule = schedule,
-                phases = phases,
-                medicationId = medication.id,
-                doseEventRepository = doseEventRepository,
-                scheduleCalculator = scheduleCalculator,
-                timeZone = timeZone,
-                now = Clock.System.now(),
-            )
-        for (reminder in reminders) {
-            notificationActuator.schedule(reminder)
-        }
-        return schedule.id
     }
 
     private fun validateMedicationFields(s: UnifiedMedicationUiState): Boolean {
