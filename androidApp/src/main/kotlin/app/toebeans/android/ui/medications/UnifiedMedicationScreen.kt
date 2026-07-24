@@ -88,13 +88,15 @@ public fun UnifiedMedicationScreen(
                                 if (id != null) onSaved(id)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text("Save medication", style = MaterialTheme.typography.titleMedium)
                     }
@@ -106,22 +108,24 @@ public fun UnifiedMedicationScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(inner)
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(inner)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                            .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // Form-level error banner
                     state.formError?.let { msg ->
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clearAndSetSemantics {
-                                    liveRegion = LiveRegionMode.Polite
-                                    contentDescription = "Error: $msg"
-                                },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clearAndSetSemantics {
+                                        liveRegion = LiveRegionMode.Polite
+                                        contentDescription = "Error: $msg"
+                                    },
                             color = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                             shape = MaterialTheme.shapes.medium,
@@ -141,9 +145,10 @@ public fun UnifiedMedicationScreen(
                         shape = MaterialTheme.shapes.medium,
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             MedicationNameSearchField(
@@ -194,9 +199,10 @@ public fun UnifiedMedicationScreen(
                         shape = MaterialTheme.shapes.medium,
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             DatePickerField(
@@ -229,7 +235,8 @@ public fun UnifiedMedicationScreen(
                                         selected = state.anchorMode == AnchorMode.FOLLOW_PHONE,
                                         onClick = null,
                                     )
-                                    androidx.compose.foundation.layout.Spacer(Modifier.padding(horizontal = 8.dp))
+                                    androidx.compose.foundation.layout
+                                        .Spacer(Modifier.padding(horizontal = 8.dp))
                                     Column {
                                         Text("Normal scheduling", style = MaterialTheme.typography.bodyLarge)
                                         Text(
@@ -252,9 +259,13 @@ public fun UnifiedMedicationScreen(
                                         selected = state.anchorMode == AnchorMode.ELAPSED_INTERVAL,
                                         onClick = null,
                                     )
-                                    androidx.compose.foundation.layout.Spacer(Modifier.padding(horizontal = 8.dp))
+                                    androidx.compose.foundation.layout
+                                        .Spacer(Modifier.padding(horizontal = 8.dp))
                                     Column {
-                                        Text("Time-sensitive: keep interval constant", style = MaterialTheme.typography.bodyLarge)
+                                        Text(
+                                            "Time-sensitive: keep interval constant",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                        )
                                         Text(
                                             "For insulin, anti-seizure, and other narrow-therapeutic-window drugs",
                                             style = MaterialTheme.typography.bodySmall,

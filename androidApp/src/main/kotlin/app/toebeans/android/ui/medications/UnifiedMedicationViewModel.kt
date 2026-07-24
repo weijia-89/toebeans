@@ -40,7 +40,11 @@ public data class UnifiedMedicationUiState(
     public val nameError: String? = null,
     public val doseAmountError: String? = null,
     public val doseUnitError: String? = null,
-    public val startDate: LocalDate? = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
+    public val startDate: LocalDate? =
+        Clock.System
+            .now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date,
     public val endDate: LocalDate? = null,
     public val anchorMode: AnchorMode = AnchorMode.FOLLOW_PHONE,
     public val startDateError: String? = null,
@@ -49,6 +53,7 @@ public data class UnifiedMedicationUiState(
 )
 
 @OptIn(ExperimentalUuidApi::class)
+@Suppress("LongParameterList")
 public class UnifiedMedicationViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
@@ -107,27 +112,31 @@ public class UnifiedMedicationViewModel(
         }
     }
 
-    public fun updatePhase(index: Int, transform: (PhaseDraft) -> PhaseDraft) {
+    public fun updatePhase(
+        index: Int,
+        transform: (PhaseDraft) -> PhaseDraft,
+    ) {
         _state.update { state ->
             state.copy(
-                phases = state.phases.mapIndexed { i, phase ->
-                    if (i == index) {
-                        val transformed = transform(phase).copy(error = null)
-                        val doseTimesChanged = transformed.doseTimes != phase.doseTimes
-                        val affirmed = if (doseTimesChanged) false else phase.nightDoseAffirmed
-                        val hasNightDose = transformed.doseTimes.any { it.isInNightWindow() }
-                        val straddles = MidnightStraddleDetection.crossesMidnight(transformed.doseTimes)
-                        val straddleDismissed = if (doseTimesChanged) false else phase.midnightStraddleDismissed
-                        transformed.copy(
-                            nightDoseWarning = hasNightDose && !affirmed,
-                            nightDoseAffirmed = affirmed,
-                            crossesMidnight = straddles,
-                            midnightStraddleDismissed = straddleDismissed,
-                        )
-                    } else {
-                        phase
-                    }
-                },
+                phases =
+                    state.phases.mapIndexed { i, phase ->
+                        if (i == index) {
+                            val transformed = transform(phase).copy(error = null)
+                            val doseTimesChanged = transformed.doseTimes != phase.doseTimes
+                            val affirmed = if (doseTimesChanged) false else phase.nightDoseAffirmed
+                            val hasNightDose = transformed.doseTimes.any { it.isInNightWindow() }
+                            val straddles = MidnightStraddleDetection.crossesMidnight(transformed.doseTimes)
+                            val straddleDismissed = if (doseTimesChanged) false else phase.midnightStraddleDismissed
+                            transformed.copy(
+                                nightDoseWarning = hasNightDose && !affirmed,
+                                nightDoseAffirmed = affirmed,
+                                crossesMidnight = straddles,
+                                midnightStraddleDismissed = straddleDismissed,
+                            )
+                        } else {
+                            phase
+                        }
+                    },
                 formError = null,
             )
         }
@@ -139,13 +148,14 @@ public class UnifiedMedicationViewModel(
                 state
             } else {
                 state.copy(
-                    phases = state.phases.mapIndexed { i, phase ->
-                        if (i == index) {
-                            phase.copy(nightDoseAffirmed = true, nightDoseWarning = false)
-                        } else {
-                            phase
-                        }
-                    },
+                    phases =
+                        state.phases.mapIndexed { i, phase ->
+                            if (i == index) {
+                                phase.copy(nightDoseAffirmed = true, nightDoseWarning = false)
+                            } else {
+                                phase
+                            }
+                        },
                 )
             }
         }
@@ -157,13 +167,14 @@ public class UnifiedMedicationViewModel(
                 state
             } else {
                 state.copy(
-                    phases = state.phases.mapIndexed { i, phase ->
-                        if (i == index) {
-                            phase.copy(midnightStraddleDismissed = true)
-                        } else {
-                            phase
-                        }
-                    },
+                    phases =
+                        state.phases.mapIndexed { i, phase ->
+                            if (i == index) {
+                                phase.copy(midnightStraddleDismissed = true)
+                            } else {
+                                phase
+                            }
+                        },
                 )
             }
         }
@@ -175,6 +186,37 @@ public class UnifiedMedicationViewModel(
         val s = _state.value
         val petId = s.petId ?: return null
 
+        if (!validateMedicationFields(s)) return null
+        if (!validatePhases(s.phases)) return null
+
+        val medication = buildMedication(s, petId)
+        val (schedule, phases) = newSchedulePayload(s, medication.id)
+
+        val preflightError = runPreflight(schedule, phases)
+        if (preflightError != null) {
+            _state.update { it.copy(formError = preflightError) }
+            return null
+        }
+
+        medicationRepository.upsert(medication)
+        scheduleRepository.upsert(schedule, phases)
+        val reminders =
+            ReminderRescheduler.materializeHorizonForSchedule(
+                schedule = schedule,
+                phases = phases,
+                medicationId = medication.id,
+                doseEventRepository = doseEventRepository,
+                scheduleCalculator = scheduleCalculator,
+                timeZone = timeZone,
+                now = Clock.System.now(),
+            )
+        for (reminder in reminders) {
+            notificationActuator.schedule(reminder)
+        }
+        return schedule.id
+    }
+
+    private fun validateMedicationFields(s: UnifiedMedicationUiState): Boolean {
         var valid = true
         if (s.name.isBlank()) {
             _state.update { it.copy(nameError = "Required") }
@@ -192,19 +234,30 @@ public class UnifiedMedicationViewModel(
             _state.update { it.copy(startDateError = "Required") }
             valid = false
         }
-        if (!valid) return null
+        return valid
+    }
 
-        val phasesWithErrors = s.phases.mapIndexed { idx, draft -> validatePhase(draft, idx) }
+    private fun validatePhases(phases: List<PhaseDraft>): Boolean {
+        val phasesWithErrors = phases.mapIndexed { idx, draft -> validatePhase(draft, idx) }
         if (phasesWithErrors.any { it.second != null }) {
             _state.update {
-                it.copy(phases = phasesWithErrors.map { (draft, err) ->
-                    if (err != null) draft.copy(error = err) else draft
-                })
+                it.copy(
+                    phases =
+                        phasesWithErrors.map { (draft, err) ->
+                            if (err != null) draft.copy(error = err) else draft
+                        },
+                )
             }
-            return null
+            return false
         }
+        return true
+    }
 
-        val medication = Medication(
+    private fun buildMedication(
+        s: UnifiedMedicationUiState,
+        petId: String,
+    ): Medication =
+        Medication(
             id = "med-${Uuid.random()}",
             petId = petId,
             name = s.name.trim(),
@@ -215,58 +268,41 @@ public class UnifiedMedicationViewModel(
             discontinuedAt = null,
         )
 
-        val (schedule, phases) = newSchedulePayload(s, medication.id)
-
-        val preflightError = runPreflight(schedule, phases)
-        if (preflightError != null) {
-            _state.update { it.copy(formError = preflightError) }
-            return null
-        }
-
-        medicationRepository.upsert(medication)
-        scheduleRepository.upsert(schedule, phases)
-        val reminders = ReminderRescheduler.materializeHorizonForSchedule(
-            schedule = schedule,
-            phases = phases,
-            medicationId = medication.id,
-            doseEventRepository = doseEventRepository,
-            scheduleCalculator = scheduleCalculator,
-            timeZone = timeZone,
-            now = Clock.System.now(),
-        )
-        for (reminder in reminders) {
-            notificationActuator.schedule(reminder)
-        }
-        return schedule.id
-    }
-
-    private fun newSchedulePayload(s: UnifiedMedicationUiState, medId: String): Pair<Schedule, List<SchedulePhase>> {
+    private fun newSchedulePayload(
+        s: UnifiedMedicationUiState,
+        medId: String,
+    ): Pair<Schedule, List<SchedulePhase>> {
         val scheduleId = "sched-${Uuid.random()}"
-        val phases = s.phases.mapIndexed { idx, draft ->
-            SchedulePhase(
-                id = "phase-${Uuid.random()}",
-                scheduleId = scheduleId,
-                phaseOrder = idx,
-                durationDays = draft.durationDaysText.toInt(),
-                dosesPerDay = draft.doseTimes.size,
-                doseTimesLocal = draft.doseTimes.sorted(),
-                doseAmount = draft.doseAmount.trim().ifEmpty { null },
-                doseUnit = draft.doseUnit,
-                dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
+        val phases =
+            s.phases.mapIndexed { idx, draft ->
+                SchedulePhase(
+                    id = "phase-${Uuid.random()}",
+                    scheduleId = scheduleId,
+                    phaseOrder = idx,
+                    durationDays = draft.durationDaysText.toInt(),
+                    dosesPerDay = draft.doseTimes.size,
+                    doseTimesLocal = draft.doseTimes.sorted(),
+                    doseAmount = draft.doseAmount.trim().ifEmpty { null },
+                    doseUnit = draft.doseUnit,
+                    dayInterval = draft.dayIntervalText.toIntOrNull() ?: 1,
+                )
+            }
+        val schedule =
+            Schedule(
+                id = scheduleId,
+                medicationId = medId,
+                startDate = s.startDate!!,
+                endDate = s.endDate,
+                createdAt = Clock.System.now(),
+                anchorMode = s.anchorMode,
             )
-        }
-        val schedule = Schedule(
-            id = scheduleId,
-            medicationId = medId,
-            startDate = s.startDate!!,
-            endDate = s.endDate,
-            createdAt = Clock.System.now(),
-            anchorMode = s.anchorMode,
-        )
         return schedule to phases
     }
 
-    private fun validatePhase(draft: PhaseDraft, index: Int): Pair<PhaseDraft, String?> {
+    private fun validatePhase(
+        draft: PhaseDraft,
+        index: Int,
+    ): Pair<PhaseDraft, String?> {
         val durationOk = draft.durationDaysText.toIntOrNull()?.let { it in 1..SchedulePhase.MAX_DURATION_DAYS } == true
         if (!durationOk) {
             return draft to "Phase ${index + 1}: duration must be 1..${SchedulePhase.MAX_DURATION_DAYS} days"
@@ -288,7 +324,10 @@ public class UnifiedMedicationViewModel(
         return draft to null
     }
 
-    internal fun runPreflight(schedule: Schedule, phases: List<SchedulePhase>): String? {
+    internal fun runPreflight(
+        schedule: Schedule,
+        phases: List<SchedulePhase>,
+    ): String? {
         val from = schedule.startDate.atStartOfDayIn(timeZone)
         val to = from + DefaultScheduleCalculator.MAX_WINDOW_DAYS.days
         return try {
@@ -318,11 +357,12 @@ public class UnifiedMedicationViewModel(
     }
 }
 
-private fun blankPhaseDraft(): PhaseDraft = PhaseDraft(
-    durationDaysText = "7",
-    doseTimes = listOf(LocalTime(8, 0)),
-    dayIntervalText = "1",
-    doseAmount = "",
-    doseUnit = null,
-    error = null,
-)
+private fun blankPhaseDraft(): PhaseDraft =
+    PhaseDraft(
+        durationDaysText = "7",
+        doseTimes = listOf(LocalTime(8, 0)),
+        dayIntervalText = "1",
+        doseAmount = "",
+        doseUnit = null,
+        error = null,
+    )
