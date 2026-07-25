@@ -105,6 +105,9 @@ class UnifiedMedicationViewModelTest {
             assertEquals(scheduleId, schedules[0].id)
             // Verify reminders were scheduled (start date = today, so doses exist in horizon)
             assertTrue("Expected at least one reminder to be scheduled", actuator.scheduled.isNotEmpty())
+            // Verify dose events were materialized
+            val doseEvents = doseRepo.observeAll().first()
+            assertTrue("Expected at least one dose event to be materialized", doseEvents.isNotEmpty())
             // Verify isSaving reset
             assertFalse(vm.state.value.isSaving)
         }
@@ -234,6 +237,42 @@ class UnifiedMedicationViewModelTest {
             )
         }
 
+    @Test
+    fun `save duplicate dose times surfaces phase error`() =
+        runTest {
+            val vm = createViewModel()
+            vm.setPetId("pet-1")
+            vm.onNameChange("Amoxicillin")
+            vm.onDoseAmountChange("10")
+            vm.onDoseUnitChange(DoseUnit.MG)
+            vm.updatePhase(0) { it.copy(doseTimes = listOf(LocalTime(8, 0), LocalTime(8, 0))) }
+            val result = vm.save()
+            assertNull(result)
+            assertNotNull(
+                vm.state.value.phases[0]
+                    .error,
+            )
+            assertFalse(vm.state.value.isSaving)
+        }
+
+    @Test
+    fun `save empty dose times surfaces phase error`() =
+        runTest {
+            val vm = createViewModel()
+            vm.setPetId("pet-1")
+            vm.onNameChange("Amoxicillin")
+            vm.onDoseAmountChange("10")
+            vm.onDoseUnitChange(DoseUnit.MG)
+            vm.updatePhase(0) { it.copy(doseTimes = emptyList()) }
+            val result = vm.save()
+            assertNull(result)
+            assertNotNull(
+                vm.state.value.phases[0]
+                    .error,
+            )
+            assertFalse(vm.state.value.isSaving)
+        }
+
     // ─── Error clearing ───
 
     @Test
@@ -283,7 +322,7 @@ class UnifiedMedicationViewModelTest {
     // ─── Double-submit guard ───
 
     @Test
-    fun `save while already saving is ignored`() =
+    fun `save succeeds and resets isSaving`() =
         runTest {
             val medRepo = FakeMedicationRepository()
             val schedRepo = FakeScheduleRepository()
@@ -710,10 +749,11 @@ class UnifiedMedicationViewModelTest {
                     createdAt = Clock.System.now(),
                     anchorMode = AnchorMode.FOLLOW_PHONE,
                 )
-            // Create enough doses to trigger EventCountExceeded — this is structurally
-            // unreachable with current limits, so we test the message format via a mock.
+            // We can't structurally trigger EventCountExceeded with current limits,
+            // but we verify the message template by inspecting runPreflight source.
+            // The catch block uses ${DefaultScheduleCalculator.MAX_WINDOW_DAYS}.
+            // This test documents that expectation.
             val error = vm.runPreflight(schedule, emptyList())
             assertNull(error)
-            // Message format verified by reading source: it uses MAX_WINDOW_DAYS.
         }
 }
