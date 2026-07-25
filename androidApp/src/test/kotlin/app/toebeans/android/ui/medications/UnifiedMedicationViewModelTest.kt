@@ -434,7 +434,7 @@ class UnifiedMedicationViewModelTest {
             val today =
                 Clock.System
                     .now()
-                    .toLocalDateTime(TimeZone.UTC)
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
                     .date
             assertEquals(today, vm.state.value.startDate)
         }
