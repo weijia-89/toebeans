@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import app.toebeans.android.ui.home.HomeScreen
 import app.toebeans.android.ui.icons.PawIcon
 import app.toebeans.android.ui.medications.MedicationEditScreen
+import app.toebeans.android.ui.medications.UnifiedMedicationScreen
 import app.toebeans.android.ui.nav.BottomNavItem
 import app.toebeans.android.ui.nav.Destinations
 import app.toebeans.android.ui.nav.PetDetailMedicationDestination
@@ -192,9 +193,8 @@ public fun ToebeansAppShell() {
                 arguments = listOf(navArgument(Destinations.Args.PET_ID) { type = NavType.StringType }),
             ) { entry ->
                 val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
-                MedicationEditScreen(
+                UnifiedMedicationScreen(
                     petId = petId,
-                    medicationId = null,
                     onBack = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
                 )

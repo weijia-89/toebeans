@@ -5,10 +5,25 @@ buildscript {
     // These do not reach the app runtime classpath; they harden the developer build environment.
     configurations.all {
         resolutionStrategy {
+            // Netty: force ALL netty modules to patched version
             force("io.netty:netty-handler:4.1.135.Final")
             force("io.netty:netty-codec-http:4.1.135.Final")
             force("io.netty:netty-codec-http2:4.1.135.Final")
+            force("io.netty:netty-handler-proxy:4.1.135.Final")
+            force("io.netty:netty-codec-socks:4.1.135.Final")
+            force("io.netty:netty-codec:4.1.135.Final")
+            force("io.netty:netty-transport:4.1.135.Final")
+            force("io.netty:netty-buffer:4.1.135.Final")
+            force("io.netty:netty-common:4.1.135.Final")
+            force("io.netty:netty-resolver:4.1.135.Final")
+            force("io.netty:netty-transport-native-unix-common:4.1.135.Final")
+            // Logback
             force("ch.qos.logback:logback-core:1.5.34")
+            force("ch.qos.logback:logback-classic:1.5.34")
+            // BouncyCastle
+            force("org.bouncycastle:bcprov-jdk18on:1.85")
+            force("org.bouncycastle:bcpkix-jdk18on:1.85")
+            force("org.bouncycastle:bcutil-jdk18on:1.85")
         }
     }
 }

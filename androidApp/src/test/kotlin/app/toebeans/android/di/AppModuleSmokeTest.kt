@@ -2,6 +2,7 @@ package app.toebeans.android.di
 
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
+import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
 import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
@@ -60,6 +61,7 @@ class AppModuleSmokeTest {
         assertNotNull(getKoin().get<PetDetailViewModel>())
         assertNotNull(getKoin().get<PetEditViewModel>())
         assertNotNull(getKoin().get<MedicationEditViewModel>())
+        assertNotNull(getKoin().get<UnifiedMedicationViewModel>())
         assertNotNull(getKoin().get<ScheduleCreateViewModel>())
         assertNotNull(getKoin().get<ScheduleDetailViewModel>())
         assertNotNull(getKoin().get<ReminderListViewModel>())

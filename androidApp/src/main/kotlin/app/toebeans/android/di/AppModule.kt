@@ -11,6 +11,7 @@ import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
+import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
 import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
@@ -136,6 +137,16 @@ public val appModule =
                 doseEventRepository = get(),
                 scheduleCalculator = get(),
                 notificationActuator = get(),
+            )
+        }
+        viewModel {
+            UnifiedMedicationViewModel(
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                doseEventRepository = get(),
+                scheduleCalculator = get(),
+                notificationActuator = get(),
+                medicationNameIndex = get(),
             )
         }
         viewModel {

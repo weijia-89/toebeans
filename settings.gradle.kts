@@ -44,13 +44,14 @@ val okioJvmCoordinate = "com.squareup.okio:okio-jvm:$okioVersion"
 // CVE-2026-50560 / CVE-2026-48043 / CVE-2026-47244: netty-codec-http2 < 4.1.135.Final
 // CVE-2026-50020: netty-codec-http < 4.1.135.Final
 val nettyVersion = "4.1.135.Final"
-val nettyHandlerCoordinate = "io.netty:netty-handler:$nettyVersion"
-val nettyCodecHttpCoordinate = "io.netty:netty-codec-http:$nettyVersion"
-val nettyCodecHttp2Coordinate = "io.netty:netty-codec-http2:$nettyVersion"
 
 // CVE-2026-10532 / CVE-2026-9828: logback-core < 1.5.34
 val logbackVersion = "1.5.34"
 val logbackCoreCoordinate = "ch.qos.logback:logback-core:$logbackVersion"
+
+// CVE-2026-XXXX: bouncycastle < 1.85 (GOST 28147 CTR mode keystream reuse)
+val bouncycastleVersion = "1.85"
+val bouncycastleCoordinate = "org.bouncycastle:bcprov-jdk18on:$bouncycastleVersion"
 
 gradle.beforeProject {
     configurations.configureEach {
@@ -58,10 +59,8 @@ gradle.beforeProject {
             force(wireRuntimeCoordinate)
             force(okioCoordinate)
             force(okioJvmCoordinate)
-            force(nettyHandlerCoordinate)
-            force(nettyCodecHttpCoordinate)
-            force(nettyCodecHttp2Coordinate)
             force(logbackCoreCoordinate)
+            force(bouncycastleCoordinate)
             eachDependency {
                 when (requested.group) {
                     "com.squareup.wire" -> {
@@ -85,18 +84,22 @@ gradle.beforeProject {
                         }
                     }
                     "io.netty" -> {
-                        when (requested.name) {
-                            "netty-handler", "netty-codec-http", "netty-codec-http2" -> {
-                                useVersion(nettyVersion)
-                                because("CVE-2025-14813 / CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249 / CVE-2026-50560 / CVE-2026-48043 / CVE-2026-47244 / CVE-2026-50020")
-                            }
-                        }
+                        useVersion(nettyVersion)
+                        because("CVE-2025-14813 / CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249 / CVE-2026-50560 / CVE-2026-48043 / CVE-2026-47244 / CVE-2026-50020")
                     }
                     "ch.qos.logback" -> {
                         when (requested.name) {
-                            "logback-core" -> {
+                            "logback-core", "logback-classic" -> {
                                 useVersion(logbackVersion)
                                 because("CVE-2026-10532 / CVE-2026-9828")
+                            }
+                        }
+                    }
+                    "org.bouncycastle" -> {
+                        when (requested.name) {
+                            "bcprov-jdk18on", "bcpkix-jdk18on", "bcutil-jdk18on" -> {
+                                useVersion(bouncycastleVersion)
+                                because("CVE-2026-XXXX: GOST 28147 CTR mode keystream reuse")
                             }
                         }
                     }
