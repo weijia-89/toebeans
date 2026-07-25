@@ -6,17 +6,17 @@ buildscript {
     configurations.all {
         resolutionStrategy {
             // Netty: force ALL netty modules to patched version
-            force("io.netty:netty-handler:4.1.135.Final")
-            force("io.netty:netty-codec-http:4.1.135.Final")
-            force("io.netty:netty-codec-http2:4.1.135.Final")
-            force("io.netty:netty-handler-proxy:4.1.135.Final")
-            force("io.netty:netty-codec-socks:4.1.135.Final")
-            force("io.netty:netty-codec:4.1.135.Final")
-            force("io.netty:netty-transport:4.1.135.Final")
-            force("io.netty:netty-buffer:4.1.135.Final")
-            force("io.netty:netty-common:4.1.135.Final")
-            force("io.netty:netty-resolver:4.1.135.Final")
-            force("io.netty:netty-transport-native-unix-common:4.1.135.Final")
+            force("io.netty:netty-handler:4.1.136.Final")
+            force("io.netty:netty-codec-http:4.1.136.Final")
+            force("io.netty:netty-codec-http2:4.1.136.Final")
+            force("io.netty:netty-handler-proxy:4.1.136.Final")
+            force("io.netty:netty-codec-socks:4.1.136.Final")
+            force("io.netty:netty-codec:4.1.136.Final")
+            force("io.netty:netty-transport:4.1.136.Final")
+            force("io.netty:netty-buffer:4.1.136.Final")
+            force("io.netty:netty-common:4.1.136.Final")
+            force("io.netty:netty-resolver:4.1.136.Final")
+            force("io.netty:netty-transport-native-unix-common:4.1.136.Final")
             // Logback
             force("ch.qos.logback:logback-core:1.5.34")
             force("ch.qos.logback:logback-classic:1.5.34")
