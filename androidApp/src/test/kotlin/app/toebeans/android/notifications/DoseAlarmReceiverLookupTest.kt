@@ -13,8 +13,11 @@ import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import java.io.File
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,6 +83,8 @@ class DoseAlarmReceiverLookupTest {
         DoseAlarmReceiver.beforeShowHook = null
         ToebeansApp.resetReceiverDatabaseCacheForTests()
         context.deleteDatabase(dbName)
+        shadowOf(systemNotificationManager).setNotificationsEnabled(true)
+        File(context.filesDir, "crash.log").delete()
     }
 
     @Test
@@ -105,6 +110,51 @@ class DoseAlarmReceiverLookupTest {
             AndroidNotificationActuator.CHANNEL_ID_MEDICATION_CRITICAL,
             active[0].notification.channelId,
         )
+    }
+
+    @Test
+    fun `notifications off writes POST_NOTIFICATIONS_DENIED_AT_FIRE and does not notify`() {
+        val reminderId = "evt-denied-notify"
+        val fired = mutableListOf<String>()
+        DoseAlarmReceiver.firedAtWriterOverride = { id, _ -> fired += id }
+        DoseAlarmReceiver.lookupOverride =
+            object : ReminderLookup {
+                override fun lookup(id: String): ScheduledReminder =
+                    ScheduledReminder(
+                        id = reminderId,
+                        scheduleId = "sched-1",
+                        scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+                        medicationName = "Methimazole",
+                        petName = "Luna",
+                    )
+            }
+        shadowOf(systemNotificationManager).setNotificationsEnabled(false)
+        val logFile = File(context.filesDir, "crash.log")
+        logFile.delete()
+
+        dispatchDoseFire(reminderId)
+
+        assertEquals(
+            "fired_at is written before show, even when notifications are off",
+            listOf(reminderId),
+            fired,
+        )
+        assertEquals(
+            "denied notifications must not call notify",
+            0,
+            shadowOf(systemNotificationManager).activeNotifications.size,
+        )
+        val text = if (logFile.exists()) logFile.readText() else ""
+        assertTrue(
+            "crash log must contain the denial marker",
+            text.contains("POST_NOTIFICATIONS_DENIED_AT_FIRE"),
+        )
+        assertTrue(
+            "crash log must contain the reminder id",
+            text.contains(reminderId),
+        )
+        assertFalse("crash log must not contain the medication name", text.contains("Methimazole"))
+        assertFalse("crash log must not contain the pet name", text.contains("Luna"))
     }
 
     @Test
