@@ -9,6 +9,7 @@ import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
 import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
@@ -75,14 +76,20 @@ public val appModule =
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
         single<ScheduleCalculator> { DefaultScheduleCalculator() }
 
+        single { ExactAlarmReliability() }
+
         single<NotificationActuator> {
             val context = androidContext()
+            val reliability: ExactAlarmReliability = get()
             AndroidNotificationActuator(
                 context = context,
                 alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
                 notificationManager = NotificationManagerCompat.from(context),
                 requestCodeAllocator = RequestCodeAllocator.fromContext(context),
-            )
+            ).also { actuator ->
+                // Existing signal only. Does not change how the alarm is armed.
+                actuator.setDegradedHandler(reliability::note)
+            }
         }
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
@@ -164,6 +171,7 @@ public val appModule =
                 scheduleRepository = get(),
                 doseEventRepository = get(),
                 scheduleCalculator = get(),
+                exactAlarmReliability = get(),
             )
         }
         viewModel {
