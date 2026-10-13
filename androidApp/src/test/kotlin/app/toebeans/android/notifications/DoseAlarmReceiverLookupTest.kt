@@ -155,6 +155,11 @@ class DoseAlarmReceiverLookupTest {
         )
         assertFalse("crash log must not contain the medication name", text.contains("Methimazole"))
         assertFalse("crash log must not contain the pet name", text.contains("Luna"))
+        assertEquals(
+            "a denied show must not record delivery",
+            null,
+            database.notificationAuditQueries.selectDelivery(reminderId).executeAsOneOrNull(),
+        )
     }
 
     @Test
@@ -222,6 +227,24 @@ class DoseAlarmReceiverLookupTest {
                 action = AndroidNotificationActuator.ACTION_DOSE_FIRE
             }
         receiver.onReceive(context, intent)
+    }
+
+    @Test
+    fun `posted notification records delivery for a persisted dose`() {
+        val eventId = "evt-delivered"
+        seedDoseEvent(
+            eventId = eventId,
+            scheduleId = "sched-luna-methimazole",
+            scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+        )
+        shadowOf(systemNotificationManager).setNotificationsEnabled(true)
+
+        dispatchDoseFire(eventId)
+
+        assertEquals(
+            eventId,
+            database.notificationAuditQueries.selectDelivery(eventId).executeAsOneOrNull(),
+        )
     }
 
     @Test

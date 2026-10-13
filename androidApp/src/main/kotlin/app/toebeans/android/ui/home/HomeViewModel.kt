@@ -15,6 +15,7 @@ import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
+import app.toebeans.core.notifications.UndeliveredDoseAlarmQuery
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,6 +70,8 @@ public class HomeViewModel(
     private val doseEventRepository: DoseEventRepository,
     private val scheduleCalculator: ScheduleCalculator,
     private val exactAlarmReliability: ExactAlarmReliability,
+    private val undeliveredDoseAlarmQuery: UndeliveredDoseAlarmQuery =
+        UndeliveredDoseAlarmQuery { false },
 ) : ViewModel() {
     /**
      * ADR-0002 downgraded-reliability flag. Separate from [uiState] so a
@@ -79,6 +82,15 @@ public class HomeViewModel(
     /** Foreground read. [setDenied] replaces the last actuator signal. */
     public fun refreshExactAlarmDenied(denied: Boolean) {
         exactAlarmReliability.setDenied(denied)
+    }
+
+    private val _notificationDenialBanner = MutableStateFlow(false)
+
+    /** ADR-0011. True when one of the latest ten fired doses has no delivery row. */
+    public val notificationDenialBanner: StateFlow<Boolean> = _notificationDenialBanner
+
+    public fun refreshNotificationDenial() {
+        _notificationDenialBanner.value = undeliveredDoseAlarmQuery.hasUndeliveredFiredDose()
     }
 
     private val filterPetId = MutableStateFlow<String?>(null)

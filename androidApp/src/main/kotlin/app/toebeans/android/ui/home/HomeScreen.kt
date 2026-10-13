@@ -89,6 +89,7 @@ public fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
+    val notificationDenial by viewModel.notificationDenialBanner.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
@@ -96,6 +97,7 @@ public fun HomeScreen(
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     viewModel.refreshExactAlarmDenied(readExactAlarmDenied(context))
+                    viewModel.refreshNotificationDenial()
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -105,6 +107,8 @@ public fun HomeScreen(
         state = state,
         exactAlarmDenied = exactAlarmDenied,
         onOpenAlarmSettings = { openExactAlarmSettings(context) },
+        notificationDenial = notificationDenial,
+        onOpenNotificationSettings = { openNotificationSettings(context) },
         onAddPet = onAddPet,
         onAddReminder = onAddReminder,
         onPetFilterSelect = viewModel::selectPetFilter,
@@ -127,6 +131,8 @@ private fun HomeScreenContent(
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
     exactAlarmDenied: Boolean = false,
     onOpenAlarmSettings: () -> Unit = {},
+    notificationDenial: Boolean = false,
+    onOpenNotificationSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -136,6 +142,12 @@ private fun HomeScreenContent(
                 ExactAlarmDeniedBanner(
                     onOpenAlarmSettings = onOpenAlarmSettings,
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                )
+            }
+            if (notificationDenial) {
+                NotificationDenialBanner(
+                    onOpenNotificationSettings = onOpenNotificationSettings,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
                 )
             }
             EmptyState(
@@ -189,6 +201,11 @@ private fun HomeScreenContent(
             if (exactAlarmDenied) {
                 item(key = "exact_alarm_denied") {
                     ExactAlarmDeniedBanner(onOpenAlarmSettings = onOpenAlarmSettings)
+                }
+            }
+            if (notificationDenial) {
+                item(key = "notification_denial") {
+                    NotificationDenialBanner(onOpenNotificationSettings = onOpenNotificationSettings)
                 }
             }
             val filterActive = state.filterPetId != null
