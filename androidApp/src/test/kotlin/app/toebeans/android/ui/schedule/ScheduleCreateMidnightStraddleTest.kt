@@ -10,6 +10,7 @@ import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.NotificationOutcome
 import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
@@ -347,5 +348,5 @@ private object NoopNotificationActuatorMidnight : NotificationActuator {
 
     override fun cancel(reminderId: String) = Unit
 
-    override fun show(reminder: ScheduledReminder) = Unit
+    override fun show(reminder: ScheduledReminder): NotificationOutcome = NotificationOutcome.Posted(0)
 }

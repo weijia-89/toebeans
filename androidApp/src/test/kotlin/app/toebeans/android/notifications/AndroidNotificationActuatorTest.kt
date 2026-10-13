@@ -204,6 +204,11 @@ class AndroidNotificationActuatorTest {
             0,
             shadowOf(systemNotificationManager).activeNotifications.size,
         )
+        assertEquals(
+            "a denied show must not allocate a notification id",
+            null,
+            allocator.peek(reminder.id),
+        )
     }
 
     @Test

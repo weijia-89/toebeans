@@ -13,6 +13,7 @@ import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.NotificationOutcome
 import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import kotlinx.coroutines.flow.first
@@ -39,7 +40,7 @@ private class RecordingNotificationActuator : NotificationActuator {
 
     override fun cancel(reminderId: String) {}
 
-    override fun show(reminder: ScheduledReminder) {}
+    override fun show(reminder: ScheduledReminder): NotificationOutcome = NotificationOutcome.Posted(0)
 }
 
 @Suppress("LargeClass")
