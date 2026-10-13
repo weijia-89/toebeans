@@ -20,11 +20,30 @@ import kotlinx.datetime.Instant
  *  - **No payload.** The reminder content is built at fire-time from the database, not embedded
  *    in the alarm intent. This avoids stale data and keeps the on-disk PendingIntent small.
  */
+/**
+ * Why [NotificationActuator.schedule] did not arm an exact alarm.
+ *
+ * Named by the interface contract. The Android actuator does not raise this yet.
+ */
+public enum class NotificationDegraded {
+    EXACT_ALARM_DENIED,
+}
+
 public interface NotificationActuator {
     /**
      * Schedule a reminder. Replaces any prior reminder with the same [ScheduledReminder.id].
      */
     public fun schedule(reminder: ScheduledReminder)
+
+    /**
+     * Receives [NotificationDegraded] when [schedule] falls back from an exact alarm.
+     *
+     * Default ignores the handler. The platform actuator must override this and invoke the
+     * handler on the fallback path.
+     */
+    public fun setDegradedHandler(handler: ((NotificationDegraded) -> Unit)?) {
+        // Intentionally empty until the platform override lands.
+    }
 
     /**
      * Cancel any pending reminder with the given [reminderId]. No-op if none is scheduled.
