@@ -55,6 +55,13 @@ jobs:
         run: bash scripts/test_test_no_pbkdf2_in_backup_after_tbn2.sh .
       - name: No-em-dash-in-docs fitness-function self-test
         run: bash scripts/test_test_no_em_dash_in_docs.sh .
+      - name: Manual QA catalog gate
+        # A test-plan block with steps and an expected result must add
+        # docs/manual-qa/cases/<slug>.md and link it from docs/manual-qa.md.
+        # Gradle-only lines are not manual cases. The self-test feeds fixtures.
+        run: bash scripts/test_manual_qa_catalog.sh .
+      - name: Manual QA catalog fitness-function self-test
+        run: bash scripts/test_test_manual_qa_catalog.sh .
       - name: Trainer PR review gate self-test
         run: bash scripts/test_ci_trainer_pr_review_gate.sh .
       - name: Trainer gate rerun self-test
