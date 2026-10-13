@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.core.notifications.NotificationDegraded
+import app.toebeans.core.notifications.NotificationOutcome
 import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.Assert.assertEquals
@@ -182,6 +183,30 @@ class AndroidNotificationActuatorTest {
     }
 
     @Test
+    fun `show returns PermissionDenied and does not notify when notifications are off`() {
+        // ADR-0011 return value only: a denied POST_NOTIFICATIONS (or app-level
+        // notification toggle) must be visible to the caller. Quiet return was the hole.
+        shadowOf(systemNotificationManager).setNotificationsEnabled(false)
+        val reminder =
+            ScheduledReminder(
+                id = "evt-denied-notify",
+                scheduleId = "sched-1",
+                scheduledAt = Instant.fromEpochMilliseconds(1L),
+                medicationName = "Methimazole",
+                petName = "Luna",
+            )
+
+        val outcome = actuator.show(reminder)
+
+        assertEquals(NotificationOutcome.PermissionDenied, outcome)
+        assertEquals(
+            "disabled notifications must not call notify",
+            0,
+            shadowOf(systemNotificationManager).activeNotifications.size,
+        )
+    }
+
+    @Test
     fun `show posts a notification with a collision-free id from the allocator`() {
         // Notification id must be the allocator-issued code, NOT reminder.id.hashCode().
         // The hashCode path could silently overwrite a notification when two distinct
@@ -190,11 +215,20 @@ class AndroidNotificationActuatorTest {
         // test below for the canonical "Aa"/"BB" collision pair.
         val reminder =
             ScheduledReminder("evt-show", "sched-1", Instant.fromEpochMilliseconds(1L), "Methimazole", "Luna")
-        actuator.show(reminder)
+        val outcome = actuator.show(reminder)
 
         val active = shadowOf(systemNotificationManager).activeNotifications
         assertEquals(1, active.size)
         val n = active[0]
+        assertTrue(
+            "a posted notification must report Posted to the caller",
+            outcome is NotificationOutcome.Posted,
+        )
+        assertEquals(
+            "Posted id must match the notification id",
+            n.id,
+            (outcome as NotificationOutcome.Posted).notificationId,
+        )
         val allocatorCode = allocator.peek("evt-show")
         assertNotNull("show must allocate a code for the reminder", allocatorCode)
         assertEquals(
