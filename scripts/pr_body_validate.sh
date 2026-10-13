@@ -48,6 +48,10 @@ fi
 line_num=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   line_num=$((line_num + 1))
+  # Cloud Agent appends a long HTML footer after this marker. Lint the author body only.
+  if [[ "$line" == *"CURSOR_AGENT_PR_BODY_END"* ]]; then
+    break
+  fi
   stripped="${line#"${line%%[![:space:]]*}"}"
 
   [[ -z "$stripped" ]] && continue

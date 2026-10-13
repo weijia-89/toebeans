@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
+import app.toebeans.core.notifications.NotificationDegraded
 import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.Assert.assertEquals
@@ -16,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowAlarmManager
 
 /**
  * Robolectric tests for [AndroidNotificationActuator]. Runs on a JVM via Robolectric's emulated
@@ -58,6 +60,9 @@ class AndroidNotificationActuatorTest {
         systemNotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         allocator = RequestCodeAllocator.fromContext(context)
+        // Shadow default is false, which selects the setWindow fallback. Opt in so the
+        // cases below hit setExactAndAllowWhileIdle unless a test turns this off.
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
         actuator =
             AndroidNotificationActuator(
                 context = context,
@@ -94,6 +99,36 @@ class AndroidNotificationActuatorTest {
         val alarm = scheduledAlarms[0]
         assertEquals(1_800_000_000_000L, alarm.triggerAtTime)
         assertEquals(AlarmManager.RTC_WAKEUP, alarm.type)
+    }
+
+    @Test
+    fun `exact alarm denied uses a 10 minute window and reports degraded`() {
+        ShadowAlarmManager.setCanScheduleExactAlarms(false)
+        val degraded = mutableListOf<NotificationDegraded>()
+        actuator.setDegradedHandler { degraded += it }
+        val reminder =
+            ScheduledReminder(
+                id = "evt-denied",
+                scheduleId = "sched-1",
+                scheduledAt = Instant.fromEpochMilliseconds(1_800_000_000_000L),
+                medicationName = "Methimazole",
+                petName = "Luna",
+            )
+
+        actuator.schedule(reminder)
+
+        val alarms = shadowOf(alarmManager).scheduledAlarms
+        assertEquals("denied path still arms one alarm", 1, alarms.size)
+        assertEquals(
+            "ADR-0002: denied exact alarms fall back to a 10 minute window",
+            10 * 60 * 1000L,
+            alarms[0].windowLengthMs,
+        )
+        assertEquals(
+            "fallback must raise NotificationDegraded",
+            listOf(NotificationDegraded.EXACT_ALARM_DENIED),
+            degraded,
+        )
     }
 
     @Test
