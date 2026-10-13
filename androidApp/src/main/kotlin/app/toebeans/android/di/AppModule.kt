@@ -2,7 +2,6 @@ package app.toebeans.android.di
 
 import android.app.AlarmManager
 import android.content.Context
-import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.BuildConfig
 import app.toebeans.android.data.SqliteForeignKeysCallback
@@ -10,14 +9,13 @@ import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
 import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
 import app.toebeans.android.ui.pets.PetEditViewModel
 import app.toebeans.android.ui.pets.PetsViewModel
-import app.toebeans.android.ui.reliability.EXACT_ALARM_PERMISSION_MIN_SDK
-import app.toebeans.android.ui.reliability.ExactAlarmReliability
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.ui.schedule.ScheduleCreateViewModel
 import app.toebeans.android.ui.schedule.ScheduleDetailViewModel
@@ -78,31 +76,20 @@ public val appModule =
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
         single<ScheduleCalculator> { DefaultScheduleCalculator() }
 
-        // Today banner reads this flag. The actuator stays unchanged: we only
-        // register the existing degraded handler so a 10 minute fallback shows
-        // the banner without waiting for the next resume.
-        single {
-            val context = androidContext()
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val sdkInt = Build.VERSION.SDK_INT
-            ExactAlarmReliability(
-                sdkInt = sdkInt,
-                canScheduleExactAlarms = {
-                    sdkInt < EXACT_ALARM_PERMISSION_MIN_SDK || alarmManager.canScheduleExactAlarms()
-                },
-            )
-        }
+        single { ExactAlarmReliability() }
+
         single<NotificationActuator> {
             val context = androidContext()
-            val actuator =
-                AndroidNotificationActuator(
-                    context = context,
-                    alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
-                    notificationManager = NotificationManagerCompat.from(context),
-                    requestCodeAllocator = RequestCodeAllocator.fromContext(context),
-                )
-            actuator.setDegradedHandler(get<ExactAlarmReliability>()::onDegraded)
-            actuator
+            val reliability: ExactAlarmReliability = get()
+            AndroidNotificationActuator(
+                context = context,
+                alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
+                notificationManager = NotificationManagerCompat.from(context),
+                requestCodeAllocator = RequestCodeAllocator.fromContext(context),
+            ).also { actuator ->
+                // Existing signal only. Does not change how the alarm is armed.
+                actuator.setDegradedHandler(reliability::note)
+            }
         }
 
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
@@ -184,6 +171,7 @@ public val appModule =
                 scheduleRepository = get(),
                 doseEventRepository = get(),
                 scheduleCalculator = get(),
+                exactAlarmReliability = get(),
             )
         }
         viewModel {

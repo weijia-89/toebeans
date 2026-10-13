@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.notifications.NotificationDegraded
+import app.toebeans.core.notifications.NotificationOutcome
 import app.toebeans.core.notifications.ScheduledReminder
 
 /**
@@ -50,12 +51,10 @@ import app.toebeans.core.notifications.ScheduledReminder
  *  - API 33+: `USE_EXACT_ALARM` is auto-granted and non-revocable for qualifying apps
  *    (medication reminders qualify per Google Play policy). [canScheduleExactAlarms]
  *    returns true automatically; the setWindow fallback is unreachable.
- *  - On API 33+, `POST_NOTIFICATIONS` requires runtime grant. If not granted, [show] is a
- *    silent no-op TODAY (slice 1 work item to surface as a UI banner). For the
- *    medication-firing path, this is a SILENT DOSE LOSS hazard: the alarm fires, the
- *    receiver runs, but the user-visible notification never appears. Tracked in
- *    `docs/issues/v0.1-followups.md` under priority "medication-critical". Cross-reference
- *    ADR-0011 (post-notifications denial UX, to be written).
+ *  - On API 33+, `POST_NOTIFICATIONS` requires runtime grant. If notifications are
+ *    off, [show] returns [NotificationOutcome.PermissionDenied] and does not call
+ *    notify (ADR-0011 return value). The denial banner, crash-log marker, and
+ *    notification_audit table are later slices.
  */
 public class AndroidNotificationActuator(
     private val context: Context,
@@ -106,10 +105,9 @@ public class AndroidNotificationActuator(
         requestCodeAllocator.release(reminderId)
     }
 
-    override fun show(reminder: ScheduledReminder) {
+    override fun show(reminder: ScheduledReminder): NotificationOutcome {
         if (!notificationManager.areNotificationsEnabled()) {
-            // Slice 1: hook to UI banner asking the user to grant POST_NOTIFICATIONS.
-            return
+            return NotificationOutcome.PermissionDenied
         }
 
         val notification =
@@ -127,7 +125,9 @@ public class AndroidNotificationActuator(
         // scheduled reminder (returns the same code as schedule()'s PendingIntent) and issues
         // a fresh code for a reminder shown without a prior schedule (e.g. immediate "log
         // dose now" flows in milestone 1.5).
-        notificationManager.notify(requestCodeAllocator.allocate(reminder.id), notification)
+        val notificationId = requestCodeAllocator.allocate(reminder.id)
+        notificationManager.notify(notificationId, notification)
+        return NotificationOutcome.Posted(notificationId)
     }
 
     private fun ensureChannelExists() {

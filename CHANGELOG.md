@@ -8,6 +8,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
+* **Exact-alarm denial banner:** Today shows a non-dismissable banner when
+  exact alarms are denied (ADR-0002). Copy names the 10 minute window.
+  "Open alarm settings" opens the system Alarms and reminders screen.
 * **Style-lab design handoff** (`8531bb8`): `docs/design-handoff/manifest.yaml` with per-screen `androidApp/` Compose paths; `scripts/style_lab_handoff_check.sh` compares Kotlin mtimes to `docs/style-lab/index.html`; Cursor session + pre-write hooks; operator doc `docs/design-handoff.md`. Magic Patterns MCP is denied in-repo (local-only policy).
 
 ### Shipped (Wave 1 merge train, 2026-05-28)
@@ -29,6 +32,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Fixed
 
+* **Notification denial is visible to the caller:** `AndroidNotificationActuator.show()` returns `NotificationOutcome.PermissionDenied` when notifications are off, and does not call `notify`. Success returns `NotificationOutcome.Posted`. Banner, crash log, and `notification_audit` stay later slices (ADR-0011).
 * **ToebeansApp KDoc** (sdk-review F1): startup docs now match AppModule SqlDelight
   DoseEvent DI; removed stale fake-repository wording.
 * **Codereview P4 pass** (F1/F3/F4/F5): `FakeDoseEventRepository` KDoc reflects SqlDelight DI;

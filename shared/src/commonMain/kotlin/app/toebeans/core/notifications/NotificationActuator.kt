@@ -12,6 +12,24 @@ public enum class NotificationDegraded {
 }
 
 /**
+ * What [NotificationActuator.show] did with a reminder.
+ *
+ * ADR-0011 return value. [Failed] is reserved for a later slice that catches
+ * unexpected notify failures. This slice does not swallow those exceptions.
+ */
+public sealed class NotificationOutcome {
+    public data class Posted(
+        val notificationId: Int,
+    ) : NotificationOutcome()
+
+    public data object PermissionDenied : NotificationOutcome()
+
+    public data class Failed(
+        val reason: String,
+    ) : NotificationOutcome()
+}
+
+/**
  * Schedules and surfaces medication-reminder notifications. The KMP interface; platform-specific
  * implementations live in `:androidApp` (and a future iOS source set).
  *
@@ -55,9 +73,13 @@ public interface NotificationActuator {
      *
      * Implementations should populate the notification's content from the current database
      * state (medication name, dose amount, pet name) rather than from the [ScheduledReminder]
-     * captured at scheduling time — the data may have changed.
+     * captured at scheduling time. The data may have changed.
+     *
+     * Returns [NotificationOutcome.PermissionDenied] when notifications are off, and
+     * [NotificationOutcome.Posted] when notify runs. Callers must not treat a quiet
+     * return as delivery.
      */
-    public fun show(reminder: ScheduledReminder)
+    public fun show(reminder: ScheduledReminder): NotificationOutcome
 }
 
 /**
