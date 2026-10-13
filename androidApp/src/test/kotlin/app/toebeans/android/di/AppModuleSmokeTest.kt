@@ -2,7 +2,6 @@ package app.toebeans.android.di
 
 import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
-import app.toebeans.core.notifications.NotificationDegraded
 import app.toebeans.android.ui.medications.MedicationEditViewModel
 import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
@@ -17,6 +16,7 @@ import app.toebeans.android.ui.settings.SettingsViewModel
 import app.toebeans.core.backup.BackupAggregator
 import app.toebeans.core.backup.BackupImporter
 import app.toebeans.core.backup.BackupSerializer
+import app.toebeans.core.notifications.NotificationDegraded
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
