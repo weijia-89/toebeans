@@ -68,7 +68,19 @@ public class HomeViewModel(
     scheduleRepository: ScheduleRepository,
     private val doseEventRepository: DoseEventRepository,
     private val scheduleCalculator: ScheduleCalculator,
+    private val exactAlarmReliability: ExactAlarmReliability,
 ) : ViewModel() {
+    /**
+     * ADR-0002 downgraded-reliability flag. Separate from [uiState] so a
+     * permission change does not wait on the pet and dose flows.
+     */
+    public val exactAlarmDenied: StateFlow<Boolean> = exactAlarmReliability.exactAlarmDenied
+
+    /** Foreground read. [setDenied] replaces the last actuator signal. */
+    public fun refreshExactAlarmDenied(denied: Boolean) {
+        exactAlarmReliability.setDenied(denied)
+    }
+
     private val filterPetId = MutableStateFlow<String?>(null)
 
     public val uiState: StateFlow<HomeUiState> =

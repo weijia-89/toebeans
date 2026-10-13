@@ -8,6 +8,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
+* **Exact-alarm denial banner:** Today shows a non-dismissable banner when
+  exact alarms are denied (ADR-0002). Copy names the 10 minute window.
+  "Open alarm settings" opens the system Alarms and reminders screen.
 * **Style-lab design handoff** (`8531bb8`): `docs/design-handoff/manifest.yaml` with per-screen `androidApp/` Compose paths; `scripts/style_lab_handoff_check.sh` compares Kotlin mtimes to `docs/style-lab/index.html`; Cursor session + pre-write hooks; operator doc `docs/design-handoff.md`. Magic Patterns MCP is denied in-repo (local-only policy).
 
 ### Shipped (Wave 1 merge train, 2026-05-28)
