@@ -71,6 +71,21 @@ public class LocalCrashLog internal constructor(
         previous?.uncaughtException(thread, throwable)
     }
 
+    /**
+     * One line that is not a crash. Used when a dose alarm fires and
+     * notifications are off. The caller supplies the text. This class does
+     * not read pets, medications, or dose rows.
+     */
+    public fun appendLine(line: String) {
+        try {
+            if (!logDir.exists()) logDir.mkdirs()
+            rotateIfNeeded()
+            primary.appendText(line.trimEnd() + "\n")
+        } catch (_: Throwable) {
+            // A log write must not take down the alarm receiver.
+        }
+    }
+
     private fun writeRecord(
         thread: Thread,
         throwable: Throwable,
@@ -119,5 +134,13 @@ public class LocalCrashLog internal constructor(
             context: Context,
             buildVersionName: String,
         ): LocalCrashLog = LocalCrashLog(logDir = context.filesDir, buildVersionName = buildVersionName)
+
+        /** Append one non-crash line under the app's private filesDir. */
+        public fun appendLine(
+            context: Context,
+            line: String,
+        ) {
+            LocalCrashLog(logDir = context.filesDir, buildVersionName = "").appendLine(line)
+        }
     }
 }

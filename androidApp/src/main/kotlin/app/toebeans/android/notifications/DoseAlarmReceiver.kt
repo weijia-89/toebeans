@@ -6,7 +6,9 @@ import android.content.Intent
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.ToebeansApp
+import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.core.data.SqlDelightDoseEventRepository
+import app.toebeans.core.notifications.NotificationOutcome
 import app.toebeans.core.notifications.ReminderLookup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
@@ -23,6 +25,8 @@ import kotlinx.datetime.Instant
  *  2. [ReminderLookup.lookup] re-fetches authoritative reminder data from SQLDelight.
  *  3. We stamp [DoseEvent.fired_at] in SQLDelight (ADR-0011 write-before-show).
  *  4. We delegate to [AndroidNotificationActuator.show], which populates the visible notification.
+ *  5. If show returns [NotificationOutcome.PermissionDenied], we append
+ *     [POST_NOTIFICATIONS_DENIED_AT_FIRE] and the reminder id to the local crash log.
  */
 public class DoseAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -41,6 +45,8 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
     }
 
     public companion object {
+        public const val POST_NOTIFICATIONS_DENIED_AT_FIRE: String = "POST_NOTIFICATIONS_DENIED_AT_FIRE"
+
         /**
          * Test seam for [ReminderLookup]. Production uses [defaultReminderLookup] when null.
          */
@@ -91,7 +97,13 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
             }
             markDoseEventFired(context, reminderId)
             beforeShowHook?.invoke()
-            notificationActuatorFor(context).show(reminder)
+            val outcome = notificationActuatorFor(context).show(reminder)
+            if (outcome == NotificationOutcome.PermissionDenied) {
+                LocalCrashLog.appendLine(
+                    context,
+                    "$POST_NOTIFICATIONS_DENIED_AT_FIRE reminder_id=$reminderId",
+                )
+            }
         }
 
         internal fun markDoseEventFired(

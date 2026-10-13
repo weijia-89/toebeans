@@ -17,7 +17,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import java.io.File
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * Test-as-spec for [DoseAlarmReceiver] reminder lookup (M1 ROADMAP item 4).
@@ -37,8 +37,8 @@ import org.robolectric.annotation.Config
  * - Discontinued / archived chain: [ReminderLookup] returns null → same cancel path; no
  *   [DoseEvent.fired_at] stamp (ADR-0011).
  *
- * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. Permission-denial
- * [AndroidNotificationActuator.show] outcomes and LocalCrashLog markers are a follow-on slice.
+ * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. A denied
+ * show appends [DoseAlarmReceiver.POST_NOTIFICATIONS_DENIED_AT_FIRE] to the crash log.
  *
  * Per AGENTS.md vibe-dangerous protocol: human review of assertions before extending coverage.
  */
