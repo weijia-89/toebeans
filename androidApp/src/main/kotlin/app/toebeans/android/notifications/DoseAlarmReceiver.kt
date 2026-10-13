@@ -97,7 +97,7 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
             }
             markDoseEventFired(context, reminderId)
             beforeShowHook?.invoke()
-            when (val outcome = notificationActuatorFor(context).show(reminder)) {
+            when (notificationActuatorFor(context).show(reminder)) {
                 is NotificationOutcome.Posted -> {
                     val database = ToebeansApp.openReceiverDatabase(context)
                     database.notificationAuditQueries.recordDelivery(

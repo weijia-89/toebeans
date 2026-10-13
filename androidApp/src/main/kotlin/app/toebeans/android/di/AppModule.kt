@@ -38,7 +38,6 @@ import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.NotificationActuator
-import app.toebeans.core.notifications.UndeliveredDoseAlarmQuery
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.Dispatchers
@@ -78,13 +77,6 @@ public val appModule =
         single<ScheduleCalculator> { DefaultScheduleCalculator() }
 
         single { ExactAlarmReliability() }
-
-        single<UndeliveredDoseAlarmQuery> {
-            val database: ToebeansDatabase = get()
-            UndeliveredDoseAlarmQuery {
-                database.notificationAuditQueries.countUndeliveredInLatestTen().executeAsOne() > 0
-            }
-        }
 
         single<NotificationActuator> {
             val context = androidContext()
@@ -180,7 +172,6 @@ public val appModule =
                 doseEventRepository = get(),
                 scheduleCalculator = get(),
                 exactAlarmReliability = get(),
-                undeliveredDoseAlarmQuery = get(),
             )
         }
         viewModel {

@@ -19,8 +19,3 @@ public data class RecentDoseDelivery(
 
 public fun notificationDenialBannerVisible(recent: List<RecentDoseDelivery>): Boolean =
     recent.take(10).any { it.fired && !it.delivered }
-
-/** Reads whether the Today banner should show. The Android module binds SQLDelight. */
-public fun interface UndeliveredDoseAlarmQuery {
-    public fun hasUndeliveredFiredDose(): Boolean
-}
