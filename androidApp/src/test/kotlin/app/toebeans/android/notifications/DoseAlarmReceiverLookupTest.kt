@@ -13,8 +13,10 @@ import app.toebeans.core.notifications.ScheduledReminder
 import kotlinx.datetime.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * Test-as-spec for [DoseAlarmReceiver] reminder lookup (M1 ROADMAP item 4).
@@ -34,8 +37,8 @@ import org.robolectric.annotation.Config
  * - Discontinued / archived chain: [ReminderLookup] returns null → same cancel path; no
  *   [DoseEvent.fired_at] stamp (ADR-0011).
  *
- * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. Permission-denial
- * [AndroidNotificationActuator.show] outcomes and LocalCrashLog markers are a follow-on slice.
+ * **ADR-0011:** `DoseEvent.fired_at` write-before-show is asserted here. A denied
+ * show appends [DoseAlarmReceiver.POST_NOTIFICATIONS_DENIED_AT_FIRE] to the crash log.
  *
  * Per AGENTS.md vibe-dangerous protocol: human review of assertions before extending coverage.
  */
@@ -80,6 +83,8 @@ class DoseAlarmReceiverLookupTest {
         DoseAlarmReceiver.beforeShowHook = null
         ToebeansApp.resetReceiverDatabaseCacheForTests()
         context.deleteDatabase(dbName)
+        shadowOf(systemNotificationManager).setNotificationsEnabled(true)
+        File(context.filesDir, "crash.log").delete()
     }
 
     @Test
@@ -105,6 +110,51 @@ class DoseAlarmReceiverLookupTest {
             AndroidNotificationActuator.CHANNEL_ID_MEDICATION_CRITICAL,
             active[0].notification.channelId,
         )
+    }
+
+    @Test
+    fun `notifications off writes POST_NOTIFICATIONS_DENIED_AT_FIRE and does not notify`() {
+        val reminderId = "evt-denied-notify"
+        val fired = mutableListOf<String>()
+        DoseAlarmReceiver.firedAtWriterOverride = { id, _ -> fired += id }
+        DoseAlarmReceiver.lookupOverride =
+            object : ReminderLookup {
+                override fun lookup(id: String): ScheduledReminder =
+                    ScheduledReminder(
+                        id = reminderId,
+                        scheduleId = "sched-1",
+                        scheduledAt = Instant.parse("2026-05-23T08:00:00Z"),
+                        medicationName = "Methimazole",
+                        petName = "Luna",
+                    )
+            }
+        shadowOf(systemNotificationManager).setNotificationsEnabled(false)
+        val logFile = File(context.filesDir, "crash.log")
+        logFile.delete()
+
+        dispatchDoseFire(reminderId)
+
+        assertEquals(
+            "fired_at is written before show, even when notifications are off",
+            listOf(reminderId),
+            fired,
+        )
+        assertEquals(
+            "denied notifications must not call notify",
+            0,
+            shadowOf(systemNotificationManager).activeNotifications.size,
+        )
+        val text = if (logFile.exists()) logFile.readText() else ""
+        assertTrue(
+            "crash log must contain the denial marker",
+            text.contains("POST_NOTIFICATIONS_DENIED_AT_FIRE"),
+        )
+        assertTrue(
+            "crash log must contain the reminder id",
+            text.contains(reminderId),
+        )
+        assertFalse("crash log must not contain the medication name", text.contains("Methimazole"))
+        assertFalse("crash log must not contain the pet name", text.contains("Luna"))
     }
 
     @Test
