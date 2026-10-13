@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.NotificationDegraded
 import app.toebeans.core.notifications.ScheduledReminder
 
 /**
@@ -44,7 +45,8 @@ import app.toebeans.core.notifications.ScheduledReminder
  *  - API 24-30: setExactAndAllowWhileIdle works without an explicit alarm permission.
  *  - API 31-32: `SCHEDULE_EXACT_ALARM` is required. [AlarmManager.canScheduleExactAlarms]
  *    returns false if the user has not granted it; we fall back to `setWindow` with a
- *    60-second window. (USE_EXACT_ALARM does not exist on these API levels.)
+ *    10-minute window (ADR-0002) and raise [NotificationDegraded.EXACT_ALARM_DENIED].
+ *    (USE_EXACT_ALARM does not exist on these API levels.)
  *  - API 33+: `USE_EXACT_ALARM` is auto-granted and non-revocable for qualifying apps
  *    (medication reminders qualify per Google Play policy). [canScheduleExactAlarms]
  *    returns true automatically; the setWindow fallback is unreachable.
@@ -61,8 +63,13 @@ public class AndroidNotificationActuator(
     private val notificationManager: NotificationManagerCompat,
     private val requestCodeAllocator: RequestCodeAllocator,
 ) : NotificationActuator {
+    private var degradedHandler: ((NotificationDegraded) -> Unit)? = null
     init {
         ensureChannelExists()
+    }
+
+    override fun setDegradedHandler(handler: ((NotificationDegraded) -> Unit)?) {
+        degradedHandler = handler
     }
 
     override fun schedule(reminder: ScheduledReminder) {
@@ -70,14 +77,15 @@ public class AndroidNotificationActuator(
         val triggerAtMillis = reminder.scheduledAt.toEpochMilliseconds()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            // Graceful degrade: the user has not granted SCHEDULE_EXACT_ALARM. Fall back to a
-            // window-based alarm. Slice 1 work item: surface a banner asking the user to grant it.
+            // ADR-0002: exact-alarm denial degrades to a 10 minute window and a signal.
+            // The downgraded-reliability banner is a later UI slice.
             alarmManager.setWindow(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,
                 FALLBACK_WINDOW_MILLIS,
                 pendingIntent,
             )
+            degradedHandler?.invoke(NotificationDegraded.EXACT_ALARM_DENIED)
         } else {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
@@ -156,6 +164,6 @@ public class AndroidNotificationActuator(
         public const val CHANNEL_ID_MEDICATION_CRITICAL: String = "medication-critical"
         public const val ACTION_DOSE_FIRE: String = "app.toebeans.action.DOSE_FIRE"
         public const val EXTRA_REMINDER_ID: String = "app.toebeans.extra.REMINDER_ID"
-        public const val FALLBACK_WINDOW_MILLIS: Long = 60_000L
+        public const val FALLBACK_WINDOW_MILLIS: Long = 10 * 60 * 1000L
     }
 }

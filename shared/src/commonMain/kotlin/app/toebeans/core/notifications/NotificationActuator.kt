@@ -16,14 +16,14 @@ import kotlinx.datetime.Instant
  *    on a device whose battery optimization is disabled for toebeans (the documented user
  *    instruction). Implementations are free to fall back to less-exact APIs when the user
  *    has denied the `SCHEDULE_EXACT_ALARM` permission, but MUST raise a [NotificationDegraded]
- *    callback (TBD slice 1) so the UI can surface a warning.
+ *    callback so the UI can surface a warning.
  *  - **No payload.** The reminder content is built at fire-time from the database, not embedded
  *    in the alarm intent. This avoids stale data and keeps the on-disk PendingIntent small.
  */
 /**
  * Why [NotificationActuator.schedule] did not arm an exact alarm.
  *
- * Named by the interface contract. The Android actuator does not raise this yet.
+ * Named by the interface contract. Android raises [EXACT_ALARM_DENIED] on the fallback path.
  */
 public enum class NotificationDegraded {
     EXACT_ALARM_DENIED,
