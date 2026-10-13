@@ -64,6 +64,7 @@ public class AndroidNotificationActuator(
     private val requestCodeAllocator: RequestCodeAllocator,
 ) : NotificationActuator {
     private var degradedHandler: ((NotificationDegraded) -> Unit)? = null
+
     init {
         ensureChannelExists()
     }
