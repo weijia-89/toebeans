@@ -26,10 +26,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -38,6 +40,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
@@ -83,8 +88,23 @@ public fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, context) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.refreshExactAlarmDenied(readExactAlarmDenied(context))
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     HomeScreenContent(
         state = state,
+        exactAlarmDenied = exactAlarmDenied,
+        onOpenAlarmSettings = { openExactAlarmSettings(context) },
         onAddPet = onAddPet,
         onAddReminder = onAddReminder,
         onPetFilterSelect = viewModel::selectPetFilter,
@@ -105,22 +125,32 @@ private fun HomeScreenContent(
     onClearPetFilter: () -> Unit,
     onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
+    exactAlarmDenied: Boolean = false,
+    onOpenAlarmSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     if (state.pets.isEmpty() && !state.loading) {
-        EmptyState(
-            emoji = "🐾",
-            title = "No pets yet",
-            // The original "No doses scheduled" framing was confusing when the user
-            // had no pets at all — it implied dose-scheduling was the missing step
-            // when really the missing step was pet entry. Now the empty-state CTA
-            // matches the actual blocking action.
-            body = "Add Rufus, Luna, or whoever you share toe beans with to get started.",
-            primaryActionLabel = "Add pet",
-            onPrimaryAction = onAddPet,
-            modifier = modifier.padding(contentPadding),
-        )
+        Column(modifier = modifier.fillMaxSize().padding(contentPadding)) {
+            if (exactAlarmDenied) {
+                ExactAlarmDeniedBanner(
+                    onOpenAlarmSettings = onOpenAlarmSettings,
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                )
+            }
+            EmptyState(
+                emoji = "🐾",
+                title = "No pets yet",
+                // The original "No doses scheduled" framing was confusing when the user
+                // had no pets at all — it implied dose-scheduling was the missing step
+                // when really the missing step was pet entry. Now the empty-state CTA
+                // matches the actual blocking action.
+                body = "Add Rufus, Luna, or whoever you share toe beans with to get started.",
+                primaryActionLabel = "Add pet",
+                onPrimaryAction = onAddPet,
+                modifier = Modifier.weight(1f),
+            )
+        }
         return
     }
     // Compute date string once per parent composition. The day-rollover-at-midnight
@@ -156,6 +186,11 @@ private fun HomeScreenContent(
             contentPadding = listContentPadding,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (exactAlarmDenied) {
+                item(key = "exact_alarm_denied") {
+                    ExactAlarmDeniedBanner(onOpenAlarmSettings = onOpenAlarmSettings)
+                }
+            }
             val filterActive = state.filterPetId != null
             item(key = "today_header") {
                 Column(

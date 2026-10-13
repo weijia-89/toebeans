@@ -1,6 +1,8 @@
 package app.toebeans.android.di
 
+import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
+import app.toebeans.core.notifications.NotificationDegraded
 import app.toebeans.android.ui.medications.MedicationEditViewModel
 import app.toebeans.android.ui.medications.UnifiedMedicationViewModel
 import app.toebeans.android.ui.pets.PetDetailViewModel
@@ -16,7 +18,9 @@ import app.toebeans.core.backup.BackupAggregator
 import app.toebeans.core.backup.BackupImporter
 import app.toebeans.core.backup.BackupSerializer
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -75,5 +79,16 @@ class AppModuleSmokeTest {
         assertNotNull(getKoin().get<BackupSerializer>())
         assertNotNull(getKoin().get<BackupAggregator>())
         assertNotNull(getKoin().get<BackupImporter>())
+
+        val home = getKoin().get<HomeViewModel>()
+        val reliability = getKoin().get<ExactAlarmReliability>()
+        assertFalse(home.exactAlarmDenied.value)
+        reliability.note(NotificationDegraded.EXACT_ALARM_DENIED)
+        assertTrue(
+            "Today must see the actuator exact-alarm denial signal",
+            home.exactAlarmDenied.value,
+        )
+        reliability.setDenied(false)
+        assertFalse(home.exactAlarmDenied.value)
     }
 }

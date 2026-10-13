@@ -34,6 +34,10 @@ No style-lab or sign-off build-out required.
 
 Post-sign-off theme PR does **not** need to change this behavior unless product direction changes.
 
+## Exact-alarm banner (2026-10-13)
+
+Today shows a tertiaryContainer banner when exact alarms are denied. Same sage family as the night-dose warning. No new color pack. The lab mock sits above the Today rows.
+
 ## Variants not chosen
 
 | Pack | Notes |

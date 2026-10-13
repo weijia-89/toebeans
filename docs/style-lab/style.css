@@ -70,5 +70,10 @@ main { padding: 1.25rem; max-width: 900px; margin: 0 auto; }
   font-size: 0.8rem;
 }
 .given { color: var(--given); font-weight: 500; }
+.reliability {
+  background: #e5efe2;
+  color: #243024;
+}
+.reliability p { margin: 0 0 0.5rem; }
 h1 { font-size: 1.25rem; font-weight: 500; }
 h2 { font-size: 0.9rem; color: #c9b6a4; margin: 1.5rem 0 0.5rem; }
