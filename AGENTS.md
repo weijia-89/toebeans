@@ -101,6 +101,33 @@ Test plan lists **commands to run**, not command output. Use checklist items (`-
 
 **Never paste terminal output** (verify, gradle, flutter test) into the PR body. `scripts/pr_body_validate.sh` rejects log dumps; CI `pr-body-lint` re-checks on every PR edit.
 
+## Manual QA catalog
+
+When a pull request test plan includes a manual case, add that case in the same change.
+
+A manual case names steps and an expected result. A device step that was not run stays unchecked (`- [ ]`). It still needs a case file. A checklist line that only runs Gradle, `bash scripts/`, git, or another automated command is not a manual case, even if the line says what the command should print.
+
+Write the case in the test plan like this:
+
+```
+### Short title
+
+Catalog: docs/manual-qa/cases/<slug>.md
+
+Steps:
+1. What the person does on the device.
+
+Expected result:
+What they should see.
+```
+
+In that same change:
+
+1. Add `docs/manual-qa/cases/<slug>.md` with `## Steps` and `## Expected result`.
+2. Link that file from `docs/manual-qa.md`.
+
+`scripts/test_manual_qa_catalog.sh` fails when a manual case is missing from the catalog or the index does not link it. `scripts/test_test_manual_qa_catalog.sh` is the fixture self-test. `scripts/ci_pr_body_lint.sh` runs the check on the pull request description.
+
 ## Confidence-score rule
 
 Apply [`code-helper` §5](https://github.com/wei/code-helper.skill) to every change. Components:
@@ -151,6 +178,8 @@ See `.github/workflows/ci.yml`. The six gates:
 4. **Permission whitelist**: fail if AndroidManifest declares a permission not on the allowlist above.
 5. **No-PII-in-crash-log**: fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009). Enforces the no-PII claim mechanically rather than by reviewer attention.
 6. **Scheduler test coverage**: fail if `shared/.../scheduler/` line coverage < 85% (Kover-enforced).
+
+Manual QA catalog: `scripts/test_manual_qa_catalog.sh` fails when a test-plan manual case is missing from `docs/manual-qa/cases/` or is not linked from `docs/manual-qa.md`. Automated-only command lines are not manual cases. The self-test is `scripts/test_test_manual_qa_catalog.sh`.
 
 ## Hallucination vigilance
 
