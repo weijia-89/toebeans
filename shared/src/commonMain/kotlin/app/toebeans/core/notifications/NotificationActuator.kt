@@ -3,6 +3,15 @@ package app.toebeans.core.notifications
 import kotlinx.datetime.Instant
 
 /**
+ * Why [NotificationActuator.schedule] did not arm an exact alarm.
+ *
+ * Android raises [EXACT_ALARM_DENIED] on the fallback path.
+ */
+public enum class NotificationDegraded {
+    EXACT_ALARM_DENIED,
+}
+
+/**
  * Schedules and surfaces medication-reminder notifications. The KMP interface; platform-specific
  * implementations live in `:androidApp` (and a future iOS source set).
  *
@@ -20,15 +29,6 @@ import kotlinx.datetime.Instant
  *  - **No payload.** The reminder content is built at fire-time from the database, not embedded
  *    in the alarm intent. This avoids stale data and keeps the on-disk PendingIntent small.
  */
-/**
- * Why [NotificationActuator.schedule] did not arm an exact alarm.
- *
- * Named by the interface contract. Android raises [EXACT_ALARM_DENIED] on the fallback path.
- */
-public enum class NotificationDegraded {
-    EXACT_ALARM_DENIED,
-}
-
 public interface NotificationActuator {
     /**
      * Schedule a reminder. Replaces any prior reminder with the same [ScheduledReminder.id].
@@ -38,7 +38,7 @@ public interface NotificationActuator {
     /**
      * Receives [NotificationDegraded] when [schedule] falls back from an exact alarm.
      *
-     * Default ignores the handler. The platform actuator must override this and invoke the
+     * Default ignores the handler. The Android actuator overrides this and invokes the
      * handler on the fallback path.
      */
     public fun setDegradedHandler(handler: ((NotificationDegraded) -> Unit)?) {
