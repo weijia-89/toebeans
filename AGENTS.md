@@ -181,6 +181,8 @@ See `.github/workflows/ci.yml`. The six gates:
 
 Manual QA catalog: `scripts/test_manual_qa_catalog.sh` fails when a test-plan manual case is missing from `docs/manual-qa/cases/` or is not linked from `docs/manual-qa.md`. Automated-only command lines are not manual cases. The self-test is `scripts/test_test_manual_qa_catalog.sh`.
 
+POST_NOTIFICATIONS silent notify: `scripts/test_post_notifications_silent_failure_guard.sh` fails if `AndroidNotificationActuator.kt` calls `.notify(` before `areNotificationsEnabled()` (ADR-0011). The self-test is `scripts/test_test_post_notifications_silent_failure_guard.sh`.
+
 ## Hallucination vigilance
 
 Per [`code-helper` §1](https://github.com/wei/code-helper.skill) and Spracklen et al. (USENIX 2025), LLMs hallucinate package names at 5–22% rates. Before adding any import:

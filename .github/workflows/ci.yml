@@ -28,6 +28,10 @@ jobs:
         run: bash scripts/test_permission_allowlist.sh .
       - name: No-PII-in-crash-log gate (ADR-0009)
         run: bash scripts/test_no_pii_in_crash_log.sh .
+      - name: POST_NOTIFICATIONS silent-notify gate (ADR-0011)
+        run: bash scripts/test_post_notifications_silent_failure_guard.sh .
+      - name: POST_NOTIFICATIONS silent-notify self-test
+        run: bash scripts/test_test_post_notifications_silent_failure_guard.sh .
       - name: No-PBKDF2-in-backup-after-TBN2 gate (ADR-0018)
         # The script is gated on TBN2 presence in the source tree. Pre-D1 the
         # script no-ops with an info message; post-D1 (TBN2 envelope live in

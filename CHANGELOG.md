@@ -32,6 +32,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Fixed
 
+* **Silent notify gate:** CI fails if `AndroidNotificationActuator.kt` calls `.notify(` before `areNotificationsEnabled()` (ADR-0011).
 * **First launch asks for notifications:** on API 33 the welcome dialog requests `POST_NOTIFICATIONS` before it closes. A denial shows "Notifications are off, so a dose alarm will not show. Tap to fix in Settings." on Today. A grant does not show that line.
 * **Today banner when a fired dose was not delivered:** if one of the latest ten dose rows has `fired_at` and no `NotificationAudit` row, Today shows the ADR-0011 sentence. A tap opens notification settings. A successful `notify` writes the audit row. History-tab copy is not in this slice.
 * **Denied dose alarms leave a crash-log line:** when notifications are off, `DoseAlarmReceiver` still writes `fired_at` and appends `POST_NOTIFICATIONS_DENIED_AT_FIRE` plus the reminder id. Pet and medication names stay out of the log.
