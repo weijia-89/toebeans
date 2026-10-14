@@ -44,9 +44,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeCompact
+import app.toebeans.android.ui.firstlaunch.FIRST_RUN_NOTIFICATION_DENIAL_COPY
 import app.toebeans.android.ui.pets.formatTimeAgo
 import app.toebeans.android.ui.reminders.ReminderAddAction
 import app.toebeans.android.ui.reminders.buttonLabel
@@ -54,6 +56,7 @@ import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
 import app.toebeans.core.model.formatDose
+import app.toebeans.core.notifications.NOTIFICATION_DENIAL_BANNER_COPY
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -61,6 +64,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 /**
  * Home / Today screen. Shows the user's tracked pets as tappable chips and today's
@@ -90,6 +94,8 @@ public fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
     val notificationDenial by viewModel.notificationDenialBanner.collectAsStateWithLifecycle()
+    val firstLaunchPrefs: FirstLaunchPreferences = koinInject()
+    val firstRunNotificationOff by firstLaunchPrefs.notificationDeniedAtFirstLaunch.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
@@ -108,6 +114,7 @@ public fun HomeScreen(
         exactAlarmDenied = exactAlarmDenied,
         onOpenAlarmSettings = { openExactAlarmSettings(context) },
         notificationDenial = notificationDenial,
+        firstRunNotificationOff = firstRunNotificationOff && !notificationDenial,
         onOpenNotificationSettings = { openNotificationSettings(context) },
         onAddPet = onAddPet,
         onAddReminder = onAddReminder,
@@ -117,6 +124,21 @@ public fun HomeScreen(
         onMarkGiven = viewModel::markGiven,
         modifier = modifier,
         contentPadding = contentPadding,
+    )
+}
+
+@Composable
+private fun TodayNotificationDenialBanner(
+    notificationDenial: Boolean,
+    firstRunNotificationOff: Boolean,
+    onOpenNotificationSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (!notificationDenial && !firstRunNotificationOff) return
+    NotificationDenialBanner(
+        onOpenNotificationSettings = onOpenNotificationSettings,
+        copy = if (notificationDenial) NOTIFICATION_DENIAL_BANNER_COPY else FIRST_RUN_NOTIFICATION_DENIAL_COPY,
+        modifier = modifier,
     )
 }
 
@@ -132,6 +154,7 @@ private fun HomeScreenContent(
     exactAlarmDenied: Boolean = false,
     onOpenAlarmSettings: () -> Unit = {},
     notificationDenial: Boolean = false,
+    firstRunNotificationOff: Boolean = false,
     onOpenNotificationSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -144,12 +167,12 @@ private fun HomeScreenContent(
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
                 )
             }
-            if (notificationDenial) {
-                NotificationDenialBanner(
-                    onOpenNotificationSettings = onOpenNotificationSettings,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
-                )
-            }
+            TodayNotificationDenialBanner(
+                notificationDenial = notificationDenial,
+                firstRunNotificationOff = firstRunNotificationOff,
+                onOpenNotificationSettings = onOpenNotificationSettings,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+            )
             EmptyState(
                 emoji = "🐾",
                 title = "No pets yet",
@@ -203,9 +226,13 @@ private fun HomeScreenContent(
                     ExactAlarmDeniedBanner(onOpenAlarmSettings = onOpenAlarmSettings)
                 }
             }
-            if (notificationDenial) {
+            if (notificationDenial || firstRunNotificationOff) {
                 item(key = "notification_denial") {
-                    NotificationDenialBanner(onOpenNotificationSettings = onOpenNotificationSettings)
+                    TodayNotificationDenialBanner(
+                        notificationDenial = notificationDenial,
+                        firstRunNotificationOff = firstRunNotificationOff,
+                        onOpenNotificationSettings = onOpenNotificationSettings,
+                    )
                 }
             }
             val filterActive = state.filterPetId != null

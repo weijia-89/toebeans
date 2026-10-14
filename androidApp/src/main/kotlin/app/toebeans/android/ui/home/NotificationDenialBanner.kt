@@ -28,6 +28,7 @@ import app.toebeans.core.notifications.NOTIFICATION_DENIAL_BANNER_COPY
 public fun NotificationDenialBanner(
     onOpenNotificationSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    copy: String = NOTIFICATION_DENIAL_BANNER_COPY,
 ) {
     Surface(
         modifier =
@@ -39,14 +40,14 @@ public fun NotificationDenialBanner(
         shape = MaterialTheme.shapes.medium,
     ) {
         Text(
-            text = NOTIFICATION_DENIAL_BANNER_COPY,
+            text = copy,
             style = MaterialTheme.typography.bodyMedium,
             modifier =
                 Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .clearAndSetSemantics {
                         liveRegion = LiveRegionMode.Polite
-                        contentDescription = "Warning: $NOTIFICATION_DENIAL_BANNER_COPY"
+                        contentDescription = "Warning: $copy"
                     },
         )
     }

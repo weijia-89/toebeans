@@ -29,6 +29,8 @@ public class FirstLaunchPreferences(
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _firstLaunchSeen = MutableStateFlow(prefs.getBoolean(KEY_FIRST_LAUNCH_SEEN, false))
+    private val _notificationDeniedAtFirstLaunch =
+        MutableStateFlow(prefs.getBoolean(KEY_NOTIFICATION_DENIED, false))
 
     /**
      * True once the user has acknowledged the first-launch dialog (whichever button they
@@ -37,10 +39,22 @@ public class FirstLaunchPreferences(
      */
     public val firstLaunchSeen: StateFlow<Boolean> = _firstLaunchSeen.asStateFlow()
 
+    /**
+     * True when the first-launch notification request was denied. Today uses
+     * this to show the first-run banner before any dose has fired.
+     */
+    public val notificationDeniedAtFirstLaunch: StateFlow<Boolean> =
+        _notificationDeniedAtFirstLaunch.asStateFlow()
+
     /** Idempotent; safe to call from either dialog button or after demo seeding. */
     public fun markSeen() {
         prefs.edit().putBoolean(KEY_FIRST_LAUNCH_SEEN, true).apply()
         _firstLaunchSeen.value = true
+    }
+
+    public fun markNotificationDeniedAtFirstLaunch() {
+        prefs.edit().putBoolean(KEY_NOTIFICATION_DENIED, true).apply()
+        _notificationDeniedAtFirstLaunch.value = true
     }
 
     /**
@@ -50,12 +64,14 @@ public class FirstLaunchPreferences(
      * is a soak-test annoyance).
      */
     internal fun resetForTest() {
-        prefs.edit().putBoolean(KEY_FIRST_LAUNCH_SEEN, false).commit()
+        prefs.edit().clear().commit()
         _firstLaunchSeen.value = false
+        _notificationDeniedAtFirstLaunch.value = false
     }
 
     private companion object {
         const val PREFS_NAME = "toebeans_first_launch_prefs"
         const val KEY_FIRST_LAUNCH_SEEN = "first_launch_seen"
+        const val KEY_NOTIFICATION_DENIED = "notification_denied_at_first_launch"
     }
 }
