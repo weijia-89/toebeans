@@ -32,7 +32,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Fixed
 
-* **Denied dose alarms leave a crash-log line:** when notifications are off, `DoseAlarmReceiver` still writes `fired_at` and appends `POST_NOTIFICATIONS_DENIED_AT_FIRE` plus the reminder id. Pet and medication names stay out of the log. No banner and no `notification_audit` table in this slice.
+* **Today banner when a fired dose was not delivered:** if one of the latest ten dose rows has `fired_at` and no `NotificationAudit` row, Today shows the ADR-0011 sentence. A tap opens notification settings. A successful `notify` writes the audit row. History-tab copy is not in this slice.
+* **Denied dose alarms leave a crash-log line:** when notifications are off, `DoseAlarmReceiver` still writes `fired_at` and appends `POST_NOTIFICATIONS_DENIED_AT_FIRE` plus the reminder id. Pet and medication names stay out of the log.
 * **Notification denial is visible to the caller:** `AndroidNotificationActuator.show()` returns `NotificationOutcome.PermissionDenied` when notifications are off, and does not call `notify`. Success returns `NotificationOutcome.Posted`.
 * **ToebeansApp KDoc** (sdk-review F1): startup docs now match AppModule SqlDelight
   DoseEvent DI; removed stale fake-repository wording.

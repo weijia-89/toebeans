@@ -170,4 +170,10 @@ public interface DoseEventRepository {
      * @return count of rows transitioned to MISSED.
      */
     public suspend fun markStalePendingAsMissed(cutoff: Instant): Int
+
+    /**
+     * True when one of the latest ten dose rows fired and has no delivery record.
+     * Fakes return false. SQLDelight reads NotificationAudit.
+     */
+    public fun hasUndeliveredFiredDose(): Boolean = false
 }

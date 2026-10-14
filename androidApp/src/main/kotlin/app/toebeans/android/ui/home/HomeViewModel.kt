@@ -81,6 +81,15 @@ public class HomeViewModel(
         exactAlarmReliability.setDenied(denied)
     }
 
+    private val _notificationDenialBanner = MutableStateFlow(false)
+
+    /** ADR-0011. True when one of the latest ten fired doses has no delivery row. */
+    public val notificationDenialBanner: StateFlow<Boolean> = _notificationDenialBanner
+
+    public fun refreshNotificationDenial() {
+        _notificationDenialBanner.value = doseEventRepository.hasUndeliveredFiredDose()
+    }
+
     private val filterPetId = MutableStateFlow<String?>(null)
 
     public val uiState: StateFlow<HomeUiState> =

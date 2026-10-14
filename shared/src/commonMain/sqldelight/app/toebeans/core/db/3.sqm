@@ -1,0 +1,10 @@
+-- Migration 3 to 4: notification delivery rows for the ADR-0011 Today banner.
+--
+-- Fresh installs get the table from NotificationAudit.sq. This file upgrades
+-- databases that already exist.
+
+CREATE TABLE NotificationAudit (
+    dose_event_id TEXT NOT NULL PRIMARY KEY,
+    delivered_at INTEGER NOT NULL,
+    FOREIGN KEY (dose_event_id) REFERENCES DoseEvent(id) ON DELETE CASCADE
+);

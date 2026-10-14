@@ -97,12 +97,21 @@ public class DoseAlarmReceiver : BroadcastReceiver() {
             }
             markDoseEventFired(context, reminderId)
             beforeShowHook?.invoke()
-            val outcome = notificationActuatorFor(context).show(reminder)
-            if (outcome == NotificationOutcome.PermissionDenied) {
-                LocalCrashLog.appendLine(
-                    context,
-                    "$POST_NOTIFICATIONS_DENIED_AT_FIRE reminder_id=$reminderId",
-                )
+            when (notificationActuatorFor(context).show(reminder)) {
+                is NotificationOutcome.Posted -> {
+                    val database = ToebeansApp.openReceiverDatabase(context)
+                    database.notificationAuditQueries.recordDelivery(
+                        id = reminderId,
+                        deliveredAt = Clock.System.now().toEpochMilliseconds(),
+                    )
+                }
+                NotificationOutcome.PermissionDenied -> {
+                    LocalCrashLog.appendLine(
+                        context,
+                        "$POST_NOTIFICATIONS_DENIED_AT_FIRE reminder_id=$reminderId",
+                    )
+                }
+                is NotificationOutcome.Failed -> Unit
             }
         }
 

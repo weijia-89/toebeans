@@ -1,0 +1,27 @@
+-- Delivery record for a dose alarm notification (ADR-0011).
+-- A row means notify ran. No row after fired_at means the user did not see it.
+
+CREATE TABLE NotificationAudit (
+    dose_event_id TEXT NOT NULL PRIMARY KEY,
+    delivered_at INTEGER NOT NULL,
+    FOREIGN KEY (dose_event_id) REFERENCES DoseEvent(id) ON DELETE CASCADE
+);
+
+recordDelivery:
+INSERT OR REPLACE INTO NotificationAudit(dose_event_id, delivered_at)
+SELECT :id, :deliveredAt
+WHERE EXISTS (SELECT 1 FROM DoseEvent WHERE id = :id);
+
+selectDelivery:
+SELECT dose_event_id FROM NotificationAudit WHERE dose_event_id = ?;
+
+countUndeliveredInLatestTen:
+SELECT COUNT(*) AS undelivered
+FROM (
+    SELECT de.fired_at AS fired_at, na.dose_event_id AS audit_id
+    FROM DoseEvent de
+    LEFT JOIN NotificationAudit na ON na.dose_event_id = de.id
+    ORDER BY de.scheduled_at DESC
+    LIMIT 10
+) recent
+WHERE recent.fired_at IS NOT NULL AND recent.audit_id IS NULL;

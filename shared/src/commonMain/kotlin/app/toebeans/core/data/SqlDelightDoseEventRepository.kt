@@ -38,6 +38,9 @@ public class SqlDelightDoseEventRepository(
     private val database: ToebeansDatabase,
     private val dispatcher: CoroutineDispatcher,
 ) : DoseEventRepository {
+    override fun hasUndeliveredFiredDose(): Boolean =
+        database.notificationAuditQueries.countUndeliveredInLatestTen().executeAsOne() > 0
+
     private val queries get() = database.doseEventQueries
 
     override fun observeForPet(
