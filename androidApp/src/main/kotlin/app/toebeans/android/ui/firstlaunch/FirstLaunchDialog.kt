@@ -1,5 +1,10 @@
 package app.toebeans.android.ui.firstlaunch
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,11 +14,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.data.loadDemoData
 import app.toebeans.android.preferences.FirstLaunchPreferences
@@ -47,16 +57,69 @@ public fun FirstLaunchDialogHost(
 ) {
     val seen by prefs.firstLaunchSeen.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var pending by remember { mutableStateOf<FirstLaunchChoice?>(null) }
+
+    fun finish(choice: FirstLaunchChoice) {
+        when (choice) {
+            FirstLaunchChoice.START_EMPTY -> prefs.markSeen()
+            FirstLaunchChoice.LOAD_DEMO -> {
+                scope.launch {
+                    loadDemoData(petRepository, medicationRepository, scheduleRepository)
+                    prefs.markSeen()
+                }
+            }
+        }
+    }
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val choice = pending ?: return@rememberLauncherForActivityResult
+            val result = firstLaunchPermissionResult(granted, choice)
+            if (result.showFirstRunBanner) prefs.markNotificationDeniedAtFirstLaunch()
+            finish(result.choice)
+            pending = null
+        }
     if (seen) return
     FirstLaunchDialog(
         onLoadDemoData = {
-            scope.launch {
-                loadDemoData(petRepository, medicationRepository, scheduleRepository)
-                prefs.markSeen()
-            }
+            choose(
+                choice = FirstLaunchChoice.LOAD_DEMO,
+                context = context,
+                pending = { pending = it },
+                launchPermission = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                finish = ::finish,
+            )
         },
-        onStartEmpty = { prefs.markSeen() },
+        onStartEmpty = {
+            choose(
+                choice = FirstLaunchChoice.START_EMPTY,
+                context = context,
+                pending = { pending = it },
+                launchPermission = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                finish = ::finish,
+            )
+        },
     )
+}
+
+private fun choose(
+    choice: FirstLaunchChoice,
+    context: android.content.Context,
+    pending: (FirstLaunchChoice) -> Unit,
+    launchPermission: () -> Unit,
+    finish: (FirstLaunchChoice) -> Unit,
+) {
+    val granted =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+    val step = firstLaunchTap(Build.VERSION.SDK_INT, granted, choice)
+    if (step.requestPermission) {
+        pending(choice)
+        launchPermission()
+    } else {
+        val ready = step.finishNow ?: return
+        finish(ready)
+    }
 }
 
 @Composable

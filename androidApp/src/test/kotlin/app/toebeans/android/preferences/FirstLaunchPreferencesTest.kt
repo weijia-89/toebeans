@@ -70,6 +70,15 @@ class FirstLaunchPreferencesTest {
     }
 
     @Test
+    fun `notification denial at first launch persists and starts false`() {
+        assertFalse(prefs.notificationDeniedAtFirstLaunch.value)
+        prefs.markNotificationDeniedAtFirstLaunch()
+        assertTrue(prefs.notificationDeniedAtFirstLaunch.value)
+        val rebuilt = FirstLaunchPreferences(context)
+        assertTrue(rebuilt.notificationDeniedAtFirstLaunch.value)
+    }
+
+    @Test
     fun `resetForTest returns to fresh-install state`() {
         prefs.markSeen()
         prefs.resetForTest()
