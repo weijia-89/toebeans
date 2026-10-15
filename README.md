@@ -22,7 +22,7 @@ Static HTML/CSS previews for visual sign-off only. They do **not** reflect shipp
 - [Style lab](docs/style-lab/index.html): toggle variant packs (terracotta-warm, sage-calm, high-contrast) and record the choice in [DECISIONS.md](docs/style-lab/DECISIONS.md).
 
 <p align="center">
-  <img src="docs/screenshots/01-home-today.png" alt="Today screen with Luna and Rufus pet chips and two pending Methimazole dose rows" width="280">
+  <img src="docs/screenshots/01-home-today.png" alt="Today screen with Luna and Rufus pet chips and pending dose rows" width="280">
 </p>
 
 ## What it does today
