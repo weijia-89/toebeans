@@ -8,9 +8,11 @@ ADB="$ANDROID_HOME/platform-tools/adb"
 PKG="app.toebeans.android"
 ACTIVITY="app.toebeans.android/.MainActivity"
 OUT_DIR="$(cd "$(dirname "$0")/.." && pwd)/docs/screenshots"
-TMP="/sdcard/toebeans-screenshots"
+TMP="/data/local/tmp/toebeans-screenshots"
 
-if ! "$ADB" devices | grep -qE '\tdevice$'; then
+# grep -q closes the pipe early. With pipefail that looks like "no device"
+# even when adb already printed one. \t is not a tab in POSIX grep.
+if ! "$ADB" devices | grep -E '[[:space:]]device$' >/dev/null; then
   echo "No emulator/device connected. Boot toebeans-pixel7 first." >&2
   exit 1
 fi
@@ -79,6 +81,12 @@ wait_for_boot
 
 # Fresh install state for welcome dialog
 "$ADB" shell pm clear "$PKG" >/dev/null
+# API 33+ shows a system permission sheet before the welcome choice finishes.
+# Grant it here so the capture stays on the app screens.
+"$ADB" shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+"$ADB" shell appops set "$PKG" SCHEDULE_EXACT_ALARM allow >/dev/null 2>&1 || true
+"$ADB" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+"$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
 "$ADB" shell am start -n "$ACTIVITY" >/dev/null
 sleep 2
 capture "00-welcome-dialog.png"
