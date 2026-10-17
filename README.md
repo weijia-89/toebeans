@@ -43,7 +43,7 @@ Static HTML/CSS previews for visual sign-off only. They do **not** reflect shipp
   &nbsp;
   <img src="docs/screenshots/03-pet-detail-luna.png" alt="Luna detail with Methimazole 2.5 mg and Log dose now" width="220">
   &nbsp;
-  <img src="docs/screenshots/06-home-dose-logged.png" alt="Today after logging: morning dose shows Given, Logged today lists the entry" width="220">
+  <img src="docs/screenshots/06-home-dose-logged.png" alt="Today after logging: the morning Apoquel row shows Given" width="220">
 </p>
 
 On **Today**, tap **Log dose** on the morning row. The dose moves to **Given ✓**

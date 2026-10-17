@@ -32,6 +32,25 @@ wait_for_boot() {
   exit 1
 }
 
+# Poll until a node containing $1 exists. On a software-rendered emulator the
+# first painted frame can lag the activity start by tens of seconds; without
+# this wait, capture grabs the splash screen.
+wait_text() {
+  local text="$1"
+  local timeout="${2:-60000}"
+  local end=$((SECONDS + timeout / 1000))
+  while (( SECONDS < end )); do
+    "$ADB" shell uiautomator dump "$TMP/window.xml" >/dev/null 2>&1 || true
+    if "$ADB" exec-out cat "$TMP/window.xml" 2>/dev/null | tr -d '\r' \
+      | grep -qF "$text"; then
+      return 0
+    fi
+    sleep 1.5
+  done
+  echo "UI text never appeared: $text" >&2
+  return 1
+}
+
 tap_text() {
   local text="$1"
   local timeout="${2:-8000}"
@@ -46,21 +65,27 @@ try:
     root = ET.fromstring(sys.stdin.read())
 except ET.ParseError:
     sys.exit(1)
-for node in root.iter('node'):
-    if text in (node.get('text') or '') or text in (node.get('content-desc') or ''):
-        b = node.get('bounds')
-        if b:
-            m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', b)
-            if m:
-                x1,y1,x2,y2 = map(int, m.groups())
-                print((x1+x2)//2, (y1+y2)//2)
-                sys.exit(0)
+# Exact matches first: a substring pass would tap 'Your pets' when asked
+# for the 'Pets' tab, or a Today filter chip when asked for a pet row.
+for exact in (True, False):
+    for node in root.iter('node'):
+        for attr in ('text', 'content-desc'):
+            value = node.get(attr) or ''
+            matched = (value == text) if exact else (text in value)
+            if matched:
+                b = node.get('bounds')
+                if b:
+                    m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', b)
+                    if m:
+                        x1,y1,x2,y2 = map(int, m.groups())
+                        print((x1+x2)//2, (y1+y2)//2)
+                        sys.exit(0)
 sys.exit(1)
 " "$text" 2>/dev/null) || bounds=""
     if [[ -n "$bounds" ]]; then
       read -r x y <<<"$bounds"
       "$ADB" shell input tap "$x" "$y"
-      sleep 1
+      sleep 2
       "$ADB" shell input keyevent KEYCODE_WAKEUP 2>/dev/null || true
       return 0
     fi
@@ -88,19 +113,23 @@ wait_for_boot
 "$ADB" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
 "$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
 "$ADB" shell am start -n "$ACTIVITY" >/dev/null
+wait_text "Welcome to toebeans" 90000
 sleep 2
 capture "00-welcome-dialog.png"
 
 tap_text "Load demo data" 12000 || tap_text "Load Rufus and Luna demo data" 12000
+wait_text "Today's doses" 90000
 sleep 2
 capture "01-home-today.png"
 
 tap_text "Pets" 8000
-sleep 1
+wait_text "Add pet" 30000
+sleep 2
 capture "02-pets-list.png"
 
 tap_text "Luna" 8000
-sleep 1
+wait_text "Log dose now" 30000
+sleep 2
 capture "03-pet-detail-luna.png"
 
 # Stacked screens hide the bottom nav; return to a tab root first.
@@ -128,6 +157,7 @@ sleep 1
 
 # Log dose on home (button label is "Log dose" on Today rows)
 if tap_text "Log dose" 8000; then
+  wait_text "Given" 30000
   sleep 2
   capture "06-home-dose-logged.png"
 fi
