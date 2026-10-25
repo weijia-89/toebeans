@@ -8,6 +8,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
+* **Scoped all-statuses history query:** `DoseEventRepository.observeRecentForHistory(sinceInclusive, limit)` returns pending, given, skipped, and missed events inside a parameterized window, newest first, truncated at the SQL level (`selectRecentForHistory`). Backs the history tab, which needs the full dose record rather than the GIVEN-only "Logged today" feed. Contract pinned by `SqlDelightDoseEventRepositoryHistoryQueryTest` (test-as-spec: the red commit was reviewed before the implementation landed).
 * **Rendered Compose UI tests** (ADR-0013 adoption): first rendered-UI contract
   test via `androidx.compose.ui:ui-test-junit4-android` under Robolectric. The
   first test pins the ADR-0011 Today denial banner: the verbatim denial
