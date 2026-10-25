@@ -8,6 +8,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 
 ### Added
 
+* **Rendered Compose UI tests** (ADR-0013 adoption): first rendered-UI contract
+  test via `androidx.compose.ui:ui-test-junit4-android` under Robolectric. The
+  first test pins the ADR-0011 Today denial banner: the verbatim denial
+  sentence is what TalkBack announces, and a tap opens notification settings.
+  Adds test-only Gradle deps (`ui-test-junit4-android`, `ui-test-manifest`
+  debug-only) plus `testOptions.unitTests.isIncludeAndroidResources` and a
+  `robolectric.properties` default application so existing Robolectric tests
+  keep their pre-adoption boot behavior.
 * **Exact-alarm denial banner:** Today shows a non-dismissable banner when
   exact alarms are denied (ADR-0002). Copy names the 10 minute window.
   "Open alarm settings" opens the system Alarms and reminders screen.
