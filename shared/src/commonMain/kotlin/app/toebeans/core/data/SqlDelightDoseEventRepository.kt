@@ -68,6 +68,21 @@ public class SqlDelightDoseEventRepository(
             .mapToList(dispatcher)
             .map { rows -> rows.map(DoseEventRow::toDomain) }
 
+    // RED BY DESIGN (test-as-spec commit 1): delegates to the GIVEN-only query so the
+    // contract test fails loudly on pending/skipped/missed rows. The real
+    // selectRecentForHistory wiring lands in commit 2, gated on human review of
+    // SqlDelightDoseEventRepositoryHistoryQueryTest per the AGENTS.md vibe-dangerous gate.
+    @Suppress("UNUSED_PARAMETER")
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> =
+        queries
+            .selectAllGivenSince(sinceInclusive.toEpochMilliseconds())
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { rows -> rows.map(DoseEventRow::toDomain) }
+
     override fun observeAll(): Flow<List<DoseEvent>> =
         queries
             .selectAllDoseEvents()

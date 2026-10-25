@@ -117,6 +117,15 @@ WHERE status = 'given' AND scheduled_at >= ?
 ORDER BY scheduled_at DESC
 LIMIT 50;
 
+-- Backs FakeDoseEventRepository.observeRecentForHistory. All statuses (the history tab
+-- shows pending/given/skipped/missed, not just GIVEN), window floor parameterized, DESC
+-- by scheduled_at, SQL-level LIMIT so a long history read does not scan the full table.
+selectRecentForHistory:
+SELECT * FROM DoseEvent
+WHERE scheduled_at >= ?
+ORDER BY scheduled_at DESC
+LIMIT :limit;
+
 -- Count existing dose events for a schedule in a time window. Used by the
 -- scheduler to deduplicate when materializing the next 72h horizon. No direct
 -- fake method maps to this; the fake composes via observeAll.

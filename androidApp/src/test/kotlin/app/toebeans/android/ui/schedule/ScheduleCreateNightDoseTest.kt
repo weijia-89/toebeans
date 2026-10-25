@@ -342,6 +342,11 @@ private object NoopDoseRepoB9 : DoseEventRepository {
         sinceInclusive: kotlinx.datetime.Instant,
     ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> = kotlinx.coroutines.flow.flowOf(emptyList())
 
+    override fun observeRecentForHistory(
+        sinceInclusive: kotlinx.datetime.Instant,
+        limit: Int,
+    ): kotlinx.coroutines.flow.Flow<List<DoseEvent>> = kotlinx.coroutines.flow.flowOf(emptyList())
+
     override fun observeAll(): kotlinx.coroutines.flow.Flow<List<DoseEvent>> =
         kotlinx.coroutines.flow.flowOf(emptyList())
 

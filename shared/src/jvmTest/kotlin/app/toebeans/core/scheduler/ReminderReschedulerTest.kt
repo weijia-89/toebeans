@@ -84,6 +84,11 @@ private class RecordingDoseRepo : DoseEventRepository {
 
     override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> = flowOf(emptyList())
 
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> = flowOf(emptyList())
+
     override fun observeAll(): Flow<List<DoseEvent>> = flowOf(upserted)
 
     override suspend fun recordGivenNow(

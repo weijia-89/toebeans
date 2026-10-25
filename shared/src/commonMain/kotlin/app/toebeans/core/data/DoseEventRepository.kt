@@ -60,6 +60,24 @@ public interface DoseEventRepository {
     public fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>>
 
     /**
+     * Observe dose events of EVERY status (pending/given/skipped/missed) whose
+     * [DoseEvent.scheduledAt] is on or after [sinceInclusive], newest first, truncated
+     * to [limit] rows keeping the newest.
+     *
+     * Unlike [observeAllRecent] (GIVEN-only, feeds the Home "Logged today" card), this
+     * is the History-tab read: an owner reviewing the last N days sees the full dose
+     * record, including doses that were skipped by choice or missed. The window floor
+     * is parameterized so the same query serves "30 days" and other future ranges.
+     *
+     * Implementations should bound the returned list in the query itself (SQLDelight:
+     * `selectRecentForHistory` with a SQL-level `LIMIT`; fake: in-memory `.take(limit)`).
+     */
+    public fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>>
+
+    /**
      * Observe every dose event in storage, regardless of status, pet, schedule, or recency.
      *
      * Unlike [observeAllRecent], this method returns PENDING/SKIPPED/MISSED events alongside
