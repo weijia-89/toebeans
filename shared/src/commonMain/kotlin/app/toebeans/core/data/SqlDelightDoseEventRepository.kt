@@ -76,10 +76,7 @@ public class SqlDelightDoseEventRepository(
         limit: Int,
     ): Flow<List<DoseEvent>> =
         queries
-            .selectRecentForHistory(
-                scheduled_at = sinceInclusive.toEpochMilliseconds(),
-                limit = limit.toLong(),
-            )
+            .selectRecentForHistory(sinceInclusive.toEpochMilliseconds(), limit.toLong())
             .asFlow()
             .mapToList(dispatcher)
             .map { rows -> rows.map(DoseEventRow::toDomain) }
