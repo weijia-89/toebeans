@@ -77,7 +77,10 @@ Set this up before the soak window opens.
 ### Data
 
 - Add at least one **real pet**. Don't soak with the seeded Luna and
-  Rufus alone; they don't generate alarms.
+  Rufus alone; they don't generate alarms. The demo-data loader seeds no
+  DoseEvent rows and registers no AlarmManager entries, so a demo install
+  has no alarms to fire; alarm-path QA needs a schedule created through
+  the app.
 - Add at least one **real medication** with a **real schedule** that
   matters in your life. If you don't have a pet on medication, soak
   with a pretend-vitamin schedule, but commit to actually acting on

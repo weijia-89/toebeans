@@ -83,6 +83,14 @@ The wire-up PR for this ADR must include:
 - ADR-0010 (foreign-key enforcement) lands first; this ADR's `notification_audit` table depends on FK semantics.
 - ADR-0012 (BootCompletedReceiver lifecycle) lands in parallel; it interacts because boot replay must also write to `notification_audit` and surface the banner if it discovers stale fired-but-unnotified events.
 
+## Verification status (2026-10-24)
+
+- The `notification_audit` table and the 3-to-4 schema migration shipped.
+- `DoseAlarmReceiver` writes `fired_at` before calling `show()` and records an audit row when the actuator returns `Posted`.
+- Banner visibility is consumed by `HomeViewModel` (fired-but-unaudited rows drive the Today banner).
+- The denial path was verified on the `toebeans-pixel7` emulator per `docs/manual-qa/cases/notification-denied-dose-alarm.md`.
+- Open item: the scoped all-statuses `DoseEvent` query is blocked by the vibe-dangerous SQLDelight schema gate and is tracked as a follow-up.
+
 ## Sourcing
 
 Surfaced in the 2026-05-17 form-check adversarial review of the toebeans notification firepath. Codified as a load-bearing miss in the `test_as_spec/test_locks_in_bug` and `hallucination_floor/library_behavior_unverified` pressure scenarios.

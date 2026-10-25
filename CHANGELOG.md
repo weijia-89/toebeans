@@ -17,6 +17,19 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
   debug-only) plus `testOptions.unitTests.isIncludeAndroidResources` and a
   `robolectric.properties` default application so existing Robolectric tests
   keep their pre-adoption boot behavior.
+* **Rendered banner tests for B7, B8, B9** ([#117](https://github.com/weijia-89/toebeans/pull/117)):
+  three more rendered Compose tests close the ADR-0013 F4 gap. The
+  schedule-delete dialog, the inline calculator error banner, and the
+  night-dose affirm banner now have rendered-UI contract tests instead of
+  ViewModel-only coverage.
+* **History tab** ([#119](https://github.com/weijia-89/toebeans/pull/119)):
+  fifth bottom-nav tab with a read-only 30-day dose-event log. Currently fed
+  by the Given-only `observeAllRecent` query; a scoped all-statuses query is
+  a follow-up behind the vibe-dangerous SQLDelight gate.
+* **Denied-notification device QA run** ([#118](https://github.com/weijia-89/toebeans/pull/118)):
+  recorded manual QA run of the ADR-0011 denial path on the
+  `toebeans-pixel7` emulator, following
+  `docs/manual-qa/cases/notification-denied-dose-alarm.md`.
 * **Exact-alarm denial banner:** Today shows a non-dismissable banner when
   exact alarms are denied (ADR-0002). Copy names the 10 minute window.
   "Open alarm settings" opens the system Alarms and reminders screen.

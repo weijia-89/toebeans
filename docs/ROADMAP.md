@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-05-28.
+Last updated: 2026-10-24.
 
 ### Wave 1 shipped (2026-05-28)
 
@@ -25,7 +25,7 @@ PRs [#75](https://github.com/weijia-89/toebeans/pull/75)–[#78](https://github.
 | ✓ | `ScheduleCalculator` interface + `DefaultScheduleCalculator` full impl |
 | ✓ | `SchedulePhaseRulesTest` test-as-spec, **15 cases**, all green |
 | ✓ | Backup codec (`BackupCipher` PBKDF2 + AES-256-GCM, expect/actual JVM+Android) + 15 tests |
-| ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. Boot replay wired via `BootReceiver` (M1); notification firing UI still on ROADMAP. |
+| ✓ | Notification actuator (`AndroidNotificationActuator`) + 9 Robolectric tests. Boot replay wired via `BootReceiver` (M1); schedule-save materialization, receiver lookup, boot rehydration, and the ADR-0011 audit path are shipped. |
 | ✓ | 6 fitness functions (no-network, no-analytics, scheduler-purity, permission-allowlist, no-PII-in-crash-log per ADR-0009, AGENTS/CLAUDE parity) |
 | ✓ | GitHub Actions CI (fitness + lint + tests + Android assemble) |
 | ✓ | **9 ADRs** (KMP+Compose, AlarmManager hybrid, local-first, tapering model, vibe-dangerous reminder firing, Kover deferred-pitest, timezone/travel-mode, perf-class, local-crash-log-no-telemetry) |
@@ -125,3 +125,4 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | ✓ | **Medicine name search (local, wired in).** Typeahead/search on Add/Edit medication against an on-device medicine-name index; no cloud. | Wave 2 backlog 2026-05-28 |
 | ✓ | **Dose unit dropdown.** Separate unit picker (tbsp, tsp, g, mL, tablet, etc.) alongside numeric/text dose amount on medication form. | Wave 2 backlog 2026-05-28 |
 | ✓ | **Today screen: in-page pet filter + scroll + Edit** ([#75](https://github.com/weijia-89/toebeans/pull/75)). Pet chips filter due + logged sections; Today header clears filter; due rows get **Edit** beside **Log dose** (routes to `MedicationEditScreen`). **Medication edit context card** (pet name, med + dose, schedule hint) on edit/add screens (follow-up PR). | Operator product intent 2026-05-27 |
+| ✓ | **History tab** ([#119](https://github.com/weijia-89/toebeans/pull/119)): fifth bottom-nav tab; read-only 30-day dose-event log, fed by the Given-only `observeAllRecent` query. | Operator overnight run 2026-10-24 |

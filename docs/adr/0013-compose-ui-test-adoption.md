@@ -1,8 +1,13 @@
 # ADR-0013: Adopt `androidx.compose.ui.test` for rendered-UI contract verification
 
 Date: 2026-05-17
-Status: **Proposed**
+Status: **Accepted** (2026-10-24)
 Deciders: Wei Jia; human reviewer must approve the dependency additions before this moves to Accepted.
+
+Acceptance note (2026-10-24): the four test-only dependencies merged via
+[PR #116](https://github.com/weijia-89/toebeans/pull/116) (operator-approved
+by merge) and three further rendered tests landed in
+[PR #117](https://github.com/weijia-89/toebeans/pull/117), closing the F4 gap.
 
 ## Context
 
