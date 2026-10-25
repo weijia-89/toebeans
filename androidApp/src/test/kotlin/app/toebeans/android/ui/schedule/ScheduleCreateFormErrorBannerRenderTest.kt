@@ -250,6 +250,19 @@ private class InMemDoseRepoB8Render : DoseEventRepository {
     override fun observeAllRecent(sinceInclusive: Instant): Flow<List<DoseEvent>> =
         MutableStateFlow(store.filter { it.status == DoseStatus.GIVEN && it.scheduledAt >= sinceInclusive })
 
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> =
+        MutableStateFlow(
+            store
+                .asSequence()
+                .filter { it.scheduledAt >= sinceInclusive }
+                .sortedByDescending { it.scheduledAt }
+                .take(limit)
+                .toList(),
+        )
+
     override fun observeAll(): Flow<List<DoseEvent>> = MutableStateFlow(store.toList())
 
     override suspend fun recordGivenNow(
