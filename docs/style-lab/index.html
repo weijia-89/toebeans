@@ -42,6 +42,31 @@
       <div class="row"><span>Theme</span><span class="chip">Auto</span></div>
       <div class="row"><span>Export data</span><button type="button" class="btn">Export</button></div>
     </div>
+    <h2>History (mock)</h2>
+    <div class="panel">
+      <div class="row">
+        <div><strong>Luna</strong> · Methimazole<br><span class="muted">Oct 24, 8:02 PM</span><br><span class="fired">alarm fired 8:02 PM</span></div>
+        <span class="chip chip-given">Given</span>
+      </div>
+      <div class="row">
+        <div><strong>Rufus</strong> · Apoquel<br><span class="muted">Oct 22, 7:15 AM</span></div>
+        <span class="chip chip-missed">Missed</span>
+      </div>
+      <div class="row">
+        <div><strong>Luna</strong> · Methimazole<br><span class="muted">Oct 21, 8:02 PM</span><br><span class="fired">alarm fired 8:02 PM</span></div>
+        <span class="chip chip-pending">Pending</span>
+      </div>
+      <div class="row">
+        <div><strong>Rufus</strong> · Apoquel<br><span class="muted">Oct 20, 7:15 AM</span></div>
+        <span class="chip">Skipped</span>
+      </div>
+    </div>
+    <h2>History empty state (mock)</h2>
+    <div class="panel panel-empty">
+      <div class="empty-emoji">🕰️</div>
+      <p><strong>No dose history yet</strong></p>
+      <p class="muted">Log a dose from Today and it will show up here.</p>
+    </div>
   </main>
   <script>
     document.getElementById('theme').addEventListener('change', (e) => {

@@ -70,6 +70,13 @@ main { padding: 1.25rem; max-width: 900px; margin: 0 auto; }
   font-size: 0.8rem;
 }
 .given { color: var(--given); font-weight: 500; }
+.muted { color: var(--on-surface-variant); font-size: 0.8rem; }
+.fired { color: var(--given); font-size: 0.8rem; }
+.chip-given { background: #e5efe2; color: #243024; }
+.chip-pending { background: #f0e2d2; color: #4a352a; }
+.chip-missed { background: #f6dcd4; color: #7a2f1c; }
+.panel-empty { text-align: center; padding: 2.5rem 1rem; }
+.empty-emoji { font-size: 2.5rem; }
 .reliability {
   background: #e5efe2;
   color: #243024;

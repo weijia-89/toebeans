@@ -31,3 +31,12 @@ screens:
       primary: docs/style-lab/index.html
     verify:
       - bash scripts/style_lab_handoff_check.sh reminders
+
+  history:
+    label: History tab
+    compose:
+      - androidApp/src/main/kotlin/app/toebeans/android/ui/history/
+    style_lab:
+      primary: docs/style-lab/index.html
+    verify:
+      - bash scripts/style_lab_handoff_check.sh history

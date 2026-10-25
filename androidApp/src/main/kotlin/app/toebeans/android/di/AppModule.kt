@@ -9,6 +9,7 @@ import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.ui.history.HistoryViewModel
 import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
@@ -188,6 +189,13 @@ public val appModule =
             )
         }
         viewModel { SettingsViewModel(prefs = get()) }
+        viewModel {
+            HistoryViewModel(
+                petRepository = get(),
+                medicationRepository = get(),
+                doseEventRepository = get(),
+            )
+        }
         viewModel {
             ExportBackupViewModel(
                 aggregator = get(),

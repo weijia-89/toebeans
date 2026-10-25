@@ -14,6 +14,10 @@ public object Destinations {
     public const val PETS: String = "pets"
     public const val SETTINGS: String = "settings"
 
+    // History (ADR-0011 UI slice): fifth tab, after Settings. Two accepted ADRs name
+    // "the History tab" verbatim, which is why it's a tab and not a Settings link.
+    public const val HISTORY: String = "history"
+
     // Stacked destinations. Routes use literal path templates; helper functions below
     // build the runtime URLs. `PET_NEW` is a literal segment so it doesn't collide with
     // {petId} pattern matching — Compose Navigation matches longest-prefix.
@@ -65,4 +69,8 @@ public enum class BottomNavItem(
     REMINDERS(Destinations.REMINDERS, "Reminders"),
     PETS(Destinations.PETS, "Pets"),
     SETTINGS(Destinations.SETTINGS, "Settings"),
+
+    // ADR-0011: fifth tab, after Settings. The denial banner and the boot summary
+    // notification both route here by name.
+    HISTORY(Destinations.HISTORY, "History"),
 }

@@ -38,6 +38,15 @@ Post-sign-off theme PR does **not** need to change this behavior unless product 
 
 Today shows a tertiaryContainer banner when exact alarms are denied. Same sage family as the night-dose warning. No new color pack. The lab mock sits above the Today rows.
 
+## History tab rows (2026-10-24)
+
+ADR-0011 History tab UI slice. Lab mock added for the row list, status chips, and empty state. Decisions:
+
+- **Row layout** follows the Home dose-row vocabulary: title line "Pet · Medication", muted detail line with the local scheduled slot ("Oct 24, 8:02 PM"), trailing status chip. No dose amounts, no notes (spec: none in v1).
+- **Fired line** ("alarm fired 8:02 PM") sits under the slot line in the sage tertiary family, matching the "Given ✓" color. Copy says "alarm fired", never "notification delivered" (the notification_audit table is out of scope; the app cannot claim delivery).
+- **Status chips** reuse scheme roles only, no new colors: Given = sage tertiaryContainer, Pending = warm secondaryContainer, Missed = soft errorContainer red, Skipped = neutral surface (a deliberate choice, not a failure). Mock hexes in `style.css` approximate the shipped Compose roles.
+- **Read-only rows**: rows are not tappable; no edit/delete/re-log affordance anywhere on the surface. The empty state points the user at Today instead of offering an action.
+
 ## Variants not chosen
 
 | Pack | Notes |
