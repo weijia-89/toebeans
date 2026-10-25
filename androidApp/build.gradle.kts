@@ -76,6 +76,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // ADR-0013: Compose ui-test's createComposeRule launches ComponentActivity
+    // through ActivityScenario, which needs the merged manifest on the unit-test
+    // classpath. Without this, Robolectric cannot resolve the test activity and
+    // every rendered-UI test fails at rule init.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     kotlin {
         jvmToolchain(17)
     }
@@ -132,6 +142,13 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
+    // ADR-0013: rendered-UI contract verification via Compose ui-test under Robolectric.
+    // The -android artifact is required for unit tests (ADR-0013 implementer notes);
+    // ui-test-manifest is debug-only per ADR-0013 so it cannot reach release builds.
+    // First-party AndroidX pinned to the 1.7 line the compose-multiplatform 1.7.3
+    // plugin builds on. No new supply-chain surface.
+    testImplementation(libs.androidx.compose.ui.test.junit4.android)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }
