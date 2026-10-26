@@ -77,8 +77,10 @@ Kotlin 2.0 with Compose Multiplatform UI. The KMP `shared` module owns domain
 models plus repository contracts; the schedule calculator (pure function from
 `Schedule` phases to `ScheduledDose` values for a window) ships there too, with
 fifteen green test-as-spec cases. SQLDelight backs on-device
-storage. DI is via Koin. Reminder firing uses AlarmManager; boot replay
-re-schedules the 72-hour horizon via `BootReceiver` (`ToebeansApp.loadPendingRemindersInHorizon` in the receiver process).
+storage. DI is via Koin. Reminder firing uses AlarmManager; `DoseAlarmReceiver`
+looks up the dose, posts the notification, and records the ADR-0011 denial
+audit path, and boot replay re-schedules the 72-hour horizon via `BootReceiver`
+(`ToebeansApp.loadPendingRemindersInHorizon` in the receiver process).
 
 The Android app targets API 24 (Android 7.0) and up.
 
