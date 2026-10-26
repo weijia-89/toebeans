@@ -3,9 +3,11 @@
 Pet medication tracker for Android. Local-only. No cloud, no telemetry, no
 third-party services.
 
-Status: `v0.1.0-dev`, M1 feature-complete on `main`; bottom nav is **Today → Reminders → Pets → Settings** ([#95](https://github.com/weijia-89/toebeans/pull/95) merged). Wave 1 UI polish ([#75](https://github.com/weijia-89/toebeans/pull/75)–[#86](https://github.com/weijia-89/toebeans/pull/86)) merged; M1.2 internal-beta prep continues. Pets and their medications live in SQLDelight
+Status: `v0.3.0-dev`, M1 feature-complete on `main`; bottom nav is **Today → Reminders → Pets → Settings → History** ([#95](https://github.com/weijia-89/toebeans/pull/95), History added in [#119](https://github.com/weijia-89/toebeans/pull/119)). Wave 1 UI polish ([#75](https://github.com/weijia-89/toebeans/pull/75)–[#86](https://github.com/weijia-89/toebeans/pull/86)) merged; M1.2 internal-beta prep continues. Pets and their medications live in SQLDelight
 (`toebeans.db`) together with schedules and dose events. The Today tab logs doses; the Reminders
-tab lists schedules and opens read-only schedule detail. After reboot,
+tab lists schedules and opens read-only schedule detail; the History tab is a
+read-only, newest-first 30-day dose-event log backed by a scoped all-statuses
+query. After reboot,
 `BootReceiver` replays alarms for the next 72 hours by querying pending rows from
 SQLDelight in the receiver process. Schedule-save materialization, [DoseAlarmReceiver](androidApp/src/main/kotlin/app/toebeans/android/notifications/DoseAlarmReceiver.kt) lookup, and boot rehydration are shipped on `main`.
 
@@ -17,9 +19,15 @@ reminder rescheduler slice ([PR #48](https://github.com/weijia-89/toebeans/pull/
 
 ## Design review
 
-Static HTML/CSS previews for visual sign-off only. They do **not** reflect shipped UI yet.
+Static HTML/CSS previews for visual sign-off. The terracotta-warm pack is signed off and the shipped Compose theme matches it; the lab stays the place to try layout or color variants before touching `Theme.kt`.
 
 - [Style lab](docs/style-lab/index.html): toggle variant packs (terracotta-warm, sage-calm, high-contrast) and record the choice in [DECISIONS.md](docs/style-lab/DECISIONS.md).
+- The design handoff pipeline is local-only: `docs/design-handoff/manifest.yaml` maps screens to Compose paths, and `bash scripts/style_lab_handoff_check.sh` fails a UI change whose Kotlin sources are newer than the lab.
+- **terracotta-warm** signed off 2026-05-26. Shipped Compose theme (PR [#54](https://github.com/weijia-89/toebeans/pull/54)): Today **Log dose** filled primary pill, **Given ✓** sage tertiary, dark `Theme.kt` tune. Material You toggle stays default off.
+
+```bash
+bash scripts/manual_qa_boot.sh fresh --open-style-lab
+```
 
 <p align="center">
   <img src="docs/screenshots/01-home-today.png" alt="Today screen with Luna and Rufus pet chips and pending dose rows" width="280">
@@ -52,6 +60,13 @@ and the same entry shows under **Logged today**.
 The **Reminders** tab lists active schedules. Tap a row for schedule detail
 (phases, dose times, delete). **Settings** has the theme picker and Material You
 toggle, plus JSON export/import and a Diagnostics card for the local crash log.
+The **History** tab is a read-only log of the last 30 days of dose events
+(status, scheduled time, whether the alarm fired), joined across every pet.
+
+If notifications are denied, or a fired dose never showed its notification,
+Today says so: the app records the fire in the database, appends a line to the
+local crash log, and shows a denial banner with a tap-through to Settings. The
+delivery audit lives in the `NotificationAudit` table.
 
 <p align="center">
   <img src="docs/screenshots/05-reminders.png" alt="Reminders list: Luna Methimazole twice daily" width="220">
@@ -107,18 +122,6 @@ Refresh README screenshots on a booted `toebeans-pixel7` AVD after
 
 ```bash
 ./scripts/capture_readme_screenshots.sh
-```
-
-## Design review
-
-Static style lab (`docs/style-lab/`) for variant comparison. **terracotta-warm** signed off 2026-05-26. Shipped Compose theme (PR [#54](https://github.com/weijia-89/toebeans/pull/54)): Today **Log dose** filled primary pill, **Given ✓** sage tertiary, dark `Theme.kt` tune. Material You toggle stays default off.
-
-- Open [docs/style-lab/index.html](docs/style-lab/index.html) in a browser (`open docs/style-lab/index.html` on macOS).
-- Toggle variant packs (terracotta-warm, sage-calm, high-contrast).
-- Decisions log: [docs/style-lab/DECISIONS.md](docs/style-lab/DECISIONS.md).
-
-```bash
-bash scripts/manual_qa_boot.sh fresh --open-style-lab
 ```
 
 ## Repository layout
