@@ -1,5 +1,6 @@
 package app.toebeans.android.di
 
+import app.toebeans.android.ui.history.HistoryViewModel
 import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
 import app.toebeans.android.ui.medications.MedicationEditViewModel
@@ -70,6 +71,7 @@ class AppModuleSmokeTest {
         assertNotNull(getKoin().get<ScheduleDetailViewModel>())
         assertNotNull(getKoin().get<ReminderListViewModel>())
         assertNotNull(getKoin().get<SettingsViewModel>())
+        assertNotNull(getKoin().get<HistoryViewModel>())
         assertNotNull(getKoin().get<ExportBackupViewModel>())
         assertNotNull(getKoin().get<ImportBackupViewModel>())
         // Also verify the singleton backup pipeline beans resolve, since the VMs above

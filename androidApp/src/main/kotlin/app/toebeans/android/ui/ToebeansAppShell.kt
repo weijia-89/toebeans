@@ -23,7 +23,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.toebeans.android.ui.history.HistoryScreen
 import app.toebeans.android.ui.home.HomeScreen
+import app.toebeans.android.ui.icons.HistoryIcon
 import app.toebeans.android.ui.icons.PawIcon
 import app.toebeans.android.ui.medications.MedicationEditScreen
 import app.toebeans.android.ui.medications.UnifiedMedicationScreen
@@ -56,7 +58,7 @@ public fun ToebeansAppShell() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
 
-    // Bottom NavigationBar shows only on the three top-level tab destinations. Detail and
+    // Bottom NavigationBar shows only on the top-level tab destinations. Detail and
     // edit screens hide it so their own bottomBar (e.g. Save button) sits at the true
     // bottom of the viewport and isn't occluded by the tab strip. Standard Android pattern.
     val currentRoute = backStack?.destination?.route
@@ -147,6 +149,15 @@ public fun ToebeansAppShell() {
                 popExitTransition = { ExitTransition.None },
             ) {
                 SettingsScreen(contentPadding = innerPadding)
+            }
+            composable(
+                route = Destinations.HISTORY,
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
+                HistoryScreen(contentPadding = innerPadding)
             }
             // ----- Stacked destinations. ContentPadding intentionally NOT forwarded; these
             // screens host their own TopAppBar in a Scaffold and consume insets themselves.
@@ -253,7 +264,7 @@ public fun ToebeansAppShell() {
 // bottom of the viewport.
 
 private val TOP_LEVEL_ROUTES =
-    setOf(Destinations.HOME, Destinations.REMINDERS, Destinations.PETS, Destinations.SETTINGS)
+    setOf(Destinations.HOME, Destinations.REMINDERS, Destinations.PETS, Destinations.SETTINGS, Destinations.HISTORY)
 
 private fun navigateReminderAddAction(
     navController: NavHostController,
@@ -279,4 +290,5 @@ private fun iconFor(item: BottomNavItem): ImageVector =
         BottomNavItem.REMINDERS -> Icons.Filled.Notifications
         BottomNavItem.PETS -> PawIcon
         BottomNavItem.SETTINGS -> Icons.Filled.Settings
+        BottomNavItem.HISTORY -> HistoryIcon
     }
