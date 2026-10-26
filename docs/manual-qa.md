@@ -65,6 +65,7 @@ Cases already written in git history, pull request test plans, commit messages, 
 - [Schedule survives force-stop](manual-qa/cases/schedule-survives-force-stop.md)
 - [Logged dose persists after restart](manual-qa/cases/log-dose-persists-after-restart.md)
 - [Notification at the scheduled time](manual-qa/cases/notification-at-scheduled-time.md)
+- [Notification denied, dose alarm fires](manual-qa/cases/notification-denied-dose-alarm.md)
 - [Reboot reschedules pending alarms](manual-qa/cases/reboot-reschedules-pending-alarms.md)
 
 ### Schedule, alarms, and anchor mode
