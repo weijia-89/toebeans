@@ -23,9 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.toebeans.android.ui.components.TimePickerField
@@ -111,7 +111,7 @@ public fun PhaseEditorCard(
             //
             // Non-blocking. "Got it" dismisses the banner for the current dose-time set;
             // dose-time edits re-surface it. Same accessibility shape as the formError and
-            // nightDoseWarning banners: clearAndSetSemantics + liveRegion Polite.
+            // nightDoseWarning banners: liveRegion Polite, announced once on appearance.
             if (draft.crossesMidnight && !draft.midnightStraddleDismissed) {
                 val straddleMsg =
                     "Heads up: your dose times cross midnight. Doses after midnight land on the next calendar day."
@@ -119,7 +119,12 @@ public fun PhaseEditorCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clearAndSetSemantics {
+                            // mergeDescendants + liveRegion = Polite so TalkBack announces
+                            // the notice exactly once on its appearance, while the nested
+                            // "Got it" TextButton keeps its own clickable semantics and
+                            // stays reachable to screen readers (clearAndSetSemantics here
+                            // erased the button from the semantics tree).
+                            .semantics(mergeDescendants = true) {
                                 liveRegion = LiveRegionMode.Polite
                                 contentDescription = straddleMsg
                             },
@@ -199,11 +204,14 @@ public fun PhaseEditorCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            // clearAndSetSemantics + liveRegion = Polite so TalkBack announces
-                            // the warning exactly once on its appearance, without focus-stealing,
-                            // and without double-announcing from descendant Text nodes. Same
-                            // pattern as the formError banner in ScheduleCreateScreen (B8).
-                            .clearAndSetSemantics {
+                            // semantics(mergeDescendants) + liveRegion = Polite so TalkBack
+                            // announces the warning exactly once on its appearance, without
+                            // focus-stealing, and without double-announcing from descendant
+                            // Text nodes. Same pattern as the formError banner in
+                            // ScheduleCreateScreen (B8). Unlike clearAndSetSemantics, the
+                            // nested "Yes, that's intentional" TextButton keeps its own
+                            // clickable semantics and stays reachable to screen readers.
+                            .semantics(mergeDescendants = true) {
                                 liveRegion = LiveRegionMode.Polite
                                 contentDescription = "Warning: $msg"
                             },
