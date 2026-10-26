@@ -5,7 +5,7 @@
 
 This document is the canonical answer to "what's feasible now vs what's deferred." When in doubt, this file wins over chat-history claims.
 
-Last updated: 2026-10-24.
+Last updated: 2026-10-25.
 
 ### Wave 1 shipped (2026-05-28)
 
@@ -125,4 +125,7 @@ This milestone sits between M1's "feature complete" and M1.5's "travel-aware" be
 | ✓ | **Medicine name search (local, wired in).** Typeahead/search on Add/Edit medication against an on-device medicine-name index; no cloud. | Wave 2 backlog 2026-05-28 |
 | ✓ | **Dose unit dropdown.** Separate unit picker (tbsp, tsp, g, mL, tablet, etc.) alongside numeric/text dose amount on medication form. | Wave 2 backlog 2026-05-28 |
 | ✓ | **Today screen: in-page pet filter + scroll + Edit** ([#75](https://github.com/weijia-89/toebeans/pull/75)). Pet chips filter due + logged sections; Today header clears filter; due rows get **Edit** beside **Log dose** (routes to `MedicationEditScreen`). **Medication edit context card** (pet name, med + dose, schedule hint) on edit/add screens (follow-up PR). | Operator product intent 2026-05-27 |
-| ✓ | **History tab** ([#119](https://github.com/weijia-89/toebeans/pull/119)): fifth bottom-nav tab; read-only 30-day dose-event log, fed by the Given-only `observeAllRecent` query. | Operator overnight run 2026-10-24 |
+| ✓ | **History tab** ([#119](https://github.com/weijia-89/toebeans/pull/119)): fifth bottom-nav tab; read-only 30-day dose-event log. | Operator overnight run 2026-10-24 |
+| ✓ | **Scoped all-statuses history query** ([#122](https://github.com/weijia-89/toebeans/pull/122)): `DoseEventRepository.observeRecentForHistory(sinceInclusive, limit)` over `selectRecentForHistory` (query-only, no schema change); contract test red-reviewed before implementation; History moves onto it in a small UI slice. | Operator overnight run 2026-10-25 |
+| ✓ | **Banner affirm/dismiss buttons reachable by TalkBack** ([#123](https://github.com/weijia-89/toebeans/pull/123)): night-dose and midnight-straddle banners switched from `clearAndSetSemantics` to merged semantics with polite live regions; rendered reachability test added test-first. | Operator overnight run 2026-10-25 |
+| ✓ | **Rendered Compose test adoption completed** ([#116](https://github.com/weijia-89/toebeans/pull/116), [#117](https://github.com/weijia-89/toebeans/pull/117), [#121](https://github.com/weijia-89/toebeans/pull/121)): ADR-0013 framework merged and Accepted; rendered contract tests for the B7 delete dialog, B8 form-error banner, B9 night-dose banner, and the midnight-straddle banner. | Operator overnight run 2026-10-24/25 |
