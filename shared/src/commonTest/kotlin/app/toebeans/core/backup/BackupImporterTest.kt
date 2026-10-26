@@ -502,6 +502,17 @@ private class ImporterDoseEventRepo : DoseEventRepository {
             snap.values.filter { it.scheduledAt >= sinceInclusive && it.status == DoseStatus.GIVEN }
         }
 
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> =
+        state.asStateFlow().map { snap ->
+            snap.values
+                .filter { it.scheduledAt >= sinceInclusive }
+                .sortedByDescending { it.scheduledAt }
+                .take(limit)
+        }
+
     override fun observeAll(): Flow<List<DoseEvent>> = state.asStateFlow().map { it.values.toList() }
 
     override suspend fun recordGivenNow(

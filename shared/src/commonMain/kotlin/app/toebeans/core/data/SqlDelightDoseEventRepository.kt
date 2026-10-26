@@ -68,6 +68,19 @@ public class SqlDelightDoseEventRepository(
             .mapToList(dispatcher)
             .map { rows -> rows.map(DoseEventRow::toDomain) }
 
+    // History tab read: every status inside the window, newest first, SQL-level LIMIT.
+    // Mirrors observeAllRecent's structure but without the GIVEN-only filter; the
+    // contract lives in SqlDelightDoseEventRepositoryHistoryQueryTest.
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> =
+        queries
+            .selectRecentForHistory(sinceInclusive.toEpochMilliseconds(), limit.toLong())
+            .asFlow()
+            .mapToList(dispatcher)
+            .map { rows -> rows.map(DoseEventRow::toDomain) }
+
     override fun observeAll(): Flow<List<DoseEvent>> =
         queries
             .selectAllDoseEvents()

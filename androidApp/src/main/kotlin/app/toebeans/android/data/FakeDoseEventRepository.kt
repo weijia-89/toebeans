@@ -75,6 +75,22 @@ public class FakeDoseEventRepository(
                 .toList()
         }
 
+    override fun observeRecentForHistory(
+        sinceInclusive: Instant,
+        limit: Int,
+    ): Flow<List<DoseEvent>> =
+        // All statuses (pending/given/skipped/missed) inside the window, newest first,
+        // truncated to [limit] keeping the newest. This is the contract the SQLDelight
+        // impl must match via selectRecentForHistory.
+        doseEvents.map { events ->
+            events.values
+                .asSequence()
+                .filter { it.scheduledAt >= sinceInclusive }
+                .sortedByDescending { it.scheduledAt }
+                .take(limit)
+                .toList()
+        }
+
     override suspend fun recordGivenForSlot(
         doseEventId: String,
         scheduleId: String,

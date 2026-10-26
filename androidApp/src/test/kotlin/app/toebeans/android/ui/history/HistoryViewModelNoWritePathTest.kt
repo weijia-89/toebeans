@@ -159,6 +159,19 @@ class HistoryViewModelNoWritePathTest {
                     .sortedByDescending { it.scheduledAt }
             }
 
+        override fun observeRecentForHistory(
+            sinceInclusive: Instant,
+            limit: Int,
+        ): Flow<List<DoseEvent>> =
+            events.map { all ->
+                all.values
+                    .asSequence()
+                    .filter { it.scheduledAt >= sinceInclusive }
+                    .sortedByDescending { it.scheduledAt }
+                    .take(limit)
+                    .toList()
+            }
+
         override suspend fun recordGivenNow(
             doseEventId: String,
             scheduleId: String,
