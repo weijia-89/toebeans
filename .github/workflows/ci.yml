@@ -72,6 +72,8 @@ jobs:
         run: bash scripts/test_trainer_pr_review_gate_rerun.sh .
       - name: Trainer patch head self-test
         run: bash scripts/test_trainer_pr_review_patch_head.sh
+      - name: Sprint scheduler kit tests
+        run: bash scripts/scheduler/tests/test-scheduler.sh
 
   trainer-pr-review-gate:
     # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
