@@ -74,10 +74,12 @@ model_available() {
 [[ -f "$CONTRACT" ]] || fail "contract missing: $CONTRACT (merge the sprint-orchestrator PR first)"
 [[ -f "$PROMPT" ]] || fail "prompt missing: $PROMPT"
 
-# Auth first: a model-name mismatch is meaningless until we know who we are.
-# Note: "Not logged in" also contains "logged in", so match the negated forms only.
+# Auth: probe, but never block on the probe. It has produced false negatives (a sandboxed or
+# worker-owned process reports "not logged in" while the account is fine), and a false negative
+# cancels a legitimate run. The real `agent --print` call below fails loudly with a nonzero exit
+# and an "Authentication required" line, which is the authoritative signal and is checked after.
 if "$AGENT_BIN" status 2>&1 | grep -qi "not logged in\|no user\|unauthenticated"; then
-  fail "agent CLI not logged in (run: agent login)"
+  log "WARN auth probe says not logged in; continuing, the run itself will fail loudly if true"
 fi
 
 # Model must exist on this account before we spend a request on it.
@@ -87,28 +89,52 @@ fi
 
 # One run per project at a time. The lock must not survive a reboot or a hard kill, so compare
 # the recorded pid AND its start time; a recycled pid from an unrelated process is not a lock.
-LOCK="$STATE_DIR/$PROJECT.lock"
-if [[ -f "$LOCK" ]]; then
-  read -r LOCK_PID LOCK_START <"$LOCK" 2>/dev/null || true
-  if [[ -n "${LOCK_PID:-}" ]] && kill -0 "$LOCK_PID" 2>/dev/null; then
-    LIVE_START="$(ps -o lstart= -p "$LOCK_PID" 2>/dev/null | tr -s ' ' '_')"
-    if [[ -z "${LOCK_START:-}" ]] || [[ "$LIVE_START" == "$LOCK_START" ]]; then
-      fail "another $PROJECT sprint is still running (pid $LOCK_PID)"
-    fi
-    log "WARN stale lock: pid $LOCK_PID exists but is a different process; reclaiming"
-  else
-    log "WARN stale lock: pid ${LOCK_PID:-unknown} is gone; reclaiming"
+# Acquisition uses an atomic directory create, not check-then-write, so two jobs that fire in
+# the same second cannot both win.
+LOCK_DIR="$STATE_DIR/$PROJECT.lock.d"
+LOCK="$LOCK_DIR/owner"
+acquire_lock() {
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    printf '%s %s\n' "$$" "$(ps -o lstart= -p $$ 2>/dev/null | tr -s ' ' '_')" >"$LOCK"
+    return 0
   fi
-fi
-printf '%s %s\n' "$$" "$(ps -o lstart= -p $$ 2>/dev/null | tr -s ' ' '_')" >"$LOCK"
-trap 'rm -f "$LOCK"' EXIT
-# Second signal also cleans up, so Ctrl+C during a run does not strand the lock.
-trap 'rm -f "$LOCK"; exit 130' INT TERM
+  # Directory exists: either a live run, or debris from a crash.
+  local pid start live
+  read -r pid start <"$LOCK" 2>/dev/null || true
+  if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+    live="$(ps -o lstart= -p "$pid" 2>/dev/null | tr -s ' ' '_')"
+    if [[ -z "${start:-}" ]] || [[ "$live" == "$start" ]]; then
+      return 1
+    fi
+    log "WARN stale lock: pid $pid is a different process; reclaiming"
+  else
+    log "WARN stale lock: pid ${pid:-unknown} is gone; reclaiming"
+  fi
+  rm -rf "$LOCK_DIR"
+  mkdir "$LOCK_DIR" 2>/dev/null || return 1
+  printf '%s %s\n' "$$" "$(ps -o lstart= -p $$ 2>/dev/null | tr -s ' ' '_')" >"$LOCK"
+  return 0
+}
+acquire_lock || fail "another $PROJECT sprint is still running"
+release_lock() { rm -rf "$LOCK_DIR"; }
+trap release_lock EXIT
+trap 'release_lock; exit 130' INT TERM
 
 # Keep the log dir from growing without bound.
 find "$LOG_DIR" -name '*.log' -mtime +45 -delete 2>/dev/null || true
 
 # --- environment -----------------------------------------------------------
+# launchd gives a minimal environment; do not assume HOME or a login shell profile is set.
+# Falling back to the passwd entry keeps log and state paths stable even under a bare launchd.
+if [[ -z "${HOME:-}" ]] || [[ ! -d "${HOME:-}" ]]; then
+  HOME="$(dscl . -read "/Users/$(id -un)" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+  [[ -n "$HOME" ]] || HOME="/Users/$(id -un)"
+  export HOME
+fi
+LOG_DIR="$HOME/Library/Logs/weekend-sprint"
+STATE_DIR="$HOME/Library/Application Support/weekend-sprint"
+LOG="$LOG_DIR/$PROJECT-$PHASE-$STAMP.log"
+
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
 export ANDROID_HOME="$HOME/Library/Android/sdk"

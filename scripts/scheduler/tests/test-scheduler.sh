@@ -61,6 +61,27 @@ else
   bad "lock can be fooled by a recycled pid"
 fi
 
+# Acquisition must be atomic, not check-then-write, or two jobs firing in one second both win.
+if grep -q 'mkdir "\$LOCK_DIR"' "$HERE/sprint-run.sh"; then
+  ok "lock acquisition is atomic (mkdir), not check-then-write"
+else
+  bad "lock has a check-then-write race"
+fi
+
+# The auth probe must not gate the run: a false negative cancels a legitimate run.
+if grep -q "WARN auth probe says not logged in; continuing" "$HERE/sprint-run.sh"; then
+  ok "auth probe warns instead of blocking (probe has false negatives)"
+else
+  bad "auth probe can cancel a run on a false negative"
+fi
+
+# HOME must be resolved if launchd does not provide it.
+if grep -q "NFSHomeDirectory" "$HERE/sprint-run.sh"; then
+  ok "HOME fallback when launchd omits it"
+else
+  bad "relies on HOME being set by launchd"
+fi
+
 # The driver must treat stream errors as failures, so a broken run is never announced clean.
 if grep -q '"type":"error"' "$HERE/sprint-run.sh"; then
   ok "stream-level errors count as failures"
@@ -76,7 +97,7 @@ else
 fi
 
 # Lock file must be removed on interrupt, not just on normal exit.
-if grep -q "trap 'rm -f \"\$LOCK\"; exit 130' INT TERM" "$HERE/sprint-run.sh"; then
+if grep -q "trap 'release_lock; exit 130' INT TERM" "$HERE/sprint-run.sh"; then
   ok "lock is released on INT/TERM"
 else
   bad "lock may survive an interrupt and block future runs"
