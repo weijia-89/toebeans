@@ -73,8 +73,56 @@ Precedence when they conflict: trainer > form-check/verification > safe-terminal
 2. Confirm the checkout is on `main` and clean, or note the branch and use a fresh worktree per worker.
 3. Confirm `JAVA_HOME` and `ANDROID_HOME` are set, else export the Homebrew JDK 17 path.
 4. Read the roadmap truth: `docs/ROADMAP.md` (pending rows), `docs/issues/v0.1-followups.md` (open items), `docs/adr/0011-post-notifications-denial-ux.md` and `0013-compose-ui-test-adoption.md` for open verification items, and the tail of `.codeit/calibration.jsonl`.
-5. Write `/tmp/toebeans-sprint-<date>/brief.md`: current main SHA, the pending work items with file paths, the tier of each, and the open questions. This file is the only repo-state context later workers get.
-6. If fewer than 2 legitimate pending items exist, **do not invent work**: report "sprint not warranted" and stop.
+5. Write `/tmp/toebeans-sprint-<date>/brief.md`: current main SHA, every pending work item with file paths, the tier of each, and the open questions. This file is the only repo-state context later workers get.
+
+### Phase 0.5: roadmap triage (mandatory, before any decision to stop)
+
+A run may **never** stop for lack of work without first producing a triage report. "One eligible item" is a finding to explain, not a reason to exit.
+
+Dispatch one subagent (type `product-reviewer`) with the brief path and the roadmap sources, and require a triage report at `/tmp/toebeans-sprint-<date>/triage.md` that answers, for **every** pending item:
+
+1. **Is the item still real?** Check whether it already shipped. If it did, the roadmap row is stale and the report says so with the commit or PR that closed it.
+2. **Is it agent-eligible?** An item is agent-eligible only if a machine can complete it end to end: write the code, run the tests, open the PR, and have the result be verifiable by CI. Anything else is not.
+3. **If not eligible, which blocker?** Use exactly one of these labels:
+   - `blocked-operator-approval`: needs a human decision, sign-off, ADR acceptance, or spec choice
+   - `blocked-operator-merge`: waiting on a human to review and merge an open PR
+   - `blocked-operator-runtime`: needs a device, emulator session, hardware, or interactive login a machine cannot do unattended
+   - `blocked-operator-credential`: needs a secret, API key, or billing/plan change
+   - `blocked-operator-product`: needs a product direction call that is not derivable from the repo
+   - `blocked-agent-dependency`: waiting on another unmerged item; name which
+   - `needs-spec`: no testable acceptance criteria exist yet
+4. **What would unblock it?** One sentence naming the smallest human action, phrased as a command or decision the operator can act on in one sitting.
+
+Then, from a **principal PM perspective**, answer three questions:
+- Which pending items are mis-prioritized given what shipped recently?
+- What is missing from the roadmap entirely that the shipped surface implies a user will need next?
+- Which single item, if unblocked, produces the most user-visible value next?
+
+### Phase 0.6: proceed or report (never silently stop)
+
+- If **two or more** items are agent-eligible, continue to Phase 1.
+- If **fewer than two** are eligible, do not invent work. Instead write `/tmp/toebeans-sprint-<date>/NEEDS_OPERATOR.md` containing the triage report's blocker table and the principal-PM recommendation, post its summary as a comment on the most recently merged PR or as a new issue if no PR is suitable, and stop.
+
+That report is the deliverable. A run that ends with "blocked, here is exactly why and here is the one decision I need" succeeded. A run that ends with "sprint not warranted" and nothing else failed, because it consumed a run slot and told the operator nothing.
+
+## 4b. Work an agent must never do (hard boundary)
+
+The following are **never** agent-eligible, no matter how small or mechanical they look. If a task requires one of these, label it accordingly and stop. Do not approximate the human step, do not skip it, and do not treat a proxy signal as approval.
+
+| Not agent work | Why |
+|---|---|
+| Merging a pull request | merge is the operator's act of acceptance; an agent merging is the agent approving itself |
+| Approving a PR review, ADR, or design | the review gate exists because a human owns the decision |
+| Accepting an ADR from Proposed to Accepted | status change is a decision record, not a task completion |
+| Choosing product direction or copy | not derivable from the repo; guessing produces wrong work |
+| Signing off a vibe-dangerous change | the tier exists specifically to require a human |
+| Purchasing, upgrading, or changing a plan | billing is outside the repo entirely |
+| Entering secrets, API keys, or credentials | never handled by an agent, in any context |
+| Interactive logins, MFA, or browser flows | cannot be automated safely and should not be |
+| Running a real device or emulator session for acceptance | a machine can run the steps but cannot accept the result |
+| Publishing to a store, or sending anything to a real user | irreversible and outward-facing |
+
+An agent may **prepare** any of these: write the PR, draft the ADR with a recommended status, stage the changelog, run the device steps and record evidence. It may not **execute** the human decision.
 
 ### Phase 1: PM wave (1 subagent, ~10 min)
 
@@ -132,7 +180,8 @@ Returns one `RESULT` block per PR plus a ranked list of gaps. Cap: 2 rounds.
 | Two workers claim the same path | Last dispatcher yields; re-scope that worker to the remaining items or cancel it. |
 | A vibe-dangerous item is the only item left | Open the red-test PR and stop. Do not implement. |
 | Suite red at the stack top after all merges of a wave | Stop the run, do not open further PRs, report the failing class and the baseline comparison. |
-| Nothing legitimate to do | Report "sprint not warranted." Inventing work is a failed run. |
+| Fewer than two agent-eligible items | Run Phase 0.5 triage, write `NEEDS_OPERATOR.md` with the blocker table and the principal-PM recommendation, post its summary, and stop. Never stop with a bare "not warranted." |
+| The only work left requires a human decision | Label it with the correct `blocked-operator-*` reason, state the one action that unblocks it, and stop. Do not approximate the decision. |
 
 ## 6. What a good run looks like
 
