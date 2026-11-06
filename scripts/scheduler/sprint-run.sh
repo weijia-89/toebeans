@@ -102,12 +102,12 @@ fi
 [[ -f "$CONTRACT" ]] || fail "contract missing: $CONTRACT (merge the sprint-orchestrator PR first)"
 [[ -f "$PROMPT" ]] || fail "prompt missing: $PROMPT"
 
-# Auth: probe, but never block on the probe. It has produced false negatives (a sandboxed or
-# worker-owned process reports "not logged in" while the account is fine), and a false negative
-# cancels a legitimate run. The real `agent --print` call below fails loudly with a nonzero exit
-# and an "Authentication required" line, which is the authoritative signal and is checked after.
+# Auth: probe, but never block on the probe. Note the probe reads environment-dependent state:
+# a sandboxed or worker-owned process reports "not logged in" while the account is fine, and the
+# real run then succeeds. The authoritative signal is the `agent --print` call itself, whose
+# failure text is caught after the run.
 if "$AGENT_BIN" status 2>&1 | grep -qi "not logged in\|no user\|unauthenticated"; then
-  log "WARN auth probe says not logged in; continuing, the run itself will fail loudly if true"
+  log "NOTE auth probe says not logged in here; proceeding (the probe reflects this process's view, not the launchd job's)"
 fi
 
 # Model must exist on this account before we spend a request on it.
@@ -174,6 +174,11 @@ log "START project=$PROJECT phase=$PHASE model=$MODEL head=$(git -C "$REPO" rev-
 log "CONTRACT=$CONTRACT"
 log "PROMPT=$PROMPT"
 
+# Byte offset of this run's start, so post-run log scanning cannot be polluted by earlier runs.
+RUN_START_BYTES="$(wc -c <"$LOG" 2>/dev/null | tr -d ' ')"
+[[ -n "$RUN_START_BYTES" ]] || RUN_START_BYTES=0
+log "RUN_START_BYTES=$RUN_START_BYTES"
+
 if [[ "${SPRINT_DRY_RUN:-0}" == "1" ]]; then
   log "DRY RUN: would invoke agent --print --output-format stream-json"
   echo "dry run ok: $PROJECT $PHASE"
@@ -231,10 +236,12 @@ fi
 
 # stream-json can report a clean exit while the run itself failed (auth failure, tool error,
 # contract contradiction). Treat an explicit failure record in the log as a failure too, so a
-# broken run is never announced as clean.
-if [[ $RC -eq 0 ]] && tail -c 400000 "$LOG" 2>/dev/null | grep -qiE '"type":"error"|Authentication required'; then
+# broken run is never announced as clean. Scope the scan to this run: the log is append-only and
+# shared across runs of the same day, so an old error record must not condemn a good run.
+RUN_START_BYTES="${RUN_START_BYTES:-0}"
+if [[ $RC -eq 0 ]] && tail -c +$((RUN_START_BYTES + 1)) "$LOG" 2>/dev/null | grep -qiE '"type":"error"|Authentication required'; then
   RC=1
-  log "WARN rc was 0 but the stream contains an error record; treating as failure"
+  log "WARN rc was 0 but this run's stream contains an error record; treating as failure"
 fi
 
 if [[ $RC -eq 0 ]]; then
