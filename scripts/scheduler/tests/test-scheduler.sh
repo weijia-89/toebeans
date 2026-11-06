@@ -69,8 +69,8 @@ else
 fi
 
 # The auth probe must not gate the run: a false negative cancels a legitimate run.
-if grep -q "WARN auth probe says not logged in; continuing" "$HERE/sprint-run.sh"; then
-  ok "auth probe warns instead of blocking (probe has false negatives)"
+if grep -q "the probe reflects this process's view, not the launchd job's" "$HERE/sprint-run.sh"; then
+  ok "auth probe logs a note instead of blocking (probe has false negatives)"
 else
   bad "auth probe can cancel a run on a false negative"
 fi
@@ -115,6 +115,13 @@ if grep -q "stale plist" "$HERE/sprint-run.sh"; then
   ok "driver refuses a kit/project mismatch"
 else
   bad "driver can run one repo's prompt against another repo"
+fi
+
+# Stream-error scanning must be scoped to the current run, or an old failure condemns a good run.
+if grep -q "RUN_START_BYTES" "$HERE/sprint-run.sh"; then
+  ok "stream-error scan is scoped to the current run"
+else
+  bad "an old error record in an appended log would fail a good run"
 fi
 
 # The driver must treat stream errors as failures, so a broken run is never announced clean.
