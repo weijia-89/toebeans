@@ -210,7 +210,7 @@ If reboot does not rehydrate, record as smoke fail on the alarm path and block i
 
 Verified against `origin/main` at operator dispatch. Re-verify after merge.
 
-1. **Anchor-mode prompt** absent (M1.5 / ADR-0007): **accepted** per Q9; no beta blocker.
+1. **Anchor-mode prompt** present on the Add Medication modal since PR #100 (radio group; ADR-0007 G1/G3 still open). Q9 accepted its absence for beta, so this stays a non-blocker.
 2. **Pet detail medication tap** (fixed 2026-06-05): meds **with** a schedule open **Edit medication**; meds **without** a schedule still open **Create schedule** (beta-smoke step 3). Today **Edit** and Reminders `needsSchedule` rows are the other edit entry points.
 3. **Discontinued medications:** alarms for already-materialized doses may still fire (`MedicationEditViewModel` KDoc); inactive filter on lookup deferred.
 4. **README drift:** README still says "Notification firing remains on the ROADMAP" while schedule-save materialization + receiver lookup + boot rehydration are now shipped. Treat this doc + ROADMAP as authoritative until README sync lands.
