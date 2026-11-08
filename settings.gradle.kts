@@ -40,10 +40,10 @@ val okioVersion = "3.17.0"
 val okioCoordinate = "com.squareup.okio:okio:$okioVersion"
 val okioJvmCoordinate = "com.squareup.okio:okio-jvm:$okioVersion"
 
-// CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249: netty-handler < 4.1.135.Final
-// CVE-2026-50560 / CVE-2026-48043 / CVE-2026-47244: netty-codec-http2 < 4.1.135.Final
-// CVE-2026-50020: netty-codec-http < 4.1.135.Final
-val nettyVersion = "4.1.135.Final"
+// Buildscript classpath already resolves 4.2.19.Final (build.gradle.kts).
+// Open 4.2 advisories are patched at 4.2.17.Final or earlier.
+// 4.1.135.Final is inside the open 4.1 ranges (patched at 4.1.136 / 4.1.137).
+val nettyVersion = "4.2.19.Final"
 
 // CVE-2026-10532 / CVE-2026-9828: logback-core < 1.5.34
 val logbackVersion = "1.5.34"
