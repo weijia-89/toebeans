@@ -11,6 +11,12 @@ large chunk of merged work.
 
 - `BootReceiverManifestEnabledTest` expects `android:enabled="false"` on `.notifications.BootReceiver` to keep the receiver off until the first schedule materializes. The manifest still sets `android:enabled="true"`, so the test is red on purpose.
 
+## [0.4.1] - Demo load registers the 72-hour alarms (2026-11-08)
+
+### Changed
+
+- `loadDemoData` writes the next 72 hours of pending doses and registers those alarms, to arm each demo schedule.
+
 ## [0.4.0] - History shows every dose status (2026-11-08)
 
 ### Added

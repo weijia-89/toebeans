@@ -1,5 +1,6 @@
 package app.toebeans.android.data
 
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -10,6 +11,9 @@ import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.model.Species
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.scheduler.ReminderRescheduler
+import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -165,19 +169,34 @@ internal val doseEvents = MutableStateFlow<Map<String, app.toebeans.core.model.D
 /**
  * Idempotently populate demo data through repository contracts (SQLite when AppModule binds
  * SqlDelight repos). Called from the first-launch dialog when the user taps "Load demo data".
- * Safe to call repeatedly — upserts replace the same demo IDs and leave other rows alone.
+ * Safe to call repeatedly. Upserts replace the same demo IDs and leave other rows alone.
+ * After each schedule upsert, writes the 72-hour pending doses and registers those alarms.
  */
+@Suppress("LongParameterList")
 public suspend fun loadDemoData(
     petRepository: PetRepository,
     medicationRepository: MedicationRepository,
     scheduleRepository: ScheduleRepository,
+    doseEventRepository: DoseEventRepository,
+    scheduleCalculator: ScheduleCalculator,
+    notificationActuator: NotificationActuator,
+    now: Instant,
+    timeZone: TimeZone,
 ) {
     val (rufus, luna) = demoPets()
     petRepository.upsert(rufus)
     petRepository.upsert(luna)
     val demoMeds = demoMedications(rufus.id, luna.id)
     demoMeds.forEach { medicationRepository.upsert(it) }
-    demoSchedules(scheduleRepository, demoMeds)
+    demoSchedules(
+        scheduleRepository = scheduleRepository,
+        meds = demoMeds,
+        doseEventRepository = doseEventRepository,
+        scheduleCalculator = scheduleCalculator,
+        notificationActuator = notificationActuator,
+        now = now,
+        timeZone = timeZone,
+    )
 }
 
 private fun demoPets(): Pair<Pet, Pet> {
@@ -281,61 +300,71 @@ private fun demoMed(
         discontinuedAt = null,
     )
 
+@Suppress("LongParameterList")
 private suspend fun demoSchedules(
     scheduleRepository: ScheduleRepository,
     meds: List<Medication>,
+    doseEventRepository: DoseEventRepository,
+    scheduleCalculator: ScheduleCalculator,
+    notificationActuator: NotificationActuator,
+    now: Instant,
+    timeZone: TimeZone,
 ) {
     val medById = meds.associateBy { it.id }
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-rufus-carprofen",
-        medById.getValue("med-rufus-carprofen").id,
-        1,
-        listOf(LocalTime(8, 0)),
-    )
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-rufus-fish-oil",
-        medById.getValue("med-rufus-fish-oil").id,
-        1,
-        listOf(LocalTime(18, 0)),
-    )
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-rufus-apoquel",
-        medById.getValue("med-rufus-apoquel").id,
-        2,
-        listOf(LocalTime(7, 30), LocalTime(19, 30)),
-    )
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-luna-methimazole",
-        medById.getValue("med-luna-methimazole").id,
-        2,
-        listOf(LocalTime(8, 0), LocalTime(20, 0)),
-    )
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-luna-prednisolone",
-        medById.getValue("med-luna-prednisolone").id,
-        1,
-        listOf(LocalTime(9, 0)),
-    )
-    upsertDemoSchedule(
-        scheduleRepository,
-        "sched-luna-fortiflora",
-        medById.getValue("med-luna-fortiflora").id,
-        1,
-        listOf(LocalTime(17, 30)),
-    )
+    val specs =
+        listOf(
+            DemoScheduleSpec("sched-rufus-carprofen", "med-rufus-carprofen", 1, listOf(LocalTime(8, 0))),
+            DemoScheduleSpec("sched-rufus-fish-oil", "med-rufus-fish-oil", 1, listOf(LocalTime(18, 0))),
+            DemoScheduleSpec(
+                "sched-rufus-apoquel",
+                "med-rufus-apoquel",
+                2,
+                listOf(LocalTime(7, 30), LocalTime(19, 30)),
+            ),
+            DemoScheduleSpec(
+                "sched-luna-methimazole",
+                "med-luna-methimazole",
+                2,
+                listOf(LocalTime(8, 0), LocalTime(20, 0)),
+            ),
+            DemoScheduleSpec("sched-luna-prednisolone", "med-luna-prednisolone", 1, listOf(LocalTime(9, 0))),
+            DemoScheduleSpec("sched-luna-fortiflora", "med-luna-fortiflora", 1, listOf(LocalTime(17, 30))),
+        )
+    for (spec in specs) {
+        upsertDemoSchedule(
+            scheduleRepository = scheduleRepository,
+            scheduleId = spec.scheduleId,
+            medicationId = medById.getValue(spec.medicationId).id,
+            dosesPerDay = spec.dosesPerDay,
+            doseTimesLocal = spec.doseTimesLocal,
+            doseEventRepository = doseEventRepository,
+            scheduleCalculator = scheduleCalculator,
+            notificationActuator = notificationActuator,
+            now = now,
+            timeZone = timeZone,
+        )
+    }
 }
 
+private data class DemoScheduleSpec(
+    val scheduleId: String,
+    val medicationId: String,
+    val dosesPerDay: Int,
+    val doseTimesLocal: List<LocalTime>,
+)
+
+@Suppress("LongParameterList")
 private suspend fun upsertDemoSchedule(
     scheduleRepository: ScheduleRepository,
     scheduleId: String,
     medicationId: String,
     dosesPerDay: Int,
     doseTimesLocal: List<LocalTime>,
+    doseEventRepository: DoseEventRepository,
+    scheduleCalculator: ScheduleCalculator,
+    notificationActuator: NotificationActuator,
+    now: Instant,
+    timeZone: TimeZone,
 ) {
     val schedule =
         Schedule(
@@ -357,7 +386,21 @@ private suspend fun upsertDemoSchedule(
             doseUnit = null,
             dayInterval = 1,
         )
-    scheduleRepository.upsert(schedule, listOf(phase))
+    val phases = listOf(phase)
+    scheduleRepository.upsert(schedule, phases)
+    val reminders =
+        ReminderRescheduler.materializeHorizonForSchedule(
+            schedule = schedule,
+            phases = phases,
+            medicationId = medicationId,
+            doseEventRepository = doseEventRepository,
+            scheduleCalculator = scheduleCalculator,
+            timeZone = timeZone,
+            now = now,
+        )
+    for (reminder in reminders) {
+        notificationActuator.schedule(reminder)
+    }
 }
 
 /** Utility for forms that need to display "now" in the device's local zone. */
