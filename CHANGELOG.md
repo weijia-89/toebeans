@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.2] - Boot receiver enabled flag test is red on purpose (2026-11-08)
+
+### Added
+
+- `BootReceiverManifestEnabledTest` expects `android:enabled="false"` on `.notifications.BootReceiver` to keep the receiver off until the first schedule materializes. The manifest still sets `android:enabled="true"`, so the test is red on purpose.
+
 ## [0.4.1] - Demo load registers the 72-hour alarms (2026-11-08)
 
 ### Changed
