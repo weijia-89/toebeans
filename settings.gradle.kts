@@ -70,8 +70,8 @@ gradle.beforeProject {
                                 because("CVE-2026-45799: wire-runtime-jvm discontinued")
                             }
                             "wire-runtime" -> {
-                                useVersion("6.3.0")
-                                because("CVE-2026-45799")
+                                useVersion("6.4.5")
+                                because("CVE-2026-45799 and CVE-2026-63126")
                             }
                         }
                     }
