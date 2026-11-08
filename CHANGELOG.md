@@ -11,6 +11,12 @@ large chunk of merged work.
 
 - `loadDemoData` writes the next 72 hours of pending doses and registers those alarms, to arm each demo schedule.
 
+## [0.4.0] - History shows every dose status (2026-11-08)
+
+### Added
+
+- History lists pending, given, skipped, and missed doses from the last 30 days to show the full record, and a pet chip filters that list to one pet.
+
 ## [0.3.0] - Notification denial UX, History tab, rendered UI tests (2026-10)
 
 ### Added
