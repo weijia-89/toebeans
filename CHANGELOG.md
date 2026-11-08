@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.1] - Demo load registers the 72-hour alarms (2026-11-08)
+
+### Changed
+
+- `loadDemoData` writes the next 72 hours of pending doses and registers those alarms, to arm each demo schedule.
+
 ## [0.4.0] - History shows every dose status (2026-11-08)
 
 ### Added

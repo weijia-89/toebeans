@@ -7,9 +7,14 @@ import app.toebeans.core.data.SqlDelightScheduleRepository
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseStatus
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.notifications.NotificationOutcome
+import app.toebeans.core.notifications.ScheduledReminder
+import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -58,7 +63,16 @@ class FakeDoseEventRepositoryHybridTest {
             val schedRepo = SqlDelightScheduleRepository(database, kotlinx.coroutines.Dispatchers.Unconfined)
             val doseRepo = FakeDoseEventRepository(medRepo, schedRepo)
 
-            loadDemoData(petRepo, medRepo, schedRepo)
+            loadDemoData(
+                petRepository = petRepo,
+                medicationRepository = medRepo,
+                scheduleRepository = schedRepo,
+                doseEventRepository = doseRepo,
+                scheduleCalculator = DefaultScheduleCalculator(),
+                notificationActuator = HybridNoOpNotificationActuator(),
+                now = Instant.parse("2026-11-08T15:00:00Z"),
+                timeZone = TimeZone.UTC,
+            )
 
             val at = Instant.parse("2026-05-24T12:00:00Z")
             doseRepo.recordGivenNow(
@@ -74,4 +88,12 @@ class FakeDoseEventRepositoryHybridTest {
             assertEquals(DoseStatus.GIVEN, last!!.status)
             assertEquals(at, last.scheduledAt)
         }
+}
+
+private class HybridNoOpNotificationActuator : NotificationActuator {
+    override fun schedule(reminder: ScheduledReminder) = Unit
+
+    override fun cancel(reminderId: String) = Unit
+
+    override fun show(reminder: ScheduledReminder): NotificationOutcome = NotificationOutcome.Posted(0)
 }

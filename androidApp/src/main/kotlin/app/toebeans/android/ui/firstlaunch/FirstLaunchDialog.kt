@@ -27,10 +27,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.data.loadDemoData
 import app.toebeans.android.preferences.FirstLaunchPreferences
+import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import org.koin.compose.koinInject
 
 /**
  * First-launch onboarding prompt. Shown once on app first open; offers to populate the
@@ -58,6 +64,9 @@ public fun FirstLaunchDialogHost(
     val seen by prefs.firstLaunchSeen.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val doseEventRepository: DoseEventRepository = koinInject()
+    val scheduleCalculator: ScheduleCalculator = koinInject()
+    val notificationActuator: NotificationActuator = koinInject()
     var pending by remember { mutableStateOf<FirstLaunchChoice?>(null) }
 
     fun finish(choice: FirstLaunchChoice) {
@@ -65,7 +74,16 @@ public fun FirstLaunchDialogHost(
             FirstLaunchChoice.START_EMPTY -> prefs.markSeen()
             FirstLaunchChoice.LOAD_DEMO -> {
                 scope.launch {
-                    loadDemoData(petRepository, medicationRepository, scheduleRepository)
+                    loadDemoData(
+                        petRepository = petRepository,
+                        medicationRepository = medicationRepository,
+                        scheduleRepository = scheduleRepository,
+                        doseEventRepository = doseEventRepository,
+                        scheduleCalculator = scheduleCalculator,
+                        notificationActuator = notificationActuator,
+                        now = Clock.System.now(),
+                        timeZone = TimeZone.currentSystemDefault(),
+                    )
                     prefs.markSeen()
                 }
             }

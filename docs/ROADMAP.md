@@ -17,8 +17,7 @@ The day-14 read has not started.
 
 | Item | Tier | Status |
 |---|---|---|
-| History tab calls `DoseEventRepository.observeRecentForHistory` for the last 30 days, so pending, given, skipped, and missed rows show. A pet chip filters that list the same way Today does. The query shipped in PR [#122](https://github.com/weijia-89/toebeans/pull/122). No schema change. | vibe-safe | agent-eligible |
-| Load demo data writes the 72-hour dose horizon and registers those alarms. Schedule create already does this (`upsertMaterializeAndSchedule`). `loadDemoData` only upserts pets, medications, and schedules. Call the existing scheduler and notification actuator. Do not edit `scheduler/`, `notifications/`, the schema, the manifest, or Gradle. | vibe-careful | agent-eligible |
+| Demo load writes the 72-hour horizon and registers those alarms. | vibe-careful | this pull request |
 | `BootReceiver` stays disabled until the first schedule materializes (ADR-0012). The manifest still sets `android:enabled="true"`. | vibe-dangerous | agent-eligible only as a failing test and a PR labelled `needs-human-test-review` |
 | Play Store internal-testing track for 1 to 3 testers. Walkthrough: `docs/play-store-internal-testing-walkthrough.md`. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
@@ -44,7 +43,8 @@ A later scheduler change must keep given, skipped, and missed rows on edit.
 | Dose unit picker | [#97](https://github.com/weijia-89/toebeans/pull/97) | 2026-07-20 |
 | Today pet filter, scroll, and Edit | [#75](https://github.com/weijia-89/toebeans/pull/75) | 2026-05-28 |
 | History tab, read-only, given-only feed | [#119](https://github.com/weijia-89/toebeans/pull/119) | 2026-10-24 |
-| All-status history query. The tab does not call it yet. | [#122](https://github.com/weijia-89/toebeans/pull/122) | 2026-10-25 |
+| All-status history query | [#122](https://github.com/weijia-89/toebeans/pull/122) | 2026-10-25 |
+| History lists every status for 30 days, and a pet chip filters that list | [#131](https://github.com/weijia-89/toebeans/pull/131) | 2026-11-08 |
 | TalkBack reaches the night-dose and midnight-straddle buttons | [#123](https://github.com/weijia-89/toebeans/pull/123) | 2026-10-25 |
 | Rendered Compose tests (denial banner, delete dialog, calculator error, night-dose, midnight-straddle) | [#116](https://github.com/weijia-89/toebeans/pull/116), [#117](https://github.com/weijia-89/toebeans/pull/117), [#121](https://github.com/weijia-89/toebeans/pull/121) | 2026-10-24 |
 | Exact-alarm denial banner | [#105](https://github.com/weijia-89/toebeans/pull/105) | 2026-10-13 |
