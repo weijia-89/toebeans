@@ -25,6 +25,7 @@ buildscript {
             force("org.bouncycastle:bcpkix-jdk18on:1.85")
             force("org.bouncycastle:bcutil-jdk18on:1.85")
             force("com.google.guava:guava:33.7.2-jre")
+            force("org.freemarker:freemarker:2.3.35")
         }
     }
 }
