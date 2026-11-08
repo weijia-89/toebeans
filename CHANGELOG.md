@@ -11,6 +11,12 @@ large chunk of merged work.
 
 - `BootReceiverManifestEnabledTest` expects `android:enabled="false"` on `.notifications.BootReceiver` to keep the receiver off until the first schedule materializes. The manifest still sets `android:enabled="true"`, so the test is red on purpose.
 
+## [0.4.0] - History shows every dose status (2026-11-08)
+
+### Added
+
+- History lists pending, given, skipped, and missed doses from the last 30 days to show the full record, and a pet chip filters that list to one pet.
+
 ## [0.3.0] - Notification denial UX, History tab, rendered UI tests (2026-10)
 
 ### Added

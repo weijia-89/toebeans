@@ -89,7 +89,7 @@ The wire-up PR for this ADR must include:
 - `DoseAlarmReceiver` writes `fired_at` before calling `show()` and records an audit row when the actuator returns `Posted`.
 - Banner visibility is consumed by `HomeViewModel` (fired-but-unaudited rows drive the Today banner).
 - The denial path was verified on the `toebeans-pixel7` emulator per `docs/manual-qa/cases/notification-denied-dose-alarm.md`.
-- Update 2026-11-07: the scoped all-statuses `DoseEvent` query shipped in PR #122 (`DoseEventRepository.observeRecentForHistory`, `selectRecentForHistory`, contract test `SqlDelightDoseEventRepositoryHistoryQueryTest`). The History tab moves onto it in a separate UI slice.
+- Update 2026-11-07: the scoped all-statuses `DoseEvent` query shipped in PR #122 (`DoseEventRepository.observeRecentForHistory`, `selectRecentForHistory`, contract test `SqlDelightDoseEventRepositoryHistoryQueryTest`). The History tab calls that query.
 
 ## Sourcing
 
