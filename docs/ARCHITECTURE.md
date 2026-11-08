@@ -23,6 +23,8 @@ graph TD
     Core --> Notif
 ```
 
+The History tab slice stays inside androidApp Compose UI. This map is unchanged.
+
 ## What each module hides
 
 The module split follows Parnas: each module hides a design decision that is

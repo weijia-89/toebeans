@@ -17,7 +17,7 @@ The day-14 read has not started.
 
 | Item | Tier | Status |
 |---|---|---|
-| History tab calls `DoseEventRepository.observeRecentForHistory` for the last 30 days, so pending, given, skipped, and missed rows show. A pet chip filters that list the same way Today does. The query shipped in PR [#122](https://github.com/weijia-89/toebeans/pull/122). The tab still calls `observeAllRecent` (given-only). No schema change. | vibe-safe | agent-eligible |
+| History tab calls `DoseEventRepository.observeRecentForHistory` for the last 30 days, so pending, given, skipped, and missed rows show. A pet chip filters that list the same way Today does. The query shipped in PR [#122](https://github.com/weijia-89/toebeans/pull/122). No schema change. | vibe-safe | agent-eligible |
 | Load demo data writes the 72-hour dose horizon and registers those alarms. Schedule create already does this (`upsertMaterializeAndSchedule`). `loadDemoData` only upserts pets, medications, and schedules. Call the existing scheduler and notification actuator. Do not edit `scheduler/`, `notifications/`, the schema, the manifest, or Gradle. | vibe-careful | agent-eligible |
 | `BootReceiver` stays disabled until the first schedule materializes (ADR-0012). The manifest still sets `android:enabled="true"`. | vibe-dangerous | agent-eligible only as a failing test and a PR labelled `needs-human-test-review` |
 | Play Store internal-testing track for 1 to 3 testers. Walkthrough: `docs/play-store-internal-testing-walkthrough.md`. | n/a | blocked-operator-runtime |

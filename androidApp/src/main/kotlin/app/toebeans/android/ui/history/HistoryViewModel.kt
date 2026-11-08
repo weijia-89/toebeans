@@ -11,6 +11,7 @@ import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -27,16 +28,11 @@ import kotlin.time.Duration.Companion.days
  * History tab (ADR-0011 UI slice). Read-only, newest-first log of dose events across
  * every pet, bounded to the last 30 days.
  *
- * **Repository read, and its known limitation.** The scoped all-status query the spec
- * wants (every status, `scheduled_at >= since`, bounded rows) would be a
- * [DoseEventRepository] + SQLDelight change, and `shared/src/commonMain/sqldelight/` is
- * vibe-dangerous per AGENTS.md (needs a reviewed query of its own). This slice therefore
- * reads [DoseEventRepository.observeAllRecent] — GIVEN-only, LIMIT 50 — and bounds it to
- * the 30-day window by passing the window start as `sinceInclusive`. The pure projection
- * below handles every [DoseStatus] so the screen lights up correctly the moment the
- * scoped query lands as its own reviewed change; until then, non-given history is
- * simply absent from the live feed. That gap is the documented limitation of this UI
- * slice, not a bug here.
+ * **Repository read.** The tab calls [DoseEventRepository.observeRecentForHistory]
+ * with [windowStart] (`now` minus [WINDOW_DAYS]) and [HISTORY_ROW_LIMIT]. That query
+ * returns every [DoseStatus] inside the window, newest first. The projection drops a
+ * row whose scheduled time is still before the window start, and [applyPetFilter]
+ * narrows the list to one pet.
  *
  * Like Home, the window is anchored once per flow subscription (rebuilt via
  * [flatMapLatest] off the pets flow), not rolled over mid-session.
@@ -53,8 +49,20 @@ public class HistoryViewModel(
     medicationRepository: MedicationRepository,
     doseEventRepository: DoseEventRepository,
 ) : ViewModel() {
+    private val filterPetId = MutableStateFlow<String?>(null)
+
     public val uiState: StateFlow<HistoryUiState> =
         buildUiState(petRepository, medicationRepository, doseEventRepository)
+
+    /** Keep rows for [petId]. A pet id that is not in the list clears the filter. */
+    public fun selectPetFilter(petId: String) {
+        filterPetId.value = petId
+    }
+
+    /** Show every pet's rows again. */
+    public fun clearPetFilter() {
+        filterPetId.value = null
+    }
 
     private fun buildUiState(
         petRepository: PetRepository,
@@ -65,19 +73,26 @@ public class HistoryViewModel(
         val medications = medicationRepository.observeAll()
         val recentDoses =
             pets.flatMapLatest { _ ->
-                doseEventRepository.observeAllRecent(historyWindowStart())
+                doseEventRepository.observeRecentForHistory(
+                    sinceInclusive = historyWindowStart(),
+                    limit = HISTORY_ROW_LIMIT,
+                )
             }
         return combine(
             pets,
             medications,
             recentDoses,
-        ) { petList, medList, events ->
-            projectHistory(
-                pets = petList,
-                medications = medList,
-                events = events,
-                since = historyWindowStart(),
-                zone = TimeZone.currentSystemDefault(),
+            filterPetId,
+        ) { petList, medList, events, activePetFilter ->
+            applyPetFilter(
+                projectHistory(
+                    pets = petList,
+                    medications = medList,
+                    events = events,
+                    since = historyWindowStart(),
+                    zone = TimeZone.currentSystemDefault(),
+                ),
+                activePetFilter,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -96,6 +111,9 @@ public class HistoryViewModel(
     public companion object {
         /** History window length in days (spec: "last 30 days", no load-more in v1). */
         public const val WINDOW_DAYS: Int = 30
+
+        /** Newest rows kept from [DoseEventRepository.observeRecentForHistory]. */
+        public const val HISTORY_ROW_LIMIT: Int = 500
 
         /**
          * Window start for "the last [WINDOW_DAYS] days" ending at [now]. Pure so tests
@@ -143,6 +161,7 @@ public class HistoryViewModel(
                                 )
                         HistoryRowUi(
                             id = event.id,
+                            petId = pet.id,
                             petName = pet.name,
                             medicationName = med.name,
                             scheduledAt = event.scheduledAt,
@@ -154,7 +173,24 @@ public class HistoryViewModel(
             // Sort by the actual instant, not the display label, and re-sort here rather
             // than trusting the repository's DESC order: the projection stays correct
             // even if a future read path arrives unsorted.
-            return HistoryUiState(rows = rows, loading = false)
+            return HistoryUiState(rows = rows, pets = pets, loading = false)
+        }
+
+        /**
+         * When [petId] is in [HistoryUiState.pets], keep only that pet's rows.
+         * A null id, or an id the pet list does not contain, shows every row.
+         */
+        internal fun applyPetFilter(
+            state: HistoryUiState,
+            petId: String?,
+        ): HistoryUiState {
+            if (petId == null || state.pets.none { it.id == petId }) {
+                return state.copy(filterPetId = null)
+            }
+            return state.copy(
+                filterPetId = petId,
+                rows = state.rows.filter { it.petId == petId },
+            )
         }
 
         /** Human label for a [DoseStatus] chip. Never claims delivery, only state. */
@@ -206,6 +242,7 @@ public class HistoryViewModel(
  */
 public data class HistoryRowUi(
     public val id: String,
+    public val petId: String,
     public val petName: String,
     public val medicationName: String,
     public val scheduledAt: Instant,
@@ -218,5 +255,7 @@ public data class HistoryRowUi(
 /** UI state for the History tab. Immutable snapshot. */
 public data class HistoryUiState(
     public val rows: List<HistoryRowUi> = emptyList(),
+    public val pets: List<Pet> = emptyList(),
+    public val filterPetId: String? = null,
     public val loading: Boolean = false,
 )

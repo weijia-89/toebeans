@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.0] - History shows every dose status (2026-11-08)
+
+### Added
+
+- History lists pending, given, skipped, and missed doses from the last 30 days to show the full record, and a pet chip filters that list to one pet.
+
 ## [0.3.0] - Notification denial UX, History tab, rendered UI tests (2026-10)
 
 ### Added
