@@ -12,10 +12,6 @@ Unsafe deserialization of Kotlin build-cache metadata.
 
 ## Decision
 
-Wait for a stable release at or above 2.4.20.
+2026-11-08: do not take `2.4.20-Beta1`. A beta compiler is the wrong trade for a bug that needs a poisoned build cache.
 
-A beta compiler is the wrong trade for a bug that needs a poisoned build cache on the maintainer machine.
-
-Leave the GitHub alert open.
-
-`gradle/libs.versions.toml` stays `kotlin = "2.0.21"`.
+2026-11-09: stable `2.4.20` (published 2026-09-07) is the pin. `kotlin = "2.4.20"` in `gradle/libs.versions.toml`. Kover moves to `0.9.11` because `0.8.3` cannot read the Kotlin 2.4 compilation model. Compose Multiplatform stays `1.7.3`. The app and shared JVM tests compiled and passed on that pair.

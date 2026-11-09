@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.5] - Kotlin 2.4.20 (2026-11-09)
+
+### Security
+
+- Kotlin is `2.4.20` (GHSA-r937-wjx7-w2jp, Dependabot alert 68). Kover is `0.9.11` because `0.8.3` cannot read that compiler's compilation model. Compose Multiplatform stays `1.7.3`.
+
 ## [0.4.4] - BootReceiver starts disabled (2026-11-08)
 
 ### Changed

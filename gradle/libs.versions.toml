@@ -8,7 +8,7 @@
 
 [versions]
 # Kotlin + KMP
-kotlin = "2.0.21"
+kotlin = "2.4.20"
 # Android
 agp = "8.7.0"
 android-compile-sdk = "35"
@@ -35,7 +35,7 @@ koin = "4.0.0"
 ktlint = "12.1.1"
 detekt = "1.23.7"
 jacoco = "0.8.12"
-kover = "0.8.3"
+kover = "0.9.11"
 # Test
 turbine = "1.1.0"
 robolectric = "4.13"
