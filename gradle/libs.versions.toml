@@ -32,7 +32,7 @@ sqldelight = "2.4.1"
 # DI
 koin = "4.2.2"
 # Lint / format / coverage
-ktlint = "12.1.1"
+ktlint = "14.2.0"
 detekt = "1.23.8"
 jacoco = "0.8.12"
 kover = "0.9.11"
