@@ -10,7 +10,7 @@ Last updated: 2026-11-08. Current milestone: Milestone 1.2.
 ## Milestone 1.2: Internal beta (current)
 
 Ship-ability: one developer can install a debug build and use the local app.
-Trusted testers are not on a Play track.
+`docs/play-store-internal-testing-walkthrough.md` stays unused until a tester cannot install from the F-Droid path.
 The day-14 read has not started.
 
 ### Open
@@ -18,7 +18,8 @@ The day-14 read has not started.
 | Item | Tier | Status |
 |---|---|---|
 | `BootReceiver` stays disabled until the first schedule materializes (ADR-0012). The manifest still sets `android:enabled="true"`. `BootReceiverManifestEnabledTest` expects `android:enabled="false"` and is red on purpose. | vibe-dangerous | needs-human-test-review |
-| Play Store internal-testing track for 1 to 3 testers. Walkthrough: `docs/play-store-internal-testing-walkthrough.md`. | n/a | blocked-operator-runtime |
+| F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
+| Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
 
 Not this run.

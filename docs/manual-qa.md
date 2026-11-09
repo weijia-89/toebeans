@@ -123,3 +123,4 @@ Cases already written in git history, pull request test plans, commit messages, 
 - [Silent miss stays pending on Today](manual-qa/cases/soak-silent-miss-still-pending.md)
 - [Travel records which clock the alarm used](manual-qa/cases/soak-travel-record-which-clock.md)
 - [Internal-testing install checks](manual-qa/cases/internal-testing-install-checks.md)
+- [Confirm one reminder from the F-Droid path](manual-qa/cases/fdroid-tester-confirm-one-reminder.md)

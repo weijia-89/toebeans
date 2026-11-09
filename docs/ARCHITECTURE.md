@@ -24,6 +24,7 @@ graph TD
 ```
 
 The History tab slice stays inside androidApp Compose UI. This map is unchanged.
+The F-Droid listing docs keep the same module structure.
 
 ## What each module hides
 
