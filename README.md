@@ -99,6 +99,11 @@ audit path, and boot replay re-schedules the 72-hour horizon via `BootReceiver`
 
 The Android app targets API 24 (Android 7.0) and up.
 
+## Install for testers
+
+Testers install from the F-Droid path.
+The steps are in [docs/fdroid-tester-tutorial.md](docs/fdroid-tester-tutorial.md).
+
 ## Build
 
 You need JDK 17 and an Android SDK at API 34 or later. JDK versions newer

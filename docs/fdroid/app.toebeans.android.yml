@@ -1,0 +1,36 @@
+# Draft for fdroiddata. This run does not file the merge request.
+# Application id: app.toebeans.android
+# versionName and versionCode match androidApp/build.gradle.kts.
+# No signing key, password, or token belongs in this file.
+# The Gradle root is the repository root. Do not set subdir.
+
+Categories:
+  - Sports & Health
+License: AGPL-3.0
+AuthorName: Wei Jia
+SourceCode: https://github.com/weijia-89/toebeans
+IssueTracker: https://github.com/weijia-89/toebeans/issues
+Changelog: https://github.com/weijia-89/toebeans/blob/main/CHANGELOG.md
+
+Name: toebeans
+AutoName: toebeans
+Summary: Local reminders for pet medication
+Description: |-
+    Pet medication tracker for Android.
+    Records stay on the device.
+    The app does not use the network.
+
+RepoType: git
+Repo: https://github.com/weijia-89/toebeans
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    commit: REPLACE_WITH_RELEASE_TAG
+    gradle:
+      - yes
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: 0.1.0
+CurrentVersionCode: 1

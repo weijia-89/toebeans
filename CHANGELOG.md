@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.5] - F-Droid tester channel and listing draft (2026-11-08)
+
+### Added
+
+- Operator guide, tester tutorial, and F-Droid metadata draft, so three testers can install from an F-Droid path after a release exists. Gradle stays at versionName 0.1.0 and versionCode 1.
+
 ## [0.4.4] - BootReceiver starts disabled (2026-11-08)
 
 ### Changed
@@ -142,6 +148,7 @@ large chunk of merged work.
 - Eight short ADRs covering KMP+Compose, the AlarmManager + WorkManager hybrid, the local-first posture, the tapering schedule model, the dose-event firing path, deferred mutation testing, the timezone + travel-mode policy, and a target performance class.
 - CI workflow with six fitness functions covering networking, analytics, permission additions, scheduler purity, plus a parity check on the agent-contract documents.
 
+[0.4.5]: https://github.com/weijia-89/toebeans/compare/v0.4.4...v0.4.5
 [0.3.0]: https://github.com/weijia-89/toebeans/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/weijia-89/toebeans/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/weijia-89/toebeans/compare/v0.0.1...v0.1.0
