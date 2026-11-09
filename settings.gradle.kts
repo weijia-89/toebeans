@@ -34,7 +34,8 @@ dependencyResolutionManagement {
 // CVE-2026-45799 (GHSA-7xpr-hc2w-34m9) and CVE-2026-63126: androidx.benchmark pulls
 // wire-runtime 4.9.7 on :macrobench only. wire-runtime-jvm has no patched release;
 // pin wire-runtime 6.4.5.
-val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:7.1.0"
+val wireRuntimeVersion = "6.4.5"
+val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:$wireRuntimeVersion"
 // CVE-2023-3635 (GHSA-w33c-445m-f8w7): transitive okio < 3.4.0 on Gradle plugin /
 // macrobench classpaths. Force patched okio (+ okio-jvm) project-wide.
 val okioVersion = "3.18.2"
@@ -56,6 +57,8 @@ val bouncycastleCoordinate = "org.bouncycastle:bcprov-jdk18on:$bouncycastleVersi
 
 gradle.beforeProject {
     configurations.configureEach {
+        // useTarget(wire-runtime-jvm) makes ResolvedGraphResult.getVariant recurse on Gradle 9.
+        exclude(group = "com.squareup.wire", module = "wire-runtime-jvm")
         resolutionStrategy {
             force(wireRuntimeCoordinate)
             force(okioCoordinate)
@@ -65,15 +68,9 @@ gradle.beforeProject {
             eachDependency {
                 when (requested.group) {
                     "com.squareup.wire" -> {
-                        when (requested.name) {
-                            "wire-runtime-jvm" -> {
-                                useTarget(wireRuntimeCoordinate)
-                                because("CVE-2026-45799: wire-runtime-jvm discontinued")
-                            }
-                            "wire-runtime" -> {
-                                useVersion("6.4.5")
-                                because("CVE-2026-45799 and CVE-2026-63126")
-                            }
+                        if (requested.name == "wire-runtime") {
+                            useVersion(wireRuntimeVersion)
+                            because("CVE-2026-45799 and CVE-2026-63126")
                         }
                     }
                     "com.squareup.okio" -> {

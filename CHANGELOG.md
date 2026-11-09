@@ -5,6 +5,13 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
+
+### Changed
+
+- The Gradle wrapper is 9.9.0. `./gradlew help` configures.
+- `wire-runtime-jvm` is excluded. `useTarget` made `ResolvedGraphResult.getVariant` call itself during dependency submission. `wire-runtime` stays 6.4.5.
+
 ## [0.4.6] - Gradle 9 is the next slice (2026-11-09)
 
 ### Added
