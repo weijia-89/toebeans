@@ -18,7 +18,7 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| Gradle `9.9.0` wrapper. `./gradlew help` configures. `useTarget` on `wire-runtime-jvm` no longer makes `ResolvedGraphResult.getVariant` recurse. A human reads the diff and merges. Android AAR metadata still fails on AGP 8.7.0. | vibe-dangerous | blocked-operator-merge |
+| Gradle `9.9.0` wrapper in pull request 147. `./gradlew help` configures. `useTarget` on `wire-runtime-jvm` no longer makes `ResolvedGraphResult.getVariant` recurse. A human reads the diff and merges. Android AAR metadata still fails on AGP 8.7.0. | vibe-dangerous | blocked-operator-merge |
 | AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. Start it only after the Gradle 9 slice passes `:shared:jvmTest` and `:androidApp:assembleDebug`. | vibe-dangerous | blocked-agent-dependency |
 | GitHub Actions `ci` is `startup_failure` with zero jobs, including on `main` (run `42554072648`). A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
