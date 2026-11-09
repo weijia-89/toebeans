@@ -5,6 +5,22 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.4] - BootReceiver starts disabled (2026-11-08)
+
+### Changed
+
+- `BootReceiver` is `android:enabled="false"` in the manifest (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. An existing install with pending doses in the 72-hour horizon enables it on the next cold start.
+
+## [0.4.3] - Buildscript pins and weekly Dependabot updates ([#133](https://github.com/weijia-89/toebeans/pull/133), 2026-11-08)
+
+### Security
+
+- Netty settings pin is `4.2.19.Final`, the same version the buildscript already forces. The app release classpath still has no Netty.
+- Macrobench `wire-runtime` resolves to `6.4.5` (CVE-2026-45799 and CVE-2026-63126).
+- Buildscript Guava is `33.7.2-jre` and FreeMarker is `2.3.35`. Neither jar is on the app release classpath.
+- Kotlin Gradle plugin stays `2.0.21`. Alert 68 stays open until a stable release at or above 2.4.20.
+- Dependabot checks Gradle and GitHub Actions weekly. A version-update pull request waits until the release is 30 days old.
+
 ## [0.4.2] - Boot receiver enabled flag test is red on purpose (2026-11-08)
 
 ### Added

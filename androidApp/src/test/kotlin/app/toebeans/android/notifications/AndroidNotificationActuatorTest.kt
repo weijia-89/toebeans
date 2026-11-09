@@ -2,7 +2,9 @@ package app.toebeans.android.notifications
 
 import android.app.AlarmManager
 import android.app.NotificationManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.core.notifications.NotificationDegraded
 import app.toebeans.core.notifications.NotificationOutcome
@@ -100,6 +102,31 @@ class AndroidNotificationActuatorTest {
         val alarm = scheduledAlarms[0]
         assertEquals(1_800_000_000_000L, alarm.triggerAtTime)
         assertEquals(AlarmManager.RTC_WAKEUP, alarm.type)
+    }
+
+    @Test
+    fun `schedule enables BootReceiver when the component is still at the manifest default`() {
+        val component = ComponentName(context, BootReceiver::class.java)
+        context.packageManager.setComponentEnabledSetting(
+            component,
+            PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
+            PackageManager.DONT_KILL_APP,
+        )
+
+        actuator.schedule(
+            ScheduledReminder(
+                id = "evt-enable-boot",
+                scheduleId = "sched-1",
+                scheduledAt = Instant.fromEpochMilliseconds(1_800_000_000_000L),
+                medicationName = "Methimazole",
+                petName = "Luna",
+            ),
+        )
+
+        assertEquals(
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            context.packageManager.getComponentEnabledSetting(component),
+        )
     }
 
     @Test

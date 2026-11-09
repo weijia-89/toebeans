@@ -31,8 +31,9 @@ dependencyResolutionManagement {
     }
 }
 
-// CVE-2026-45799 (GHSA-7xpr-hc2w-34m9): androidx.benchmark pulls wire-runtime 4.9.7 on
-// :macrobench only. wire-runtime-jvm has no patched release; unify on wire-runtime 6.3.0+.
+// CVE-2026-45799 (GHSA-7xpr-hc2w-34m9) and CVE-2026-63126: androidx.benchmark pulls
+// wire-runtime 4.9.7 on :macrobench only. wire-runtime-jvm has no patched release;
+// pin wire-runtime 6.4.5.
 val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:6.4.5"
 // CVE-2023-3635 (GHSA-w33c-445m-f8w7): transitive okio < 3.4.0 on Gradle plugin /
 // macrobench classpaths. Force patched okio (+ okio-jvm) project-wide.
@@ -40,10 +41,10 @@ val okioVersion = "3.17.0"
 val okioCoordinate = "com.squareup.okio:okio:$okioVersion"
 val okioJvmCoordinate = "com.squareup.okio:okio-jvm:$okioVersion"
 
-// CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249: netty-handler < 4.1.135.Final
-// CVE-2026-50560 / CVE-2026-48043 / CVE-2026-47244: netty-codec-http2 < 4.1.135.Final
-// CVE-2026-50020: netty-codec-http < 4.1.135.Final
-val nettyVersion = "4.1.135.Final"
+// Buildscript classpath already resolves 4.2.19.Final (build.gradle.kts).
+// Open 4.2 advisories are patched at 4.2.17.Final or earlier.
+// 4.1.135.Final is inside the open 4.1 ranges (patched at 4.1.136 / 4.1.137).
+val nettyVersion = "4.2.19.Final"
 
 // CVE-2026-10532 / CVE-2026-9828: logback-core < 1.5.34
 val logbackVersion = "1.5.34"
@@ -70,8 +71,8 @@ gradle.beforeProject {
                                 because("CVE-2026-45799: wire-runtime-jvm discontinued")
                             }
                             "wire-runtime" -> {
-                                useVersion("6.3.0")
-                                because("CVE-2026-45799")
+                                useVersion("6.4.5")
+                                because("CVE-2026-45799 and CVE-2026-63126")
                             }
                         }
                     }

@@ -17,7 +17,7 @@ The day-14 read has not started.
 
 | Item | Tier | Status |
 |---|---|---|
-| `BootReceiver` stays disabled until the first schedule materializes (ADR-0012). The manifest still sets `android:enabled="true"`. `BootReceiverManifestEnabledTest` expects `android:enabled="false"` and is red on purpose. | vibe-dangerous | needs-human-test-review |
+| `BootReceiver` manifest `android:enabled` is `false` (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. A human still reads this notification-path diff before merge. | vibe-dangerous | needs-human-review |
 | Play Store internal-testing track for 1 to 3 testers. Walkthrough: `docs/play-store-internal-testing-walkthrough.md`. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
 

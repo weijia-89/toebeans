@@ -5,8 +5,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Red on purpose. The manifest still sets android:enabled="true" on BootReceiver.
- * ADR-0012 wants that flag false until the first schedule materializes.
+ * ADR-0012: BootReceiver stays disabled in the manifest until a dose is scheduled.
+ * [app.toebeans.android.notifications.BootReceiverLifecycle] turns the component on.
  */
 class BootReceiverManifestEnabledTest {
     @Test

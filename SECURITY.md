@@ -29,7 +29,7 @@ See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-d
 
 - SLSA Build Track L1 at v0.1; L2 target by slice 6.
 - All Gradle dependencies pinned to specific versions in `gradle/libs.versions.toml`.
-- `./gradlew dependencyCheckAnalyze` (OWASP) gate in CI.
+- Pull request CI runs `actions/dependency-review-action` and fails the job when a newly added dependency has a high-severity advisory (`.github/workflows/ci.yml`, job `dependency-review`).
 - Hallucinated-package vigilance per [`AGENTS.md` § Hallucination vigilance](AGENTS.md#hallucination-vigilance). Every new import requires explicit human verification against Maven Central.
 
 ### Buildscript-transitive vs. app-runtime dependencies
@@ -51,26 +51,23 @@ these classes are packaged into the APK. The transitives that AGP pulls in
 classpath. A CVE on any of them is a developer-environment supply-chain
 concern, and end users on the published APK are not exposed.
 
-When Dependabot opens an alert on a buildscript-transitive dependency, the
-realized user risk is zero by construction. The alert is dismissed with
-reason `not_used` and a comment pointing at the triage log for that batch.
-
-We do not force-upgrade plugin transitives via
-`configurations.all { resolutionStrategy.force(...) }`. AGP plugin internals
-can break in non-obvious ways when forced to a version they were not built
-against, and the gain is buildscript-only.
-
-The upstream fix path is bumping AGP and Kotlin to versions whose transitives
-are already on the patched line. We piggyback those bumps on real motivating
-changes like a Kotlin minor release or a new Compose Multiplatform release,
-and avoid treating buildscript-only alerts as a reason to drive a Gradle
-upgrade on their own.
+A buildscript jar is not in the published APK. When the resolved version is already outside the advisory range, leave it. When the resolved version is inside the range, pin it in the existing buildscript `resolutionStrategy.force` list in `build.gradle.kts`. A force that breaks the build is reverted. An AGP or Kotlin bump stays on its own schedule.
 
 Triage decisions are logged in
 `docs/security/dependabot-triage-<YYYY-MM-DD>.md` with the alert IDs, the
 classpath each package lives in, and the dismissal rationale per package.
 The first such log is
 [`docs/security/dependabot-triage-2026-05-18.md`](docs/security/dependabot-triage-2026-05-18.md).
+
+### Dependabot pull requests
+
+`.github/dependabot.yml` checks Gradle and GitHub Actions once a week. A version-update pull request waits until the release is 30 days old. That wait matches the first-seen rule in [`AGENTS.md`](AGENTS.md).
+
+Security update pull requests are already enabled on the GitHub repository. The 30-day wait does not apply to them.
+
+Dependabot does not merge its own pull requests. A Gradle version change still needs human review per [`AGENTS.md`](AGENTS.md).
+
+This config file does not close alerts. An `ignore` rule would only stop version-update pull requests. The 2026-05-18 triage recorded that limit, and it still holds. The open-alert work list is [`docs/superpowers/plans/2026-11-08-dependabot-alerts.md`](docs/superpowers/plans/2026-11-08-dependabot-alerts.md).
 
 ## Disclosure
 
