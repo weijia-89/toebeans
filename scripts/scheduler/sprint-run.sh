@@ -2,7 +2,7 @@
 # Weekend sprint driver: runs one scheduled sprint phase headlessly through Cursor Agent.
 #
 # Billing: `agent` bills to the same Cursor plan as the editor. No separate API spend.
-# Usage: sprint-run.sh <project-slug> <sat|sun>
+# Usage: sprint-run.sh <project-slug> <sat|sun|oneshot>
 # Env overrides: SPRINT_DRY_RUN=1, SPRINT_MODEL, SPRINT_WORKER_MODEL
 set -uo pipefail
 
@@ -50,7 +50,11 @@ case "$PROJECT" in
     CONTRACT="$REPO/docs/orchestration/sprint-orchestrator.md"
     # Prompt resolves beside this script, so the driver always reads its own repo's copy
     # even if an older plist still points at a different checkout.
-    PROMPT="$SCHED/prompts/toebeans-$PHASE.txt"
+    if [[ "$PHASE" == "oneshot" ]]; then
+      PROMPT="$SCHED/prompts/toebeans-gradle9.txt"
+    else
+      PROMPT="$SCHED/prompts/toebeans-$PHASE.txt"
+    fi
     ;;
   baby-app-audit)
     REPO="$ROOT/baby-app-audit-sprint4"
@@ -295,6 +299,12 @@ else
   fi
   log "FAIL rc=$RC$POSSIBLE_WORK"
   /usr/bin/osascript -e "display notification \"$PROJECT $PHASE failed rc=$RC$POSSIBLE_WORK - see $LOG\" with title \"Weekend sprint failed\"" 2>/dev/null || true
+fi
+
+if [[ "$PHASE" == "oneshot" ]]; then
+  launchctl bootout "gui/$(id -u)/com.dubs.toebeans.gradle9-oneshot" 2>/dev/null || true
+  rm -f "$HOME/Library/LaunchAgents/com.dubs.toebeans.gradle9-oneshot.plist"
+  log "oneshot plist removed"
 fi
 
 exit $RC

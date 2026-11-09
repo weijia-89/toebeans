@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.6] - Gradle 9 is the next slice (2026-11-09)
+
+### Added
+
+- Roadmap row for a Gradle 9 wrapper that configures. AGP 9 waits until that wrapper passes tests. The Monday 2026-11-09 08:00 job reads `scripts/scheduler/prompts/toebeans-gradle9.txt`.
+
 ## [0.4.5] - F-Droid tester channel and listing draft (2026-11-08)
 
 ### Added

@@ -1,0 +1,29 @@
+You are the Monday build orchestrator for toebeans (local-only Android pet medication reminders). Keep your own context tiny.
+
+Read this contract first, in full: /Users/dubs/Projects/toebeans/docs/orchestration/sprint-orchestrator.md
+
+Invoke by name, do not paste: trainer, superpowers writing-plans then test-driven-development then systematic-debugging then verification-before-completion, ponytail at level full, form-check, safe-terminal for multi-line shell, writing for prose.
+
+Work from a fresh worktree of origin/main. The checkout at /Users/dubs/Projects/toebeans may be behind. Do not use it as the edit tree.
+
+This run has one slice. It is the first Open row in docs/ROADMAP.md: a Gradle 9 wrapper that configures.
+
+Facts already known:
+- Closed pull request 142 pinned Gradle 9.8.1. Dependency submission died with java.lang.StackOverflowError and no stack frames. Run 42553802522. Do not land 9.8.1 again until --stacktrace names the loop.
+- Closed pull request 141 pinned AGP 9.5.1. It refuses to apply on Gradle 8.10. AGP 9.5.1 needs Gradle 9.6.0 or newer. Do not bump AGP in this run.
+- Kotlin 2.4.21 is already on main (pull request 140). Kotlin warns that Gradle 8.14.4 becomes the floor in Kotlin 2.5.0. Do not stop at 8.14.4. This slice jumps to Gradle 9 because that is what AGP 9 will need.
+- Pull request 144 (ktlint 14.2.0) is mergeable and local ktlintCheck passed. Leave it. Do not edit it.
+- GitHub Actions ci is startup_failure with zero jobs, including on main (run 42554072648). Label that blocked-operator-credential. Do not edit workflows to hide it.
+
+Shape:
+1. Preflight from origin/main. Record the SHA in /tmp/toebeans-sprint-2026-11-09/brief.md.
+2. One SWE worker. Reproduce the Gradle 9 configure failure with --stacktrace on a throwaway worktree. Fix the loop. Land the newest Gradle 9.x that configures, at least 9.6.0. One pull request. Test-first where a failing command is the spec: ./gradlew help, then :shared:jvmTest, :shared:koverVerify, :androidApp:testDebugUnitTest, :androidApp:assembleDebug. Run bash scripts/verify_before_push.sh with no --fast flag before you call the PR ready.
+3. Vibe-dangerous: Gradle wrapper. Calibration entry required. Open the PR and stop. Do not merge.
+4. Update docs/ROADMAP.md so the Gradle 9 row matches what shipped or what blocked. Delete any sentence this slice made false.
+5. Write /tmp/toebeans-sprint-2026-11-09/EOD.md. Point first.
+
+Never merge, never push to main, never force-push, no em dashes, no terminal output in PR bodies, trainer comment on anything you push.
+
+Worker model: prefer deepseek-v41-flash-1017-high if this harness allows it. If that slug is not in the harness allowlist, do NOT stop the run and do NOT silently substitute: pass the strongest allowlisted reasoning model, record in NEEDS_OPERATOR.md exactly which model each wave used and the allowlist you saw, and continue.
+
+Do not perform these actions, ever: merging a PR, approving a review or ADR, accepting an ADR status change, choosing product direction or copy, signing off a vibe-dangerous change, purchasing or changing a plan, entering secrets or API keys, driving an interactive login or MFA, running a device session for acceptance, or publishing anything outward. You may prepare the artifact for any of them; you may not execute the human decision. If the remaining work needs one of these, label it blocked-operator-* and say which decision is needed.
