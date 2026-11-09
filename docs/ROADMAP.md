@@ -18,16 +18,14 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| Gradle 9 wrapper that configures. Next slice. Reproduce the `StackOverflowError` from closed pull request 142 with `--stacktrace`, fix the loop, and land a 9.x wrapper. Do not use `9.8.1` again until that stack is known. Do not bump AGP in the same pull request. | vibe-dangerous | next-slice |
+| Gradle `9.9.0` wrapper. `./gradlew help` configures. `useTarget` on `wire-runtime-jvm` no longer makes `ResolvedGraphResult.getVariant` recurse. A human reads the diff and merges. Android AAR metadata still fails on AGP 8.7.0. | vibe-dangerous | blocked-operator-merge |
 | AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. Start it only after the Gradle 9 slice passes `:shared:jvmTest` and `:androidApp:assembleDebug`. | vibe-dangerous | blocked-agent-dependency |
-| ktlint `14.2.0` in pull request 144. Local `ktlintCheck` passed. A human merges it. GitHub Actions currently starts no jobs, so CI cannot confirm. | vibe-careful | blocked-operator-merge |
 | GitHub Actions `ci` is `startup_failure` with zero jobs, including on `main` (run `42554072648`). A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
 
 Not this run.
-Kotlin 2.4 warns that Gradle `8.14.4` becomes the floor in Kotlin `2.5.0`. This slice jumps to Gradle 9 instead, because AGP 9 needs `9.6.0` or newer. Do not stop at `8.14.4`.
 ADR-0007 G1 and G3 stay in `docs/issues/v0.1-followups.md` item 2.
 Argon2id stays unwired until an ADR-0016 v2 trigger.
 Vet-visit tables stay in the vet-visit ADR-0020.
@@ -52,6 +50,7 @@ A later scheduler change must keep given, skipped, and missed rows on edit.
 | History lists every status for 30 days, and a pet chip filters that list | [#131](https://github.com/weijia-89/toebeans/pull/131) | 2026-11-08 |
 | `BootReceiver` manifest flag is `false`. `schedule` enables the component. | [#133](https://github.com/weijia-89/toebeans/pull/133) | 2026-11-08 |
 | Kotlin `2.4.21` and Kover `0.9.11` | [#140](https://github.com/weijia-89/toebeans/pull/140) | 2026-11-08 |
+| ktlint `14.2.0` | [#144](https://github.com/weijia-89/toebeans/pull/144) | 2026-11-09 |
 | Demo load writes the 72-hour horizon and registers those alarms | [#132](https://github.com/weijia-89/toebeans/pull/132) | 2026-11-08 |
 | TalkBack reaches the night-dose and midnight-straddle buttons | [#123](https://github.com/weijia-89/toebeans/pull/123) | 2026-10-25 |
 | Rendered Compose tests (denial banner, delete dialog, calculator error, night-dose, midnight-straddle) | [#116](https://github.com/weijia-89/toebeans/pull/116), [#117](https://github.com/weijia-89/toebeans/pull/117), [#121](https://github.com/weijia-89/toebeans/pull/121) | 2026-10-24 |
