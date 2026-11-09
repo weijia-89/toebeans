@@ -5,7 +5,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
-## [0.4.3] - Buildscript pins and weekly Dependabot updates (2026-11-08)
+## [0.4.3] - Buildscript pins and weekly Dependabot updates ([#133](https://github.com/weijia-89/toebeans/pull/133), 2026-11-08)
 
 ### Security
 
