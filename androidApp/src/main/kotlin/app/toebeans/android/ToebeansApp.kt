@@ -59,6 +59,26 @@ class ToebeansApp : Application() {
         // Sweep stale pending doses to MISSED on every app foreground.
         // Runs after Koin is ready so DoseEventRepository is available.
         runMissedDoseSweeper()
+        enableBootReceiverIfPendingDosesExist()
+    }
+
+    /**
+     * An update that ships the manifest flag `android:enabled="false"` would leave an
+     * already-scheduled install without boot replay until the next [AndroidNotificationActuator.schedule].
+     * If pending doses are already in the horizon, turn the receiver on at startup.
+     */
+    private fun enableBootReceiverIfPendingDosesExist() {
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                if (loadPendingRemindersInHorizon(this@ToebeansApp).isNotEmpty()) {
+                    app.toebeans.android.notifications.BootReceiverLifecycle.enable(this@ToebeansApp)
+                }
+            } catch (e: SQLiteException) {
+                android.util.Log.w("ToebeansApp", "Boot receiver enable check failed", e)
+            } catch (e: IllegalStateException) {
+                android.util.Log.w("ToebeansApp", "Boot receiver enable check failed", e)
+            }
+        }
     }
 
     /**

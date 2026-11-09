@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.4] - BootReceiver starts disabled (2026-11-08)
+
+### Changed
+
+- `BootReceiver` is `android:enabled="false"` in the manifest (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. An existing install with pending doses in the 72-hour horizon enables it on the next cold start.
+
 ## [0.4.3] - Buildscript pins and weekly Dependabot updates ([#133](https://github.com/weijia-89/toebeans/pull/133), 2026-11-08)
 
 ### Security

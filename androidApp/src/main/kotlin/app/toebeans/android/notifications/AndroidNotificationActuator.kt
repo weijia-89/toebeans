@@ -93,6 +93,7 @@ public class AndroidNotificationActuator(
                 pendingIntent,
             )
         }
+        BootReceiverLifecycle.enable(context)
     }
 
     override fun cancel(reminderId: String) {
