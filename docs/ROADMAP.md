@@ -12,6 +12,7 @@ Last updated: 2026-11-08. Current milestone: Milestone 1.2.
 Ship-ability: one developer can install a debug build and use the local app.
 `docs/play-store-internal-testing-walkthrough.md` stays unused until a tester cannot install from the F-Droid path.
 The day-14 read has not started.
+History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Play Store internal-testing row with the F-Droid tester channel.
 
 ### Open
 
