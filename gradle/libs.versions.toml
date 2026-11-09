@@ -8,37 +8,37 @@
 
 [versions]
 # Kotlin + KMP
-kotlin = "2.0.21"
+kotlin = "2.4.21"
 # Android
 agp = "8.7.0"
 android-compile-sdk = "35"
 android-min-sdk = "26"          # Android 8.0 Oreo — wide coverage, drops the exotic battery edge cases
 android-target-sdk = "34"
 # Compose Multiplatform
-compose-multiplatform = "1.7.3"
+compose-multiplatform = "1.12.1"
 # AndroidX
-androidx-core-ktx = "1.13.1"
+androidx-core-ktx = "1.19.1"
 androidx-activity-compose = "1.9.2"
-androidx-compose-material = "1.7.5"
+androidx-compose-material = "1.7.8"
 androidx-lifecycle = "2.8.6"
-androidx-navigation = "2.8.5"
-androidx-work = "2.10.0"
+androidx-navigation = "2.10.2"
+androidx-work = "2.12.0"
 # Coroutines + datetime
-kotlinx-coroutines = "1.9.0"
-kotlinx-datetime = "0.6.1"
-kotlinx-serialization = "1.7.3"
+kotlinx-coroutines = "1.11.0"
+kotlinx-datetime = "0.8.0"
+kotlinx-serialization = "1.11.0"
 # SQLDelight
-sqldelight = "2.0.2"
+sqldelight = "2.4.1"
 # DI
-koin = "4.0.0"
+koin = "4.2.2"
 # Lint / format / coverage
 ktlint = "12.1.1"
-detekt = "1.23.7"
+detekt = "1.23.8"
 jacoco = "0.8.12"
-kover = "0.8.3"
+kover = "0.9.11"
 # Test
-turbine = "1.1.0"
-robolectric = "4.13"
+turbine = "1.2.1"
+robolectric = "4.17"
 junit = "4.13.2"
 androidx-test-ext-junit = "1.2.1"
 espresso-core = "3.6.1"
@@ -51,7 +51,7 @@ androidx-compose-ui-test = "1.7.8"
 # the AGP `com.android.test` plugin and its benchmark-only deps do not contaminate the
 # main app's classpath. Versions pinned per the same policy as the rest of the catalog
 # (bumps require a human-reviewed PR per AGENTS.md).
-androidx-benchmark = "1.3.3"
+androidx-benchmark = "1.5.0"
 # Wire — forced to 6.4.5 via settings.gradle.kts (CVE-2026-45799, CVE-2026-63126). :macrobench only.
 wire = "6.4.5"
 # Okio — forced to 3.17.0 via settings.gradle.kts (CVE-2023-3635). Gradle plugin / macrobench.
@@ -65,7 +65,7 @@ androidx-uiautomator = "2.3.0"
 # 1.84 released 2025-05-XX by org.bouncycastle (canonical maintainer, verified via
 # ADR-0018 references). First-seen for the jdk18on artifact line: 2021-04-22 (>30 days
 # per AGENTS.md § Hallucination vigilance).
-bouncycastle = "1.85"
+bouncycastle = "1.86"
 
 [libraries]
 # kotlinx
