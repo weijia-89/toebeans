@@ -9,6 +9,7 @@ import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.di.appModule
 import app.toebeans.android.notifications.AndroidNotificationActuator
+import app.toebeans.android.notifications.BootReceiverLifecycle
 import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.db.DatabaseFactory
@@ -71,7 +72,7 @@ class ToebeansApp : Application() {
         kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 if (loadPendingRemindersInHorizon(this@ToebeansApp).isNotEmpty()) {
-                    app.toebeans.android.notifications.BootReceiverLifecycle.enable(this@ToebeansApp)
+                    BootReceiverLifecycle.enable(this@ToebeansApp)
                 }
             } catch (e: SQLiteException) {
                 android.util.Log.w("ToebeansApp", "Boot receiver enable check failed", e)
