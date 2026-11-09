@@ -67,11 +67,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- Phase 1 scaffold: manifest registration + no-op onReceive. Phase 2 adds 72h-horizon
-             SQLDelight replay and ADR-0012 disabled-by-default lifecycle. -->
+        <!-- ADR-0012: disabled until the first dose schedule. BootReceiverLifecycle.enable
+             turns the component on from AndroidNotificationActuator.schedule. -->
         <receiver
             android:name=".notifications.BootReceiver"
-            android:enabled="true"
+            android:enabled="false"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

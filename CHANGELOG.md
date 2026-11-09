@@ -5,11 +5,27 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
-## [0.4.3] - F-Droid tester channel and listing draft (2026-11-08)
+## [0.4.5] - F-Droid tester channel and listing draft (2026-11-08)
 
 ### Added
 
 - Operator guide, tester tutorial, and F-Droid metadata draft, so three testers can install from an F-Droid path after a release exists. Gradle stays at versionName 0.1.0 and versionCode 1.
+
+## [0.4.4] - BootReceiver starts disabled (2026-11-08)
+
+### Changed
+
+- `BootReceiver` is `android:enabled="false"` in the manifest (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. An existing install with pending doses in the 72-hour horizon enables it on the next cold start.
+
+## [0.4.3] - Buildscript pins and weekly Dependabot updates ([#133](https://github.com/weijia-89/toebeans/pull/133), 2026-11-08)
+
+### Security
+
+- Netty settings pin is `4.2.19.Final`, the same version the buildscript already forces. The app release classpath still has no Netty.
+- Macrobench `wire-runtime` resolves to `6.4.5` (CVE-2026-45799 and CVE-2026-63126).
+- Buildscript Guava is `33.7.2-jre` and FreeMarker is `2.3.35`. Neither jar is on the app release classpath.
+- Kotlin Gradle plugin stays `2.0.21`. Alert 68 stays open until a stable release at or above 2.4.20.
+- Dependabot checks Gradle and GitHub Actions weekly. A version-update pull request waits until the release is 30 days old.
 
 ## [0.4.2] - Boot receiver enabled flag test is red on purpose (2026-11-08)
 
@@ -132,7 +148,7 @@ large chunk of merged work.
 - Eight short ADRs covering KMP+Compose, the AlarmManager + WorkManager hybrid, the local-first posture, the tapering schedule model, the dose-event firing path, deferred mutation testing, the timezone + travel-mode policy, and a target performance class.
 - CI workflow with six fitness functions covering networking, analytics, permission additions, scheduler purity, plus a parity check on the agent-contract documents.
 
-[0.4.3]: https://github.com/weijia-89/toebeans/compare/v0.4.2...v0.4.3
+[0.4.5]: https://github.com/weijia-89/toebeans/compare/v0.4.4...v0.4.5
 [0.3.0]: https://github.com/weijia-89/toebeans/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/weijia-89/toebeans/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/weijia-89/toebeans/compare/v0.0.1...v0.1.0

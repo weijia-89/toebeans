@@ -17,7 +17,7 @@ This walkthrough does not repeat the install steps.
 ## Build facts
 
 Gradle emits versionName 0.1.0 and versionCode 1.
-CHANGELOG section 0.4.3 is ahead of those Gradle values.
+CHANGELOG section 0.4.5 is ahead of those Gradle values.
 Do not edit Gradle to close that gap.
 The application id is `app.toebeans.android`.
 The license is AGPL-3.0.

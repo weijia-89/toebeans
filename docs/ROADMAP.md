@@ -18,7 +18,7 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| `BootReceiver` stays disabled until the first schedule materializes (ADR-0012). The manifest still sets `android:enabled="true"`. `BootReceiverManifestEnabledTest` expects `android:enabled="false"` and is red on purpose. | vibe-dangerous | needs-human-test-review |
+| `BootReceiver` manifest `android:enabled` is `false` (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. A human still reads this notification-path diff before merge. | vibe-dangerous | needs-human-review |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
