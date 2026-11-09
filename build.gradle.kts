@@ -18,12 +18,12 @@ buildscript {
             force("io.netty:netty-resolver:4.2.19.Final")
             force("io.netty:netty-transport-native-unix-common:4.2.19.Final")
             // Logback
-            force("ch.qos.logback:logback-core:1.5.34")
-            force("ch.qos.logback:logback-classic:1.5.34")
+            force("ch.qos.logback:logback-core:1.6.5")
+            force("ch.qos.logback:logback-classic:1.6.5")
             // BouncyCastle
-            force("org.bouncycastle:bcprov-jdk18on:1.85")
-            force("org.bouncycastle:bcpkix-jdk18on:1.85")
-            force("org.bouncycastle:bcutil-jdk18on:1.85")
+            force("org.bouncycastle:bcprov-jdk18on:1.86")
+            force("org.bouncycastle:bcpkix-jdk18on:1.86")
+            force("org.bouncycastle:bcutil-jdk18on:1.86")
             force("com.google.guava:guava:33.7.2-jre")
             force("org.freemarker:freemarker:2.3.35")
         }
