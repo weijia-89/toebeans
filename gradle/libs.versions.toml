@@ -10,7 +10,7 @@
 # Kotlin + KMP
 kotlin = "2.4.21"
 # Android
-agp = "8.7.0"
+agp = "9.5.1"
 android-compile-sdk = "35"
 android-min-sdk = "26"          # Android 8.0 Oreo — wide coverage, drops the exotic battery edge cases
 android-target-sdk = "34"
