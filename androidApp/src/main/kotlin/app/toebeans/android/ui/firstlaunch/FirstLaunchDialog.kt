@@ -34,9 +34,9 @@ import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import org.koin.compose.koinInject
+import kotlin.time.Clock
 
 /**
  * First-launch onboarding prompt. Shown once on app first open; offers to populate the

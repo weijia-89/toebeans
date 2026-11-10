@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import app.toebeans.android.ToebeansApp
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * BroadcastReceiver for device reboot. Rehydrates the 72-hour dose-alarm horizon after

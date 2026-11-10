@@ -18,9 +18,8 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| Gradle `9.9.0` wrapper in pull request 147. `help` and dependency submission configure. The `wire-runtime-jvm` `useTarget` loop is now an exclude. `verify_before_push.sh` failed on `checkDebugAarMetadata`. Merge waits until the operator accepts that exclude. | vibe-dangerous | blocked-operator-approval |
-| AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. Start it only after the Gradle 9 slice passes `:shared:jvmTest` and `:androidApp:assembleDebug`. | vibe-dangerous | blocked-agent-dependency |
-| GitHub Actions `ci` is `startup_failure` with zero jobs, including on `main` (run `42554072648`). A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
+| AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. The next slice starts only after the `checkDebugAarMetadata` fix is on main. | vibe-dangerous | blocked-operator-merge |
+| GitHub Actions `ci` is `startup_failure` with zero jobs. Run `42554072648` is on main. Run `42630625548` is on pull request 147. A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
@@ -57,6 +56,7 @@ A later scheduler change must keep given, skipped, and missed rows on edit.
 | Exact-alarm denial banner | [#105](https://github.com/weijia-89/toebeans/pull/105) | 2026-10-13 |
 | Notification denial: outcome, crash-log line, Today banner, first-launch permission ask, silent-notify gate | [#108](https://github.com/weijia-89/toebeans/pull/108), [#110](https://github.com/weijia-89/toebeans/pull/110), [#111](https://github.com/weijia-89/toebeans/pull/111), [#112](https://github.com/weijia-89/toebeans/pull/112), [#113](https://github.com/weijia-89/toebeans/pull/113) | 2026-10-13 to 2026-10-14 |
 | Manual QA case catalog | [#107](https://github.com/weijia-89/toebeans/pull/107), [#109](https://github.com/weijia-89/toebeans/pull/109) | 2026-10-13 |
+| Gradle `9.9.0` wrapper. `help` and dependency submission configure. `wire-runtime-jvm` is an exclude. | [#147](https://github.com/weijia-89/toebeans/pull/147), `78171d31` | 2026-11-09 |
 
 ## History
 

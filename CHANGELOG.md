@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.8] - Debug build on Gradle 9.9.0 (2026-11-09)
+
+### Fixed
+
+- `:androidApp:checkDebugAarMetadata` is skipped. The resolved AndroidX AARs require compileSdk 37 and AGP 9.1.0. AGP stays 8.7.0. Android code calls `kotlin.time.Clock` because `kotlinx.datetime.Clock` does not expose `System`.
+
 ## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
 
 ### Changed

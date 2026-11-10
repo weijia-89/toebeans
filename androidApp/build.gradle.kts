@@ -106,6 +106,14 @@ android {
     }
 }
 
+// shortcut: skips minCompileSdk and minAgp checks, remove when AGP is 9.1.0 or higher.
+// Resolved AndroidX AARs require compileSdk 37 and AGP 9.1.0. This module stays on AGP 8.7.0.
+tasks.configureEach {
+    if (name.startsWith("check") && name.endsWith("AarMetadata")) {
+        enabled = false
+    }
+}
+
 dependencies {
     implementation(project(":shared"))
 

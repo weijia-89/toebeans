@@ -44,12 +44,12 @@ import app.toebeans.android.ui.components.PetAvatarSizeHero
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
 import app.toebeans.core.model.formatDose
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
+import kotlin.time.Clock
 
 /**
  * Pet detail. Shows the pet's identity card and a LazyColumn of medications. Tapping a

@@ -57,7 +57,6 @@ import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
 import app.toebeans.core.model.formatDose
 import app.toebeans.core.notifications.NOTIFICATION_DENIAL_BANNER_COPY
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -65,6 +64,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import kotlin.time.Clock
 
 /**
  * Home / Today screen. Shows the user's tracked pets as tappable chips and today's

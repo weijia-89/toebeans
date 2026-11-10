@@ -7,7 +7,6 @@ import app.toebeans.android.ToebeansApp
 import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.core.data.db.DatabaseFactory
 import app.toebeans.core.db.ToebeansDatabase
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -20,6 +19,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
 /**

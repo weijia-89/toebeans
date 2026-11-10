@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -25,6 +24,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
 /**
@@ -321,8 +321,8 @@ public class ReminderListViewModel(
             val daysLeft = endDate.toEpochDays() - today.toEpochDays()
             return when {
                 daysLeft < 0 -> "Ended"
-                daysLeft == 0 -> "Ends today"
-                daysLeft == 1 -> "Ends tomorrow"
+                daysLeft == 0L -> "Ends today"
+                daysLeft == 1L -> "Ends tomorrow"
                 daysLeft < 7 -> "Ends in $daysLeft days"
                 else -> "Ends $endDate"
             }

@@ -2,10 +2,10 @@ package app.toebeans.android.crash
 
 import android.content.Context
 import android.os.Build
-import kotlinx.datetime.Clock
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import kotlin.time.Clock
 
 /**
  * Local-only uncaught-exception capture per ADR-0009.
