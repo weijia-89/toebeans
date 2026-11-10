@@ -2,12 +2,12 @@ package app.toebeans.android.ui.medications
 
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.time.Clock
 
 class MedicationEditContextTest {
     @Test

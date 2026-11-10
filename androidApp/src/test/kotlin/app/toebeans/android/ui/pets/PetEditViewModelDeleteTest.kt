@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -21,7 +22,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.time.Clock
 
 /**
  * Tests for [PetEditViewModel.delete]. The delete path is short (3 lines) but it's the only

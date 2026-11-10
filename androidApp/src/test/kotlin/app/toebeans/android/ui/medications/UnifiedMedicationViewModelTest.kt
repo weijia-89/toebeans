@@ -18,6 +18,7 @@ import app.toebeans.core.notifications.ScheduledReminder
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -29,7 +30,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.time.Clock
 
 private class RecordingNotificationActuator : NotificationActuator {
     val scheduled = mutableListOf<ScheduledReminder>()

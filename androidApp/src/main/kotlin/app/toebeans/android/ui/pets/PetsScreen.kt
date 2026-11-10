@@ -36,12 +36,12 @@ import app.toebeans.android.ui.theme.ToebeansTheme
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
 import app.toebeans.core.model.Species
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.koin.androidx.compose.koinViewModel
-import kotlin.time.Clock
 
 @Composable
 public fun PetsScreen(

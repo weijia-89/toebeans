@@ -18,7 +18,8 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. The next slice starts only after the `checkDebugAarMetadata` fix is on main. | vibe-dangerous | blocked-operator-merge |
+| Gradle `9.9.0` wrapper shipped in pull request 147 (`78171d31`). The `wire-runtime-jvm` exclude stays. `checkDebugAarMetadata` passes on that wrapper with the AndroidX and datetime pins. AGP stays 8.7.0. | vibe-dangerous | shipped |
+| AGP 9. Closed pull request 141 needs Gradle `9.6.0` or newer. `assembleDebug` is green on the pin branch. Start AGP 9 only after that branch is on main. | vibe-dangerous | blocked-operator-merge |
 | GitHub Actions `ci` is `startup_failure` with zero jobs. Run `42554072648` is on main. Run `42630625548` is on pull request 147. A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |

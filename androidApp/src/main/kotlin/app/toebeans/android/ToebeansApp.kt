@@ -20,12 +20,12 @@ import app.toebeans.core.notifications.SqlDelightReminderLookup
 import app.toebeans.core.scheduler.ReminderRescheduler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
 /**
