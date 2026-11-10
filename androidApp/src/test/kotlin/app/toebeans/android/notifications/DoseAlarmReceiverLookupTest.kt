@@ -43,7 +43,7 @@ import java.io.File
  * Per AGENTS.md vibe-dangerous protocol: human review of assertions before extending coverage.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class DoseAlarmReceiverLookupTest {
     private lateinit var context: Context
     private lateinit var alarmManager: AlarmManager

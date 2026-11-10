@@ -63,7 +63,7 @@ import org.robolectric.annotation.Config
  * injected directly.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class ScheduleDetailDeleteDialogRenderTest {
     @get:Rule
     val rule = createComposeRule()

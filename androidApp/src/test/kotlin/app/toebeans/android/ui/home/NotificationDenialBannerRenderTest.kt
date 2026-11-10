@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
  * Exception on the second test in the class, and this composable needs no DI.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class NotificationDenialBannerRenderTest {
     @get:Rule
     val rule = createComposeRule()

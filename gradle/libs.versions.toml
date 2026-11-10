@@ -17,15 +17,15 @@ android-target-sdk = "34"
 # Compose Multiplatform
 compose-multiplatform = "1.12.1"
 # AndroidX
-androidx-core-ktx = "1.19.1"
+androidx-core-ktx = "1.16.0"
 androidx-activity-compose = "1.9.2"
 androidx-compose-material = "1.7.8"
 androidx-lifecycle = "2.8.6"
-androidx-navigation = "2.10.2"
+androidx-navigation = "2.9.6"
 androidx-work = "2.12.0"
 # Coroutines + datetime
 kotlinx-coroutines = "1.11.0"
-kotlinx-datetime = "0.8.0"
+kotlinx-datetime = "0.6.2"
 kotlinx-serialization = "1.11.0"
 # SQLDelight
 sqldelight = "2.4.1"
@@ -42,11 +42,9 @@ robolectric = "4.17"
 junit = "4.13.2"
 androidx-test-ext-junit = "1.2.1"
 espresso-core = "3.6.1"
-# Compose ui-test (ADR-0013). Pinned to the androidx 1.7 line the
-# compose-multiplatform 1.7.3 plugin builds on so test-only artifacts cannot
-# drift from the Compose version the app ships with. Test-only; never on a
-# release classpath. 1.7.8 released 2025-03 (first-party AndroidX, >30 days).
-androidx-compose-ui-test = "1.7.8"
+# Compose ui-test (ADR-0013). Same 1.11.4 line as the forced Compose runtime.
+# Test-only; never on a release classpath. First-party AndroidX.
+androidx-compose-ui-test = "1.11.4"
 # Macrobenchmark — ADR-0008 perf-budget enforcement. Lives in the :macrobench module so
 # the AGP `com.android.test` plugin and its benchmark-only deps do not contaminate the
 # main app's classpath. Versions pinned per the same policy as the rest of the catalog

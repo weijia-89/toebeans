@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
  * parent repos for in-memory dose semantics (not the production dose binding).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class FakeDoseEventRepositoryHybridTest {
     private lateinit var context: Context
     private lateinit var database: ToebeansDatabase

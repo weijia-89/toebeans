@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
  * assertions as the spec; any future refactor must satisfy each one.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class RequestCodeAllocatorTest {
     private lateinit var context: Context
     private lateinit var allocator: RequestCodeAllocator

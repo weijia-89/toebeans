@@ -52,7 +52,7 @@ import org.robolectric.annotation.Config
  * implementer notes). No DI is involved; the card is rendered directly.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class PhaseEditorCardNightDoseBannerTest {
     @get:Rule
     val rule = createComposeRule()

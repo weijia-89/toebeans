@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.8] - Debug build on Gradle 9.9.0 (2026-11-09)
+
+### Fixed
+
+- `:androidApp:checkDebugAarMetadata` runs on Gradle 9.9.0 and AGP 8.7.0. Resolution pins Compose UI, foundation, animation, and runtime to 1.11.4, `core` to 1.16.0, `activity` to 1.9.2, `lifecycle` to 2.8.6, `navigation` to 2.9.6, and `kotlinx-datetime` to 0.6.2. `material3` stays unpinned. Robolectric UI tests use SDK 34. The debug APK drops the duplicate OSGI manifest from bouncycastle and jspecify.
+
 ## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
 
 ### Changed

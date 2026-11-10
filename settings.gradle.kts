@@ -55,6 +55,16 @@ val logbackCoreCoordinate = "ch.qos.logback:logback-core:$logbackVersion"
 val bouncycastleVersion = "1.86"
 val bouncycastleCoordinate = "org.bouncycastle:bcprov-jdk18on:$bouncycastleVersion"
 
+// AGP 8.7.0 accepts compileSdk 35. These releases declare a higher minCompileSdk
+// or min Android Gradle plugin. Resolution stays on a release whose AAR metadata passes.
+// material3 is not pinned: 1.11.4 is not published.
+val composeAndroidVersion = "1.11.4"
+val coreAndroidVersion = "1.16.0"
+val activityAndroidVersion = "1.9.2"
+val lifecycleAndroidVersion = "2.8.6"
+val navigationAndroidVersion = "2.9.6"
+val datetimeVersion = "0.6.2"
+
 gradle.beforeProject {
     configurations.configureEach {
         // useTarget(wire-runtime-jvm) makes ResolvedGraphResult.getVariant recurse on Gradle 9.
@@ -99,6 +109,39 @@ gradle.beforeProject {
                                 useVersion(bouncycastleVersion)
                                 because("CVE-2026-XXXX: GOST 28147 CTR mode keystream reuse")
                             }
+                        }
+                    }
+                    "androidx.compose.ui",
+                    "androidx.compose.foundation",
+                    "androidx.compose.animation",
+                    "androidx.compose.runtime" -> {
+                        useVersion(composeAndroidVersion)
+                        because("Compose 1.12.1 requires compileSdk 37 and AGP 9.1.0")
+                    }
+                    "androidx.core" -> {
+                        if (requested.name == "core" || requested.name == "core-ktx") {
+                            useVersion(coreAndroidVersion)
+                            because("core 1.19.1 requires compileSdk 37 and AGP 9.1.0")
+                        }
+                    }
+                    "androidx.activity" -> {
+                        useVersion(activityAndroidVersion)
+                        because("activity 1.13.0 requires compileSdk 36 and AGP 8.9.1")
+                    }
+                    "androidx.lifecycle" -> {
+                        useVersion(lifecycleAndroidVersion)
+                        because("lifecycle 2.11.0 requires compileSdk 37 and AGP 9.1.0")
+                    }
+                    "androidx.navigation" -> {
+                        if (requested.name.startsWith("navigation")) {
+                            useVersion(navigationAndroidVersion)
+                            because("navigation-compose 2.10.2 requires compileSdk 37 and AGP 9.1.0")
+                        }
+                    }
+                    "org.jetbrains.kotlinx" -> {
+                        if (requested.name == "kotlinx-datetime" || requested.name == "kotlinx-datetime-jvm") {
+                            useVersion(datetimeVersion)
+                            because("kotlinx-datetime 0.8.0 selects the JVM variant and drops kotlinx.datetime.Clock")
                         }
                     }
                 }
