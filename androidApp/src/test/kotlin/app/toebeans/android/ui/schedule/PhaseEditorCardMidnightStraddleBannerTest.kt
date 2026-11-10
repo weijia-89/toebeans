@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
  * both files can merge without symbol collisions.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class PhaseEditorCardMidnightStraddleBannerTest {
     @get:Rule
     val rule = createComposeRule()

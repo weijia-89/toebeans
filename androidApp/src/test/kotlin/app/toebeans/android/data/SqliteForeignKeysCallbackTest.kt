@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
  * SQLite-on-JVM with the same Android driver the app uses at runtime.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class SqliteForeignKeysCallbackTest {
     private lateinit var context: Context
     private lateinit var database: ToebeansDatabase

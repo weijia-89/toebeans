@@ -42,7 +42,7 @@ import kotlin.time.Duration.Companion.hours
  * the schedule slot (stable id) so [HomeViewModel.computeDueToday] flips the worklist row.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class HomeMarkGivenSlotIntegrationTest {
     private lateinit var context: Context
     private lateinit var database: ToebeansDatabase

@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
  *  - `resetForTest` correctly returns to fresh-install state.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class FirstLaunchPreferencesTest {
     private lateinit var context: Context
     private lateinit var prefs: FirstLaunchPreferences

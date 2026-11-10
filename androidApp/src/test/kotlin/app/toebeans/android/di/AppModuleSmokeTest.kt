@@ -46,7 +46,7 @@ import org.robolectric.annotation.Config
  * which needs a real Android Context. SDK 33 matches the rest of the androidApp test suite.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class AppModuleSmokeTest {
     @After
     fun tearDown() {

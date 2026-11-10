@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
  * Robolectric SDK 33 with a plain Application override so Koin is not booted.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class PhaseEditorCardNightDoseAffirmReachabilityTest {
     @get:Rule
     val rule = createComposeRule()

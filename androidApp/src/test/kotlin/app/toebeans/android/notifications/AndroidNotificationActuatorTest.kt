@@ -39,7 +39,7 @@ import org.robolectric.shadows.ShadowAlarmManager
  */
 @Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34])
 class AndroidNotificationActuatorTest {
     private lateinit var context: Context
     private lateinit var alarmManager: AlarmManager

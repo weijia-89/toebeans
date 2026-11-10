@@ -65,7 +65,7 @@ import org.robolectric.annotation.Config
  * (ADR-0013 implementer notes); the ViewModel is injected directly so no Koin boots.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class ScheduleCreateFormErrorBannerRenderTest {
     @get:Rule
     val rule = createComposeRule()
