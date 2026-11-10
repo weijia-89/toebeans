@@ -21,3 +21,8 @@ Forcing Compose 1.11.4 and older AndroidX versions made `checkDebugAarMetadata` 
 ## Weak spot
 
 The metadata check is off. A later AndroidX release can ship an API the app does not compile against, and this task will not report it. Turn the check back on when AGP is 9.1.0 or higher.
+
+## Assemble follow-up
+
+`:androidApp:assembleDebug` then failed on a duplicate `META-INF/versions/9/OSGI-INF/MANIFEST.MF` from bouncycastle and jspecify. The packaging exclude for that path makes assemble exit 0. `:androidApp:testDebugUnitTest` exits 0 when Robolectric uses SDK 34. API 33's jar is missing `BluetoothDevice.BluetoothAddress`.
+

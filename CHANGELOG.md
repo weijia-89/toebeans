@@ -9,7 +9,7 @@ large chunk of merged work.
 
 ### Fixed
 
-- `:androidApp:checkDebugAarMetadata` is skipped. The resolved AndroidX AARs require compileSdk 37 and AGP 9.1.0. AGP stays 8.7.0. Android code calls `kotlin.time.Clock` because `kotlinx.datetime.Clock` does not expose `System`.
+- `:androidApp:checkDebugAarMetadata` is skipped. The resolved AndroidX AARs require compileSdk 37 and AGP 9.1.0. AGP stays 8.7.0. Android code calls `kotlin.time.Clock` because `kotlinx.datetime.Clock` does not expose `System`. The debug APK drops the duplicate OSGI manifest from bouncycastle and jspecify.
 
 ## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
 
