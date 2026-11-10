@@ -24,14 +24,15 @@ import org.robolectric.annotation.Config
  * `shared/.../NotificationDenialBannerTest.kt`; this test hard-codes the
  * sentence again so a copy drift fails at both layers.
  *
- * SDK 33 is the POST_NOTIFICATIONS fork and the minimum Compose ui-test
- * supports under Robolectric (ADR-0013 implementer notes). The application is
+ * SDK 34: API 33's Robolectric jar is missing BluetoothDevice.BluetoothAddress,
+ * and a tap initializes AudioManager and crashes. SDK 33 is still the minimum
+ * Compose ui-test supports (ADR-0013). The application is
  * overridden to a plain Application so Robolectric does not boot ToebeansApp:
  * its onCreate calls startKoin, which throws KoinApplicationAlreadyStarted-
  * Exception on the second test in the class, and this composable needs no DI.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class NotificationDenialBannerRenderTest {
     @get:Rule
     val rule = createComposeRule()
