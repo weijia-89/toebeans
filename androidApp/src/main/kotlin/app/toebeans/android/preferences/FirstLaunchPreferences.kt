@@ -18,9 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * SharedPreferences-vs-DataStore rationale). One boolean: `first_launch_seen`. Once true,
  * stays true forever — re-prompting on every clear-data event would be annoying.
  *
- * **Why not use the demo-loaded flag too?** The demo data is in-memory only (the fake
- * repos lose state on process death) so persisting `demo_loaded = true` would lie about
- * whether the demo data is actually still resident. We only persist the `seen` bit.
+ * **Why not use the demo-loaded flag too?** Demo data persists through the repository
+ * contracts, and a demo load writes the 72-hour dose horizon and registers those alarms
+ * (PR #132), so the loaded state is already durable and observable. We only persist the
+ * `seen` bit, which is all the first-launch dialog needs.
  */
 public class FirstLaunchPreferences(
     context: Context,
