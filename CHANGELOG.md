@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.9] - AGP 9.5.1 reland (2026-11-11)
+
+### Changed
+
+- AGP is 9.5.1 on the Gradle 9.9.0 wrapper (reland of the closed dependabot pull request 141). AGP 9 turns on built-in Kotlin and the new DSL, so `gradle.properties` opts out with `android.builtInKotlin=false` and `android.newDsl=false` until the build files migrate to built-in Kotlin and the KMP Android library plugin. Both opt-outs are removed in AGP 10. Verified locally: `:shared:jvmTest` 210 passed, `:shared:testDebugUnitTest` 120 passed, `:androidApp:checkDebugAarMetadata` and `:androidApp:assembleDebug` exit 0.
+
 ## [0.4.8] - Debug build on Gradle 9.9.0 (2026-11-09)
 
 ### Fixed
