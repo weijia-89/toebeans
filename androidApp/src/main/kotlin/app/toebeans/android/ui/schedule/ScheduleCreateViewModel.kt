@@ -5,6 +5,7 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.AnchorMode
+import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
@@ -17,8 +18,10 @@ import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -64,10 +67,55 @@ public class ScheduleCreateViewModel(
         _state.update { it.copy(medicationId = medicationId) }
     }
 
+    /**
+     * `createdAt` of the schedule currently loaded for edit, or null in create mode.
+     * [save] writes it back verbatim so editing never rewrites the creation timestamp.
+     */
+    private var loadedCreatedAt: Instant? = null
+
     public suspend fun loadMedication() {
         val id = _state.value.medicationId ?: return
         _state.update { it.copy(medication = medicationRepository.getById(id)) }
     }
+
+    /**
+     * Prefill the form from an existing schedule for editing (S2). Loads the schedule and
+     * its phases from the repository and maps them back into [PhaseDraft]s. The loaded
+     * `createdAt` is remembered privately and written back verbatim by [save], because the
+     * repository update path persists `created_at` as given; passing a fresh clock
+     * reading here would silently rewrite the schedule's creation timestamp.
+     *
+     * Medication identity is fixed in edit mode: the nav route carries the schedule's own
+     * petId + medicationId, so the caller still runs [loadMedication] afterwards to fill
+     * the title subtitle. No-op when the schedule id no longer resolves (stale link).
+     */
+    public suspend fun loadForEdit(scheduleId: String) {
+        val schedule = scheduleRepository.observeById(scheduleId).first() ?: return
+        val phases = scheduleRepository.observePhases(scheduleId).first()
+        loadedCreatedAt = schedule.createdAt
+        _state.update {
+            it.copy(
+                medicationId = schedule.medicationId,
+                startDate = schedule.startDate,
+                endDate = schedule.endDate,
+                anchorMode = schedule.anchorMode,
+                editingScheduleId = schedule.id,
+                startDateError = null,
+                formError = null,
+                phases = phases.map { phase -> phase.toDraft() },
+            )
+        }
+    }
+
+    private fun SchedulePhase.toDraft(): PhaseDraft =
+        PhaseDraft(
+            durationDaysText = durationDays.toString(),
+            doseTimes = doseTimesLocal,
+            dayIntervalText = dayInterval.toString(),
+            doseAmount = doseAmount ?: "",
+            doseUnit = doseUnit,
+            error = null,
+        )
 
     public fun onStartDateChange(value: LocalDate?) {
         _state.update { it.copy(startDate = value, startDateError = null, formError = null) }
@@ -267,15 +315,32 @@ public class ScheduleCreateViewModel(
             return null
         }
 
+        if (s.editingScheduleId != null) {
+            clearPendingDosesForSchedule(s.editingScheduleId)
+        }
         upsertMaterializeAndSchedule(schedule, phases, medId)
         return schedule.id
+    }
+
+    private suspend fun clearPendingDosesForSchedule(scheduleId: String) {
+        val pending =
+            doseEventRepository
+                .observeAll()
+                .first()
+                .filter { it.scheduleId == scheduleId && it.status == DoseStatus.PENDING }
+        for (event in pending) {
+            notificationActuator.cancel(event.id)
+            doseEventRepository.delete(event.id)
+        }
     }
 
     private fun newSchedulePayload(
         s: ScheduleCreateUiState,
         medId: String,
     ): Pair<Schedule, List<SchedulePhase>> {
-        val scheduleId = "sched-${Uuid.random()}"
+        // Edit mode keeps the existing schedule id (and, via loadedCreatedAt, the existing
+        // created_at); create mode mints fresh identifiers.
+        val scheduleId = s.editingScheduleId ?: "sched-${Uuid.random()}"
         val phases =
             s.phases.mapIndexed { idx, draft ->
                 SchedulePhase(
@@ -296,7 +361,7 @@ public class ScheduleCreateViewModel(
                 medicationId = medId,
                 startDate = s.startDate!!,
                 endDate = s.endDate,
-                createdAt = Clock.System.now(),
+                createdAt = loadedCreatedAt ?: Clock.System.now(),
                 anchorMode = s.anchorMode,
             )
         return schedule to phases
@@ -425,6 +490,12 @@ public data class ScheduleCreateUiState(
      * field-validation feedback).
      */
     public val formError: String? = null,
+    /**
+     * Set when the form edits an existing schedule ([ScheduleCreateViewModel.loadForEdit]).
+     * Null means create mode. [ScheduleCreateViewModel.save] reuses this id instead of
+     * minting a new one, so dose events and alarms stay attached to the same schedule row.
+     */
+    public val editingScheduleId: String? = null,
 )
 
 /**

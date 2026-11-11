@@ -5,7 +5,7 @@ A milestone names who can use the app without a broken path.
 This file is the canonical answer to what is feasible now.
 When a chat claim and this file disagree, this file wins.
 
-Last updated: 2026-11-10. Current milestone: Milestone 1.2.
+Last updated: 2026-11-11. Current milestone: Milestone 1.2.
 
 ## Milestone 1.2: Internal beta (current)
 
@@ -28,7 +28,6 @@ Not this run.
 ADR-0007 G1 and G3 stay in `docs/issues/v0.1-followups.md` item 2.
 Argon2id stays unwired until an ADR-0016 v2 trigger.
 Vet-visit tables stay in the vet-visit ADR-0020.
-A later scheduler change must keep given, skipped, and missed rows on edit.
 
 ### Shipped
 
@@ -57,6 +56,7 @@ A later scheduler change must keep given, skipped, and missed rows on edit.
 | Notification denial: outcome, crash-log line, Today banner, first-launch permission ask, silent-notify gate | [#108](https://github.com/weijia-89/toebeans/pull/108), [#110](https://github.com/weijia-89/toebeans/pull/110), [#111](https://github.com/weijia-89/toebeans/pull/111), [#112](https://github.com/weijia-89/toebeans/pull/112), [#113](https://github.com/weijia-89/toebeans/pull/113) | 2026-10-13 to 2026-10-14 |
 | Manual QA case catalog | [#107](https://github.com/weijia-89/toebeans/pull/107), [#109](https://github.com/weijia-89/toebeans/pull/109) | 2026-10-13 |
 | Gradle `9.9.0` wrapper. `help` and dependency submission configure. `wire-runtime-jvm` is an exclude. | [#147](https://github.com/weijia-89/toebeans/pull/147), `78171d31` | 2026-11-09 |
+| Schedule edit keeps dose history: editing a schedule's times, phases, or dates recycles only its pending dose rows; given, skipped, and missed rows survive | PR pending | 2026-11-11 |
 
 ## History
 

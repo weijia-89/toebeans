@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.10] - Schedule edit keeps dose history (2026-11-11)
+
+### Added
+
+- Schedule Detail gains a top-bar Edit action that opens the create form in edit mode (`SCHEDULE_EDIT_ROUTE`). `loadForEdit` prefills dates, anchor mode, and phase drafts from the stored schedule; save upserts under the same schedule id and keeps the original `created_at`. Pending dose rows for the edited schedule are cancelled and deleted, then the 72-hour horizon rematerializes for the new times and the alarms re-arm. Given, skipped, and missed rows are never touched, so dose history survives the edit. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 264 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
+
 ## [0.4.9] - AGP 9.5.1 reland (2026-11-11)
 
 ### Changed

@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -253,6 +254,24 @@ public fun ToebeansAppShell() {
                 ScheduleDetailScreen(
                     scheduleId = scheduleId,
                     onBack = { navController.popBackStack() },
+                    onEdit = { petId, medId ->
+                        navController.navigate(Destinations.scheduleEdit(petId, medId, scheduleId))
+                    },
+                )
+            }
+            composable(
+                route = Destinations.SCHEDULE_EDIT_ROUTE,
+                arguments =
+                    listOf(
+                        navArgument(Destinations.Args.PET_ID) { type = NavType.StringType },
+                        navArgument(Destinations.Args.MEDICATION_ID) { type = NavType.StringType },
+                        navArgument(Destinations.Args.SCHEDULE_ID) { type = NavType.StringType },
+                    ),
+            ) { entry ->
+                ScheduleEditDestination(
+                    entry = entry,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
                 )
             }
         }
@@ -292,3 +311,26 @@ private fun iconFor(item: BottomNavItem): ImageVector =
         BottomNavItem.SETTINGS -> Icons.Filled.Settings
         BottomNavItem.HISTORY -> HistoryIcon
     }
+
+/**
+ * Edit-route destination (S2): renders the shared create form in edit mode. Kept as a
+ * private composable so the three nav-arg lookups stay out of [ToebeansAppShell] (detekt
+ * complexity budget) while the missing-arg early return remains possible.
+ */
+@Composable
+private fun ScheduleEditDestination(
+    entry: NavBackStackEntry,
+    onBack: () -> Unit,
+    onSaved: (String) -> Unit,
+) {
+    val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return
+    val medId = entry.arguments?.getString(Destinations.Args.MEDICATION_ID) ?: return
+    val schedId = entry.arguments?.getString(Destinations.Args.SCHEDULE_ID) ?: return
+    ScheduleCreateScreen(
+        petId = petId,
+        medicationId = medId,
+        editScheduleId = schedId,
+        onBack = onBack,
+        onSaved = onSaved,
+    )
+}

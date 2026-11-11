@@ -77,6 +77,12 @@ import org.koin.androidx.compose.koinViewModel
 public fun ScheduleDetailScreen(
     scheduleId: String,
     onBack: () -> Unit,
+    /**
+     * Opens the edit form (S2). Receives the schedule's own petId + medicationId so the
+     * nav route can carry them; medication identity is fixed while editing. Default is a
+     * no-op so existing call sites without an edit affordance keep compiling.
+     */
+    onEdit: (petId: String, medicationId: String) -> Unit = { _, _ -> },
     viewModel: ScheduleDetailViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -118,10 +124,15 @@ public fun ScheduleDetailScreen(
                     }
                 },
                 actions = {
-                    // Show Delete only once the schedule has loaded — protects against
-                    // tapping Delete during the pre-emission frame where state.schedule
-                    // is still null and a delete() call would no-op.
+                    // Show Edit + Delete only once the schedule has loaded. This protects
+                    // against tapping either during the pre-emission frame where
+                    // state.schedule is still null and a delete() call would no-op.
                     if (state.schedule != null) {
+                        TextButton(
+                            onClick = { onEdit(state.petId, state.schedule?.medicationId.orEmpty()) },
+                        ) {
+                            Text("Edit")
+                        }
                         TextButton(
                             onClick = { showDeleteDialog = true },
                             colors =
