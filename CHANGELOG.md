@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.11] - Remove demo data from Settings (2026-11-11)
+
+### Added
+
+- Settings Data card gains a destructive "Remove demo data" action behind a confirmation dialog. Confirming cancels every pending demo dose alarm through the notification actuator, then deletes the demo schedules, medications, and pets; the database cascades remove the demo phases and dose rows. Removal matches the fixed demo id set (the schema does not tag demo rows, so the set is the honest contract, documented in `DemoDataIds`). A no-op when no demo rows exist. The first-launch dialog does not reappear afterwards. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 271 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
+
 ## [0.4.10] - Schedule edit keeps dose history (2026-11-11)
 
 ### Added
