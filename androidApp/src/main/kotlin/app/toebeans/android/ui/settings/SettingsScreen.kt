@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,6 +33,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -287,6 +292,31 @@ public fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+
+            // Demo-clear affordance (S3). Destructive-styled entry point after the
+            // Import row; the confirm dialog mirrors ScheduleDetailScreen's
+            // DeleteScheduleDialog (filled error confirm + Cancel TextButton). The
+            // ViewModel does the alarm-cancel-then-delete work; this composable only
+            // gates it behind the explicit confirmation.
+            var showRemoveDemoDialog by remember { mutableStateOf(false) }
+            TextButton(
+                onClick = { showRemoveDemoDialog = true },
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text("Remove demo data")
+            }
+            if (showRemoveDemoDialog) {
+                RemoveDemoDataDialog(
+                    onConfirm = {
+                        showRemoveDemoDialog = false
+                        viewModel.clearDemoData()
+                    },
+                    onDismiss = { showRemoveDemoDialog = false },
+                )
             }
         }
 
@@ -604,6 +634,47 @@ private fun formatExportSummary(state: ExportBackupUiState.Success): String {
     return "Saved $sizeLabel containing ${state.pets} pets, " +
         "${state.medications} medications, ${state.schedules} schedules, " +
         "and ${state.doseEvents} dose events."
+}
+
+/**
+ * Confirmation dialog for removing the demo data. Mirrors ScheduleDetailScreen's
+ * DeleteScheduleDialog: filled error confirm button and a Cancel TextButton, with copy
+ * that names what is deleted and says it can't be undone. Deleting a schedule history
+ * the user has interacted with is destructive enough to warrant a hard confirmation;
+ * undo UX would suggest reversibility the delete does not offer.
+ */
+@Composable
+private fun RemoveDemoDataDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove demo data?") },
+        text = {
+            Text(
+                "This deletes the 2 demo pets, 6 demo medications, their schedules, " +
+                    "and their dose history. This can't be undone.",
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+            ) {
+                Text("Remove")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Preview(showBackground = true)
