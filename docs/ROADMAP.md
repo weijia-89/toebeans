@@ -57,6 +57,7 @@ Vet-visit tables stay in the vet-visit ADR-0020.
 | Manual QA case catalog | [#107](https://github.com/weijia-89/toebeans/pull/107), [#109](https://github.com/weijia-89/toebeans/pull/109) | 2026-10-13 |
 | Gradle `9.9.0` wrapper. `help` and dependency submission configure. `wire-runtime-jvm` is an exclude. | [#147](https://github.com/weijia-89/toebeans/pull/147), `78171d31` | 2026-11-09 |
 | Schedule edit keeps dose history: editing a schedule's times, phases, or dates recycles only its pending dose rows; given, skipped, and missed rows survive | PR pending | 2026-11-11 |
+| Settings "Remove demo data" affordance: one confirmed action cancels pending demo alarms and deletes the demo pets, medications, schedules, and dose history by the fixed demo id set | PR pending | 2026-11-11 |
 
 ## History
 

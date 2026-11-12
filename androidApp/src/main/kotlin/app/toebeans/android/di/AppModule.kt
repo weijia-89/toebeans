@@ -188,7 +188,16 @@ public val appModule =
                 scheduleRepository = get(),
             )
         }
-        viewModel { SettingsViewModel(prefs = get()) }
+        viewModel {
+            SettingsViewModel(
+                prefs = get(),
+                petRepository = get(),
+                medicationRepository = get(),
+                scheduleRepository = get(),
+                doseEventRepository = get(),
+                notificationActuator = get(),
+            )
+        }
         viewModel {
             HistoryViewModel(
                 petRepository = get(),
