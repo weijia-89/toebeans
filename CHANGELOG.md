@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.12] - Dose-history red test (2026-11-12)
+
+### Added
+
+- Red test `DoseHistorySurvivesScheduleDeleteTest` (`:shared:jvmTest`) pins the desired behavior: dose events recorded for a schedule survive `scheduleRepository.delete`. It fails on the current schema for the right reason, because the `DoseEvent.schedule_id` foreign key is `ON DELETE CASCADE` (a behavior pinned green by `SqliteForeignKeysCallbackTest`), while the `DoseEvent.sq` header itself names SET NULL as the intended policy. No implementation ships here: the fix is a schema migration, the product call belongs to the operator, and the pull request is labelled `needs-human-test-review`. `:shared:jvmTest` is red by design (211 tests, exactly the one intended failure); the full suite is not claimed green.
+
 ## [0.4.11] - Remove demo data from Settings (2026-11-11)
 
 ### Added
