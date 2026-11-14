@@ -102,6 +102,7 @@ public class ScheduleDetailViewModel(
                                     phases = phases,
                                     medicationName = med?.name ?: "(unknown medication)",
                                     petName = pet?.name ?: "(unknown pet)",
+                                    petId = pet?.id ?: "",
                                     loading = false,
                                 )
                             }
@@ -154,4 +155,9 @@ public data class ScheduleDetailUiState(
     public val medicationName: String = "",
     public val petName: String = "",
     public val loading: Boolean = true,
+    /**
+     * Resolved pet id for the top-bar Edit action (S2): the edit route carries the
+     * schedule's own petId + medicationId. Empty during the transient pre-load frame.
+     */
+    public val petId: String = "",
 )

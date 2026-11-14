@@ -57,6 +57,7 @@ public fun ScheduleCreateScreen(
     // rather than drop it from the signature.
     @Suppress("UnusedParameter") petId: String,
     medicationId: String,
+    editScheduleId: String? = null,
     onBack: () -> Unit,
     onSaved: (scheduleId: String) -> Unit,
     viewModel: ScheduleCreateViewModel = koinViewModel(),
@@ -64,8 +65,15 @@ public fun ScheduleCreateScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(medicationId) {
-        viewModel.setMedicationId(medicationId)
+    // Edit mode (S2): the route carries the schedule's own petId + medicationId, so
+    // loadMedication() works unchanged; loadForEdit overwrites medicationId from the
+    // schedule row and prefills dates + phases from storage.
+    LaunchedEffect(medicationId, editScheduleId) {
+        if (editScheduleId == null) {
+            viewModel.setMedicationId(medicationId)
+        } else {
+            viewModel.loadForEdit(editScheduleId)
+        }
         viewModel.loadMedication()
     }
 
@@ -85,7 +93,7 @@ public fun ScheduleCreateScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Create schedule")
+                            Text(if (state.editingScheduleId != null) "Edit schedule" else "Create schedule")
                             state.medication?.let { med ->
                                 Text(
                                     text = "${med.name} · ${formatDose(med.doseAmount, med.doseUnit)}",
