@@ -1,5 +1,6 @@
 package app.toebeans.android.ui.home
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,8 @@ import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeCompact
+import app.toebeans.android.ui.emergency.EmergencyCard
+import app.toebeans.android.ui.emergency.emergencyDialIntent
 import app.toebeans.android.ui.firstlaunch.FIRST_RUN_NOTIFICATION_DENIAL_COPY
 import app.toebeans.android.ui.pets.formatTimeAgo
 import app.toebeans.android.ui.reminders.ReminderAddAction
@@ -81,6 +84,10 @@ import org.koin.compose.koinInject
  *
  * Pet chips filter the due + logged lists in-page (Pet Detail stays on the Pets tab).
  * Tapping the Today header while a filter is active clears back to all pets.
+ *
+ * A collapsible Emergency card sits near the top in both the empty and populated
+ * branches — verified poison-control hotlines must be reachable even with zero pets
+ * (static curated contact info, not advice; ADR-0019 §3 framing).
  */
 @Composable
 public fun HomeScreen(
@@ -116,6 +123,7 @@ public fun HomeScreen(
         notificationDenial = notificationDenial,
         firstRunNotificationOff = firstRunNotificationOff && !notificationDenial,
         onOpenNotificationSettings = { openNotificationSettings(context) },
+        onCallEmergency = { uri -> context.startActivity(emergencyDialIntent(uri)) },
         onAddPet = onAddPet,
         onAddReminder = onAddReminder,
         onPetFilterSelect = viewModel::selectPetFilter,
@@ -143,7 +151,7 @@ private fun TodayNotificationDenialBanner(
 }
 
 @Composable
-private fun HomeScreenContent(
+internal fun HomeScreenContent(
     state: HomeUiState,
     onAddPet: () -> Unit,
     onAddReminder: (ReminderAddAction) -> Unit,
@@ -156,6 +164,7 @@ private fun HomeScreenContent(
     notificationDenial: Boolean = false,
     firstRunNotificationOff: Boolean = false,
     onOpenNotificationSettings: () -> Unit = {},
+    onCallEmergency: (Uri) -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -171,6 +180,10 @@ private fun HomeScreenContent(
                 notificationDenial = notificationDenial,
                 firstRunNotificationOff = firstRunNotificationOff,
                 onOpenNotificationSettings = onOpenNotificationSettings,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+            )
+            EmergencyCard(
+                onCall = onCallEmergency,
                 modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
             )
             EmptyState(
@@ -260,6 +273,10 @@ private fun HomeScreenContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+
+            item(key = "emergency_card") {
+                EmergencyCard(onCall = onCallEmergency)
             }
 
             item(key = "pets_heading") {

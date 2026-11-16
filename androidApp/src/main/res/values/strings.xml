@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">toebeans</string>
+
+    <!-- Emergency resources. Static curated public contact info, NOT medical advice
+         (ADR-0019 posture: the app never claims judgment). Numbers verified against
+         aspca.org/pet-care/animal-poison-control and petpoisonhelpline.com on 2026-11-15. -->
+    <string name="emergency_card_title">Emergency</string>
+    <string name="emergency_first_line">If your pet may have eaten something toxic or is in distress, call your veterinarian or the nearest emergency animal hospital now.</string>
+    <string name="emergency_aspca_name">ASPCA Animal Poison Control</string>
+    <string name="emergency_aspca_phone">(888) 426-4435</string>
+    <string name="emergency_aspca_detail">24/7 · consultation fee may apply</string>
+    <string name="emergency_pph_name">Pet Poison Helpline</string>
+    <string name="emergency_pph_phone">(855) 764-7661</string>
+    <string name="emergency_pph_detail">24/7 · $99 per incident fee applies</string>
+    <string name="emergency_find_vet">Need an emergency vet? Search online for \"emergency veterinarian near me\" or call your regular vet\'s after-hours line.</string>
+    <string name="emergency_disclaimer">toebeans does not provide medical advice. In an emergency, call a veterinary professional.</string>
+    <string name="emergency_row_call_a11y">Call %1$s: %2$s</string>
+    <string name="emergency_expand_a11y">Show emergency contacts</string>
+    <string name="emergency_collapse_a11y">Hide emergency contacts</string>
+    <string name="emergency_settings_button">Emergency resources</string>
+    <string name="emergency_dialog_title">Emergency resources</string>
+    <string name="emergency_dialog_dismiss">Close</string>
 </resources>
