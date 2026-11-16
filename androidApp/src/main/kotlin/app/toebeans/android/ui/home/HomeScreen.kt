@@ -86,7 +86,7 @@ import org.koin.compose.koinInject
  * Tapping the Today header while a filter is active clears back to all pets.
  *
  * A collapsible Emergency card sits near the top in both the empty and populated
- * branches — verified poison-control hotlines must be reachable even with zero pets
+ * branches, verified poison-control hotlines must be reachable even with zero pets
  * (static curated contact info, not advice; ADR-0019 §3 framing).
  */
 @Composable
@@ -190,7 +190,7 @@ internal fun HomeScreenContent(
                 emoji = "🐾",
                 title = "No pets yet",
                 // The original "No doses scheduled" framing was confusing when the user
-                // had no pets at all — it implied dose-scheduling was the missing step
+                // had no pets at all, it implied dose-scheduling was the missing step
                 // when really the missing step was pet entry. Now the empty-state CTA
                 // matches the actual blocking action.
                 body = "Add Rufus, Luna, or whoever you share toe beans with to get started.",
@@ -202,7 +202,7 @@ internal fun HomeScreenContent(
         return
     }
     // Compute date string once per parent composition. The day-rollover-at-midnight
-    // edge case is fine — the user will close and reopen the app long before the date
+    // edge case is fine, the user will close and reopen the app long before the date
     // line goes stale enough to matter. Hand-formatted from kotlinx-datetime fields
     // rather than pulling in a heavier formatter dependency; English-only for v1
     // (i18n lives in a future milestone alongside Plurals).
@@ -386,7 +386,7 @@ private fun DueTodayCard(
             return@Card
         }
         // `now` captured per-recomposition for the time label. Same staleness story as
-        // LoggedTodayCard — a minute drift on a "12:00" label is fine.
+        // LoggedTodayCard, a minute drift on a "12:00" label is fine.
         val tz = remember { TimeZone.currentSystemDefault() }
         Column(modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)) {
             dueDoses.forEach { dose ->
@@ -449,7 +449,7 @@ private fun DueDoseRow(
         if (dose.isGiven) {
             // Given rows show a quiet text confirmation instead of a button. The
             // visible affordance change ("Log dose" → "Given ✓") is the primary signal
-            // that the tap landed. No icon dependency needed — the checkmark is a
+            // that the tap landed. No icon dependency needed, the checkmark is a
             // free-rendering unicode character that matches the body text style.
             Text(
                 text = "Given ✓",
@@ -490,7 +490,7 @@ private fun formatLocalTime(
  * one-liner pointing the user at the active surface (Pet Detail's Log Dose button).
  * If populated, renders one row per dose with pet name, medication, and "Nm ago".
  *
- * The card stays at the bottom of the screen — the user opens Today first thing in the
+ * The card stays at the bottom of the screen, the user opens Today first thing in the
  * morning to see what's coming, not what's already done. Putting completed-doses at the
  * top would make the "fresh slate" of a new morning feel cluttered. End-of-day, the
  * card grows; the visual weight at the bottom matches the cognitive weight of "look
@@ -522,7 +522,7 @@ private fun LoggedTodayCard(
             return@Card
         }
         // `now` is captured once per recomposition. Time-ago strings will only refresh
-        // on the next composition pass (tab switch, log new dose, etc.) — fine for a
+        // on the next composition pass (tab switch, log new dose, etc.), fine for a
         // surface where the difference between "5m ago" and "6m ago" doesn't matter.
         val now = remember(recentDoses.firstOrNull()?.id) { Clock.System.now() }
         // Padding-only separation between rows. A Divider would feel heavy on a
@@ -588,7 +588,7 @@ private fun LoggedDoseRow(
 
 /**
  * Renders a [LocalDate] as "Wednesday, May 15" for the Today-screen header. Pure
- * function — no Composable scope needed — so unit-testable without a UI test runner.
+ * function, no Composable scope needed, so unit-testable without a UI test runner.
  *
  * Hand-rolled to avoid pulling in java.time formatters (which would force us to deal
  * with Locale plumbing) or kotlinx-datetime's Format builders (which would still need
@@ -608,8 +608,8 @@ internal fun formatTodayHeader(date: LocalDate): String {
 }
 
 /**
- * Compact, tappable pet card for the Today screen's pet row. Horizontal layout —
- * 40dp avatar + (name / "N meds" subtitle) — gives roughly two chips visible at once on
+ * Compact, tappable pet card for the Today screen's pet row. Horizontal layout,
+ * 40dp avatar + (name / "N meds" subtitle), gives roughly two chips visible at once on
  * a typical phone width with a third peeking, signaling horizontal scrollability.
  *
  * The med-count subtitle is the density payoff: a glance at the chip tells you whether

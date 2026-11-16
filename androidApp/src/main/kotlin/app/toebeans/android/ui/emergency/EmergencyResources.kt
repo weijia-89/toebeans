@@ -15,7 +15,7 @@ data class EmergencyHotline(
 
 /**
  * Static, curated emergency contacts. Public emergency-contact information with the
- * ADR-0019 §3 framing (the app never claims medical judgment) — no AI, no dynamic
+ * ADR-0019 §3 framing (the app never claims medical judgment), no AI, no dynamic
  * content, no network: the dialer intent is user-initiated (ADR-0003).
  *
  * Numbers verified 2026-11-15 against the primary pages:

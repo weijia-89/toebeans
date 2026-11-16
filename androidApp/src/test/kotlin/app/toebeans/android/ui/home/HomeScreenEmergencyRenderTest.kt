@@ -18,9 +18,9 @@ import org.robolectric.annotation.Config
 
 /**
  * Placement contract for the Emergency card on the Today screen: it renders in BOTH
- * HomeScreenContent branches — the zero-pets empty state (the card must be reachable
+ * HomeScreenContent branches, the zero-pets empty state (the card must be reachable
  * before any pet exists; an emergency does not wait for onboarding) and the populated
- * LazyColumn — and it is collapsed until the user expands it.
+ * LazyColumn, and it is collapsed until the user expands it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)

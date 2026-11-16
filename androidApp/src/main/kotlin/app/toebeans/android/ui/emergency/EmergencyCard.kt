@@ -31,13 +31,13 @@ import androidx.compose.ui.unit.dp
 import app.toebeans.android.R
 
 /**
- * Collapsible emergency-contacts card. Static curated public contact information —
+ * Collapsible emergency-contacts card. Static curated public contact information,
  * the app makes no medical claim (ADR-0019 §3): it hands the user a phone number and
  * opens the dialer on tap via a user-initiated ACTION_DIAL (no permission, ADR-0003).
  *
  * Collapsed by default so the Today screen stays glanceable; one tap reveals both
  * verified poison-control hotlines, find-an-emergency-vet guidance, and the
- * no-medical-advice disclaimer. [onCall] receives the tel: [Uri] — the caller owns
+ * no-medical-advice disclaimer. [onCall] receives the tel: [Uri], the caller owns
  * starting the intent, which keeps this composable context-free and testable.
  */
 @Composable
