@@ -34,7 +34,7 @@ dependencyResolutionManagement {
 // CVE-2026-45799 (GHSA-7xpr-hc2w-34m9) and CVE-2026-63126: androidx.benchmark pulls
 // wire-runtime 4.9.7 on :macrobench only. wire-runtime-jvm has no patched release;
 // pin wire-runtime 6.4.5.
-val wireRuntimeVersion = "6.4.5"
+val wireRuntimeVersion = "7.1.0"
 val wireRuntimeCoordinate = "com.squareup.wire:wire-runtime:$wireRuntimeVersion"
 // CVE-2023-3635 (GHSA-w33c-445m-f8w7): transitive okio < 3.4.0 on Gradle plugin /
 // macrobench classpaths. Force patched okio (+ okio-jvm) project-wide.
