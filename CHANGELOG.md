@@ -5,6 +5,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.13] - Vet-visit schema red test (2026-11-16)
+
+### Added
+
+- The test-as-spec red gate for the accepted ADR-0020 F5a slice: `VetVisitSchemaContractTest` (jvmTest) pins the desired end state where a pet's vet visits (kind, date, vet clinic, notes) and vaccine records (name, date administered, next-due date) persist and round-trip, and a vaccine rule-pack entry is looked up by (species, age range, regulatory region). It compiles and fails today on exactly the missing `VetVisit`, `Vaccine`, and `VaccinationGiven` tables (211 tests, 1 designed failure; baseline 210 passing). No schema, repository, model, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous SQLDelight surface.
+
 ## [0.4.12] - Emergency resources card (2026-11-16)
 
 ### Added
