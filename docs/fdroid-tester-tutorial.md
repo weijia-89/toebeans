@@ -7,7 +7,7 @@ Wait for the operator to publish before you install.
 
 ## Testers
 
-Victoria, the operator, and the operator's spouse install the app.
+Three private testers install the app: the operator and two others.
 
 ## Clients
 

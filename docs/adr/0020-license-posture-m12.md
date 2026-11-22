@@ -10,13 +10,13 @@ Deciders: Wei Jia (operator sign-off)
 
 ## Context
 
-Milestone 1.2 (`docs/ROADMAP.md` § Milestone 1.2) requires a license decision before M2 ships publicly. The feasibility dossier (`research/00-feasibility-dossier.md` § 11, open question #2) frames the fork as **AGPLv3** (copyleft, network-use disclosure, stronger open-core moat) versus **Apache-2.0** (frictionless reuse, weaker enclosure resistance, preserves more acquirer integration paths).
+Milestone 1.2 (`docs/ROADMAP.md` § Milestone 1.2) requires a license decision before M2 ships publicly. Internal feasibility analysis framed the fork as **AGPLv3** (copyleft, network-use disclosure, stronger open-core moat) versus **Apache-2.0** (frictionless reuse, weaker enclosure resistance, preserves more acquirer integration paths).
 
 The ROADMAP row named Covetrus and IDEXX as unlikely to embed AGPL into closed product lines, and Apache+CLA as preserving strategic-acquirer optionality at weaker moat preservation. That tension is real; the operator resolved it for M1.2 on 2026-05-26.
 
 **Repository state at decision time:** Root `LICENSE` already states GNU Affero General Public License version 3 (copyright Wei Jia, 2026). This ADR records the gate resolution and downstream expectations. **No LICENSE rewrite** was required; header and full license text were verified on `main` / branch `docs/adr-0020-agpl-m12`.
 
-Operator lock recorded in `research/decisions/2026-05-26-m12-beta-gates.md` § License (Q6).
+Operator lock recorded in a private decision record, removed from the public repository.
 
 ## Decision
 
@@ -85,11 +85,11 @@ These are planning assumptions, not legal advice. Confirm with counsel before ou
 
 - [x] `LICENSE` first lines: "GNU Affero General Public License, version 3" (2026-05-26, branch `docs/adr-0020-agpl-m12`).
 - [x] `docs/ROADMAP.md` M1.2 license row updated to Accepted / AGPL-3.0.
-- [x] `research/decisions/2026-05-26-m12-beta-gates.md` § License cross-links this ADR.
+- [x] A private decision record cross-linked this ADR.
 
 ## References
 
-- `research/00-feasibility-dossier.md`: § 3.3 (moat), § 4 (acquirers), § 8 (open-core), **§ 11 open question #2** (licensing)
-- `research/decisions/2026-05-26-m12-beta-gates.md`: operator lock
+- Internal feasibility analysis (removed from the public repository): moats, acquirers, open core, and licensing.
+- Private decision record: operator lock
 - `docs/ROADMAP.md`: Milestone 1.2
 - Root `LICENSE`: canonical legal text

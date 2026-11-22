@@ -7,7 +7,7 @@ Amended: 2026-05-17. Manual backup posture revised to plain JSON for v1. See ADR
 
 ## Context
 
-The product plan and the feasibility dossier argue that the trust posture ("your data stays on your device") is a moat against cloud-default competitors like PetDesk and Great Pet Care. The competitive analysis (`research/00-feasibility-dossier.md` §3.3) identifies trust as one of five defensible moats.
+The product plan and the feasibility dossier argue that the trust posture ("your data stays on your device") is a moat against cloud-default competitors like PetDesk and Great Pet Care. The internal competitive analysis identifies trust as one of five defensible moats.
 
 Two questions:
 
@@ -72,5 +72,5 @@ The original posture (encrypted + passphrase) is recoverable verbatim from the d
 
 ## References
 
-- Internal: `research/00-feasibility-dossier.md` §3.3 (trust as a moat) and §4.5 (regulatory posture).
+- Internal: competitive and regulatory analysis, kept out of the public repository.
 - OWASP Mobile Security Top 10 (M9: Insecure Data Storage).

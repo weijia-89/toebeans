@@ -10,7 +10,7 @@ Deciders: Wei Jia (with Cascade)
 
 The MVP design spec (`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md` § 1) scopes the v1 product to medication and dose reminders. Vet visits and vaccinations are out of v1 scope at that level.
 
-The feasibility dossier `research/00-feasibility-dossier.md` § 3.3 ranks chronic-condition admin overlays (CKD, diabetes, seizure, derm) as moat candidate #4 and notes a veterinary advisory board is required to ship them. § 8.2's Slice 3 names a document timeline as a near-term expansion surface. ROADMAP M2 (`docs/ROADMAP.md` lines 130, 132, 133, 134) names four related expansion items: Argon2id KDF, the document timeline, vet visit and appointment reminders as a first-class domain, and the AAHA-2025-aligned referral packet builder. Two of those rows depend on a `VetVisit` domain model that does not exist yet.
+Internal feasibility analysis ranks chronic-condition admin overlays (CKD, diabetes, seizure, derm) as moat candidate #4 and notes a veterinary advisory board is required to ship them. A later slice names a document timeline as a near-term expansion surface. ROADMAP M2 (`docs/ROADMAP.md` lines 130, 132, 133, 134) names four related expansion items: Argon2id KDF, the document timeline, vet visit and appointment reminders as a first-class domain, and the AAHA-2025-aligned referral packet builder. Two of those rows depend on a `VetVisit` domain model that does not exist yet.
 
 ADR-0019 (`docs/adr/0019-vet-recommended-content-framework.md`) establishes the framework all vet-related content in toebeans must respect. It defines four conjunctive constraints (source, delivery, framing, refusal scope). It names Followup F5 explicitly: "Vet-visit / appointment-reminder domain model ADR. The `VetVisit` model (or similar), its relationship to `Pet` and `Medication`, its scheduled-followup semantics, vaccine-as-subtype, regional-regulatory-rule semantics. Lands after F1 and before any UI work on the vet-visit-reminder feature."
 
@@ -171,7 +171,7 @@ This ADR moves to Superseded if any of:
 - `AGENTS.md` § Vibe-safety tiers. The SQLDelight migration row that classifies F5a as vibe-dangerous.
 - `docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md` § 5 line 137. The `Pet.species` enum (`'dog' | 'cat' at v1`) the `Vaccine.species` enum aligns to.
 - `docs/ROADMAP.md` lines 130, 132, 133, 134. The M2 Expansion items this ADR unblocks.
-- `research/00-feasibility-dossier.md` § 3.3. Moat candidates ranking; chronic-condition admin overlays (#4) and AAHA-2025-aligned referral packets (#3) derive from this ADR.
-- `research/00-feasibility-dossier.md` § 8.2. Slice timeline; Slice 3 (document timeline) attaches to the future `VetVisit.documents` field named in § Decision § A.
+- Internal feasibility analysis (removed from the public repository): moat candidate ranking behind this ADR.
+- Internal feasibility analysis (removed from the public repository): document timeline attaches to the future `VetVisit.documents` field named in § Decision § A.
 - AAHA 2022 Canine Vaccination Guidelines (with 2025 supplemental updates), AAFP / AAHA Feline Vaccination Advisory Panel publications. The professional-guideline sources F5b pulls from. `[verified-via-dossier]` for the AAHA referral-guidelines tailwind; specific vaccination guideline editions are operator-verified by Wei at F5b curation time.
 - `docs/issues/v0.1-followups.md`. The granular issue register; F5a, F5b, and F5c entries land there once each gets a tracking line.

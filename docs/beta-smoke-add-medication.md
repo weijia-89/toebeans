@@ -2,8 +2,8 @@
 
 > Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
 
-**Audience:** operator (Wei) running this **before** inviting M1.2 internal testers.
-**Gate:** Q9 in [`research/decisions/2026-05-26-m12-beta-gates.md`](../research/decisions/2026-05-26-m12-beta-gates.md): basic add-medication path **must work** for beta; anchor-mode prompt is **deferred** to M1.5 / ADR-0007.
+**Audience:** the operator running this **before** inviting M1.2 internal testers.
+**Gate:** the basic add-medication path **must work** for beta; anchor-mode prompt is **deferred** to M1.5 / ADR-0007.
 **Version under test:** `0.1.0` (`ToebeansApp.APP_VERSION_NAME` / Settings → About).
 
 Related docs (read first):

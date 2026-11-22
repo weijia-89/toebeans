@@ -6,7 +6,7 @@
 **Status:** DRAFT, pending user approval
 **Author:** Cascade (working session w/ Wei Jia)
 **Skill provenance:** `brainstorming` → this doc → `code-helper plan-new-app` → scaffold
-**Companion:** see `@research/00-feasibility-dossier.md` for market/competitive/M&A evidence
+**Companion:** internal market and competitive evidence is kept out of the public repository.
 
 ---
 
@@ -70,7 +70,6 @@ toebeans/
     adr/                         # MADR-short ADRs
     ARCHITECTURE.md
   research/
-    00-feasibility-dossier.md
   shared/                        # KMP shared module
     src/commonMain/kotlin/app/toebeans/core/
       model/                     # Pet, Medication, Schedule, DoseEvent
