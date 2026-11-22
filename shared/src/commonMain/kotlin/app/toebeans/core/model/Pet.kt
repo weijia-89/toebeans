@@ -17,6 +17,8 @@ import kotlinx.serialization.Serializable
  * @property createdAt creation timestamp (UTC).
  * @property archivedAt soft-delete marker. A pet with [archivedAt] != null is hidden from active
  *           views but its history is retained.
+ * @property homeTimezone ADR-0007 IANA zone id (e.g. "America/New_York"), or null to use the
+ *           device zone. A non-null invalid id is quarantined, never replaced with a fallback.
  */
 @Serializable
 public data class Pet(
@@ -28,6 +30,7 @@ public data class Pet(
     val notes: String?,
     val createdAt: Instant,
     val archivedAt: Instant?,
+    val homeTimezone: String? = null,
 ) {
     init {
         require(id.isNotBlank()) { "Pet.id must not be blank" }

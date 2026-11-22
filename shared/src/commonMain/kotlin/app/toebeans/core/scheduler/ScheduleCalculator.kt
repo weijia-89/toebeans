@@ -55,11 +55,10 @@ import kotlinx.datetime.TimeZone
  *    subclass type, not parse the message string.
  *
  * @param phases the schedule's phases in any order; the implementation sorts by [SchedulePhase.phaseOrder].
- * @param timeZone the local timezone in which dose times are interpreted. v0.1 callers pass
- *                 `TimeZone.currentSystemDefault()` captured at materialization time, which
- *                 gives "travel mode" for free (phone switches TZ on landing → next
- *                 materialization uses the new TZ). Per-schedule pinned timezones are a
- *                 follow-up tracked by ADR-0007.
+ * @param timeZone the local timezone in which dose times are interpreted. The calculator does
+ *                 not choose it: callers resolve it from the schedule's anchor mode and the
+ *                 pet's persisted home zone via [TimeZonePolicy], passing the device zone for
+ *                 FOLLOW_PHONE. Quarantined pets are never materialized (ADR-0007).
  * @param fromInclusive earliest instant to include (UTC).
  * @param toExclusive earliest instant to exclude (UTC). Must be strictly greater than [fromInclusive].
  */

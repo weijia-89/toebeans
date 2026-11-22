@@ -13,6 +13,7 @@ import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.DstWarning
 import app.toebeans.core.scheduler.ScheduleCalculator
+import app.toebeans.core.scheduler.TimeZonePolicy
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -168,6 +169,7 @@ public class ReminderListViewModel(
                 val dstWarning =
                     computeDstWarningForSchedule(
                         swp,
+                        pet,
                         scheduleCalculator,
                         timeZone,
                         today,
@@ -193,6 +195,7 @@ public class ReminderListViewModel(
          */
         private fun computeDstWarningForSchedule(
             swp: ScheduleWithPhases,
+            pet: Pet,
             scheduleCalculator: ScheduleCalculator,
             timeZone: TimeZone,
             today: LocalDate,
@@ -200,14 +203,20 @@ public class ReminderListViewModel(
             if (swp.schedule.anchorMode == app.toebeans.core.model.AnchorMode.ELAPSED_INTERVAL) {
                 return null
             }
-            val from = LocalDateTime(today, LocalTime(0, 0)).toInstant(timeZone)
+            val resolved = TimeZonePolicy.resolve(swp.schedule, pet, timeZone)
+            val doseZone =
+                when (resolved) {
+                    is TimeZonePolicy.Resolution.Use -> resolved.timeZone
+                    TimeZonePolicy.Resolution.Quarantined -> return null
+                }
+            val from = LocalDateTime(today, LocalTime(0, 0)).toInstant(doseZone)
             val to = from.plus(7.days)
             return try {
                 val doses =
                     scheduleCalculator.computeScheduledDoses(
                         schedule = swp.schedule,
                         phases = swp.phases,
-                        timeZone = timeZone,
+                        timeZone = doseZone,
                         fromInclusive = from,
                         toExclusive = to,
                     )
