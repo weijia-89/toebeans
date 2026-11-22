@@ -58,4 +58,4 @@ Kotlin Multiplatform with Compose Multiplatform for UI.
 
 - JetBrains, *Compose Multiplatform 1.8.0 Released: Compose Multiplatform for iOS is Stable*, May 2025.
 - kotlinlang.org/multiplatform: KMP status, production-user list.
-- Internal: `research/00-feasibility-dossier.md` §5.1.
+- Internal: technical feasibility analysis, kept out of the public repository.
