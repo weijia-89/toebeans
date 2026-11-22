@@ -11,11 +11,17 @@ large chunk of merged work.
 
 - The test-as-spec red gate for the accepted ADR-0020 F5a slice: `VetVisitSchemaContractTest` (jvmTest) pins the desired end state where a pet's vet visits (kind, date, vet clinic, notes) and vaccine records (name, date administered, next-due date) persist and round-trip, and a vaccine rule-pack entry is looked up by (species, age range, regulatory region). It compiles and fails today on exactly the missing `VetVisit`, `Vaccine`, and `VaccinationGiven` tables (211 tests, 1 designed failure; baseline 210 passing). No schema, repository, model, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous SQLDelight surface.
 
-## [0.4.12] - Emergency resources card (2026-11-16)
+## [0.4.15] - Emergency resources card (2026-11-16)
 
 ### Added
 
 - The Today screen gains a collapsible Emergency card, rendered in both the zero-pets and populated branches, with a Settings "Emergency resources" row in the About card that opens the same content as a dialog. The card is static curated public contact info: ASPCA Animal Poison Control (888) 426-4435 and Pet Poison Helpline (855) 764-7661, both 24/7 with a fee note, verified against aspca.org and petpoisonhelpline.com on 2026-11-16; a first line directing the user to their veterinarian or the nearest emergency animal hospital; find-an-emergency-vet guidance text (no URL shipped: the VECCS certified-facility directory is sunsetting and lists only certified facilities, so the row says to search "emergency veterinarian near me" instead); and the ADR-0019 §3 framing line "toebeans does not provide medical advice. In an emergency, call a veterinary professional." Hotline taps fire user-initiated `ACTION_DIAL` intents (no permission, no network, no new dependency). No AI, no model, no dynamic content. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 284 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
+
+## [0.4.12] - Dose-history red test (2026-11-12)
+
+### Added
+
+- Red test `DoseHistorySurvivesScheduleDeleteTest` (`:shared:jvmTest`) pins the desired behavior: dose events recorded for a schedule survive `scheduleRepository.delete`. It fails on the current schema for the right reason, because the `DoseEvent.schedule_id` foreign key is `ON DELETE CASCADE` (a behavior pinned green by `SqliteForeignKeysCallbackTest`), while the `DoseEvent.sq` header itself names SET NULL as the intended policy. No implementation ships here: the fix is a schema migration, the product call belongs to the operator, and the pull request is labelled `needs-human-test-review`. `:shared:jvmTest` is red by design (211 tests, exactly the one intended failure); the full suite is not claimed green.
 
 ## [0.4.11] - Remove demo data from Settings (2026-11-11)
 
