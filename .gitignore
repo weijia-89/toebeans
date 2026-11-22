@@ -70,3 +70,6 @@ localonly/
 # Both files stay on disk for local tooling; parity is enforced when both exist.
 AGENTS.md
 CLAUDE.md
+
+# Cursor runtime state (recreated by the editor)
+.cursor/hooks/state/continual-learning.json
