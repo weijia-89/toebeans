@@ -66,8 +66,8 @@ jobs:
         run: bash scripts/test_test_manual_qa_catalog.sh .
       - name: Removed review gate absence guard
         run: bash scripts/test_no_trainer_gate.sh .
-      - name: Sprint scheduler kit tests
-        run: bash scripts/scheduler/tests/test-scheduler.sh
+      - name: Removed weekend scheduler absence guard
+        run: bash scripts/test_no_weekend_scheduler.sh .
 
   vibe-dangerous-gate:
     # Survives `git commit --no-verify`. Enforces the same rule as
