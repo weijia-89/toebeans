@@ -1,7 +1,7 @@
 # ADR-0019: Vet-recommended content framework. Owner-entered or vet-curated, rule-based delivery, never LLM-generated.
 
 Date: 2026-05-19
-Status: Proposed
+Status: Accepted, amended 2026-11-16 (see Amendment: approved external reference pathway)
 Deciders: Wei Jia (with Cascade)
 
 ## Context
@@ -68,6 +68,61 @@ The following remain hard-forbidden and the carve-out is explicit in `AGENTS.md`
 
 The carve-out distinguishes "vet-curated, owner-entered, or vet-record-imported content delivered rule-based under ADR-0019" from "AI-derived content of any kind." The former is permitted; the latter is vibe-impossible.
 
+## Amendment 2026-11-16: approved external reference pathway
+
+Status: accepted by Wei Jia (repo owner, ADR decider) on 2026-11-16. This section
+supersedes the Source constraint in §1 and the rejected alternative that forbade
+LLM-paraphrasing. Sections 2, 3, and 4 stand unchanged.
+
+### Decision
+
+The source list gains a fourth pathway.
+
+- **Approved external reference.** Text copied or summarised from a publicly accessible
+  publisher (manufacturer label, Merck Veterinary Manual, a peer-reviewed source) may enter
+  the app when both of these hold: the item carries a complete provenance record, and a named
+  human approved that specific item before it entered the database.
+
+The record stores the publisher, the source URL, the retrieval date, the content kind
+(verbatim or summary), the approver name, the approval date, the decision, and the rationale.
+Text and approval travel together, one file per item under `data/drug-reference/entries/`.
+
+Approval is per item, never per batch. Editing an approved summary returns it to unapproved
+until a human reads it and approves it again.
+
+### Why the original rejection no longer applies
+
+The original ADR rejected this pathway because reviewer attention does not scale and the
+trail of what the source actually said gets lost. The amendment accepts that risk explicitly
+and buys auditability back mechanically instead: `scripts/test_drug_reference_approval.sh`
+fails the build when any shipped item lacks a complete approval record, so an unapproved or
+edited item cannot reach `main`. What the gate cannot check is whether the approver read
+carefully. That residual risk is named here rather than papered over.
+
+### Rules that do not move
+
+- §2 delivery stays rule based. The app infers nothing about the user's pet.
+- §3 framing stays. Permitted: "From the Merck Veterinary Manual:" followed by the summary
+  and the link. Forbidden: "The app recommends", "We suggest", "Based on your pet's
+  symptoms".
+- §4 refusal carve-out is untouched. No symptom checker, no diagnostic content, no
+  drug-interaction warning, no "is this dose safe?" feature, no treatment recommendation.
+- Summaries never carry dose numbers. A number followed by a dose unit fails the gate. The
+  dose stays whatever the vet prescribed.
+- Every displayed item shows the source link.
+
+### Review duty
+
+Approving an item means reading the source page in full, then recording a rationale that
+names what was checked. A rationale of "looks fine" is a review failure even though the gate
+accepts the string.
+
+### Copyright
+
+Reproducing publisher text word for word needs a licence for that text. The `verbatim` kind
+is therefore gated on that licence decision and ships empty until the decision lands.
+Summaries carry the same citation obligation and the same link out.
+
 ## Specific application to known features
 
 | Feature | Source pathway | Delivery | Framing example | Status |
@@ -109,7 +164,7 @@ The carve-out distinguishes "vet-curated, owner-entered, or vet-record-imported 
 
 - **Keep the broad refusal as-is and ship vet-recommended advice anyway.** Rejected. Internally inconsistent; depends on reviewer-by-reviewer judgment to admit each feature. The reason this ADR exists is to prevent that drift.
 - **Allow LLM-generated advice if a vet manually reviews each output before shipping.** Rejected. Auditability and reproducibility are unenforceable at scale; the LLM remains the source, the vet is a rubber stamp, and the user cannot tell the difference. Also fails the dossier § 8.1 marketing posture ("no AI vet framing").
-- **Allow LLM-paraphrasing of vet-entered content for readability.** Rejected for the same reason. The LLM becomes a content modifier and the trail of "what the vet actually said" is lost. The user reads the LLM's paraphrase, not the vet's words. Any divergence is the app's claim, attributed implicitly to the vet.
+- **Allow LLM-paraphrasing of vet-entered content for readability.** Rejected for the same reason. The LLM becomes a content modifier and the trail of "what the vet actually said" is lost. The user reads the LLM's paraphrase, not the vet's words. Any divergence is the app's claim, attributed implicitly to the vet. **Superseded 2026-11-16: see the Amendment above, which admits this pathway with a per-item human approval record and a build gate.**
 - **Defer this ADR until moat #4 is ready to ship.** Rejected. Lower-tier features (drug interactions, vet-visit reminders, vaccine reminders, document-timeline surfacing) need the framework now to avoid per-feature re-litigation.
 - **Make the framework permissive at MVP and tighten later.** Rejected. The vibe-impossible posture has been load-bearing since v0.1; loosening it without explicit boundary-setting is the path to feature drift. Permissive-then-tighten is harder than restrictive-then-carve-out.
 

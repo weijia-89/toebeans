@@ -109,7 +109,7 @@ class ToebeansApp : Application() {
     public companion object {
         /**
          * How far ahead of [kotlinx.datetime.Clock.System.now] boot rehydration re-schedules
-         * pending dose alarms. Matches [docs/ARCHITECTURE.md] `AUTO_RESCHEDULE_HORIZON_HOURS`.
+         * pending dose alarms. Matches [docs/ARCHITECTURE.md] `REHYDRATE_HORIZON_HOURS`.
          */
         public const val REHYDRATE_HORIZON_HOURS: Int = 72
 
