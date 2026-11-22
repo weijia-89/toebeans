@@ -86,7 +86,7 @@ import org.koin.compose.koinInject
 public fun HomeScreen(
     onAddPet: () -> Unit,
     onAddReminder: (ReminderAddAction) -> Unit,
-    onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
+    onEditDose: (petId: String, medicationId: String, scheduleId: String?) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: HomeViewModel = koinViewModel(),
@@ -149,7 +149,7 @@ private fun HomeScreenContent(
     onAddReminder: (ReminderAddAction) -> Unit,
     onPetFilterSelect: (petId: String) -> Unit,
     onClearPetFilter: () -> Unit,
-    onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
+    onEditDose: (petId: String, medicationId: String, scheduleId: String?) -> Unit,
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
     exactAlarmDenied: Boolean = false,
     onOpenAlarmSettings: () -> Unit = {},
@@ -344,7 +344,7 @@ private fun HomeScreenContent(
 private fun DueTodayCard(
     dueDoses: List<DueDoseUi>,
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
-    onEditDose: (petId: String, medicationId: String, scheduleId: String) -> Unit,
+    onEditDose: (petId: String, medicationId: String, scheduleId: String?) -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),

@@ -12,22 +12,25 @@
 -- surfaces (Home "Logged today", Pet detail history) can resolve the medication
 -- name even if the parent Schedule is deleted, and so the queries that drive those
 -- surfaces don't have to join DoseEvent -> Schedule -> Medication on every read.
--- The DoseEvent model KDoc spells out the rationale; the ON DELETE policy is SET
--- NULL there too (M1 work), but v0.1 the column is NOT NULL because no in-memory
--- fake exercises the orphan path yet.
+-- The DoseEvent model KDoc spells out the rationale.
+--
+-- schedule_id is nullable with ON DELETE SET NULL so history survives schedule delete
+-- (migration 4). Orphaned rows are invisible to the fire path: the enriched lookup and
+-- boot rehydrate queries both INNER JOIN Schedule, so the receiver cancels the alarm
+-- instead of notifying for a schedule that no longer exists.
 --
 -- Split from the original consolidated toebeans.sq on 2026-05-18.
 
 CREATE TABLE DoseEvent (
     id            TEXT NOT NULL PRIMARY KEY,
-    schedule_id   TEXT NOT NULL,
+    schedule_id   TEXT,                                       -- NULL after the schedule is deleted
     medication_id TEXT NOT NULL,
     scheduled_at  INTEGER NOT NULL,                           -- epoch ms UTC
     fired_at      INTEGER,                                    -- when the notification actually fired
     resolved_at   INTEGER,                                    -- when user tapped 'Given' or 'Skipped'
     status        TEXT NOT NULL CHECK (status IN ('pending', 'given', 'skipped', 'missed')),
     note          TEXT,
-    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE SET NULL,
     FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
 );
 
