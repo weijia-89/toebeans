@@ -108,6 +108,8 @@ public fun ToebeansAppShell() {
                     onEditDose = { petId, medicationId, _ ->
                         navController.navigate(Destinations.medicationEdit(petId, medicationId))
                     },
+                    onEditPet = { petId -> navController.navigate(Destinations.petEdit(petId)) },
+                    onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     contentPadding = innerPadding,
                 )
             }

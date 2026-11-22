@@ -18,12 +18,14 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -101,6 +103,7 @@ public fun HomeScreen(
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: HomeViewModel = koinViewModel(),
     onEditPet: (petId: String) -> Unit = {},
+    onPetClick: (petId: String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
@@ -135,6 +138,7 @@ public fun HomeScreen(
         onEditDose = onEditDose,
         onMarkGiven = viewModel::markGiven,
         onEditPet = onEditPet,
+        onPetClick = onPetClick,
         modifier = modifier,
         contentPadding = contentPadding,
     )
@@ -188,6 +192,7 @@ internal fun HomeScreenContent(
     onEditDose: (petId: String, medicationId: String, scheduleId: String?) -> Unit,
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
     onEditPet: (petId: String) -> Unit = {},
+    onPetClick: (petId: String) -> Unit = {},
     exactAlarmDenied: Boolean = false,
     onOpenAlarmSettings: () -> Unit = {},
     notificationDenial: Boolean = false,
@@ -330,12 +335,35 @@ internal fun HomeScreenContent(
                     contentPadding = PaddingValues(vertical = 4.dp),
                 ) {
                     items(items = state.pets, key = { it.id }) { pet ->
-                        PetChip(
-                            pet = pet,
-                            medCount = state.medCountByPetId[pet.id] ?: 0,
-                            selected = pet.id == state.filterPetId,
-                            onClick = { onPetFilterSelect(pet.id) },
-                        )
+                        val singlePet = state.pets.size == 1
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            PetChip(
+                                pet = pet,
+                                medCount = state.medCountByPetId[pet.id] ?: 0,
+                                selected = pet.id == state.filterPetId,
+                                onClick = {
+                                    if (singlePet) {
+                                        onPetClick(pet.id)
+                                    } else {
+                                        onPetFilterSelect(pet.id)
+                                    }
+                                },
+                            )
+                            if (!singlePet) {
+                                IconButton(
+                                    onClick = { onPetClick(pet.id) },
+                                    modifier =
+                                        Modifier.semantics {
+                                            contentDescription = "Open ${pet.name}"
+                                        },
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
