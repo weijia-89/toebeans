@@ -77,11 +77,13 @@ sequenceDiagram
     UI->>Owner: "Last dose: just now"
 ```
 
-## Reminder-firing path (next milestone, not built)
+## Reminder-firing path (shipped)
 
-This is the path the v1 reliability target hangs off. AlarmManager handles
-exact firing for known doses. WorkManager runs the periodic sweep that
-re-projects the next 72 hours of pending events when the queue gets shallow.
+AlarmManager handles exact firing for known doses. WorkManager runs the periodic
+sweep that re-projects the next 72 hours of pending events when the queue gets
+shallow. `BootReceiver` replays alarms for pending rows after a reboot. Deleting
+a schedule keeps its dose rows; the enriched lookup INNER JOINs Schedule, so an
+orphaned row cannot fire an alarm.
 
 ```mermaid
 sequenceDiagram
@@ -131,13 +133,16 @@ event pinned even if the app is killed and not woken until the next reboot.
 
 ## Configuration
 
-There is no runtime configuration at v1. Every value that varies between
-environments lives as a Kotlin `const` or a `BuildConfig` constant.
+There is no runtime configuration at v1. The timing values live as Kotlin
+constants next to the code that uses them.
 
 ```kotlin
-const val AUTO_RESCHEDULE_HORIZON_HOURS = 72
-const val MAX_PENDING_PER_PET = 64
+// shared/src/commonMain/kotlin/app/toebeans/core/scheduler/ReminderRescheduler.kt
+const val HORIZON_HOURS = 72
 const val MISSED_DOSE_TIMEOUT_HOURS = 4
+
+// androidApp/src/main/kotlin/app/toebeans/android/ToebeansApp.kt
+const val REHYDRATE_HORIZON_HOURS = 72
 ```
 
 Changing any of these requires an ADR.

@@ -2,7 +2,7 @@
 
 This file is the **load-bearing contract** for any AI coding agent (Cursor, Claude Code, Cascade, Copilot, etc.) working on toebeans. It is also the contract a human reviewer enforces in code review.
 
-A copy lives at `CLAUDE.md` for tools that look there first. The two files MUST stay in sync. The CI fitness-function `tests/agents_claude_parity.sh` enforces parity.
+A copy lives at `CLAUDE.md` for tools that look there first. The two files MUST stay in sync. The CI fitness-function `scripts/agents_claude_parity.sh` enforces parity.
 
 ---
 
@@ -30,7 +30,7 @@ A copy lives at `CLAUDE.md` for tools that look there first. The two files MUST 
 **Vibe-impossible** (refuse and escalate):
 
 - Adding any AI symptom checker, AI-generated diagnostic content, AI-derived drug interaction warning, AI-derived treatment recommendation, or "is this dose safe?" feature.
-- Adding any LLM-generated or LLM-paraphrased vet-recommended content (the carve-out boundary defined by [ADR-0019](docs/adr/0019-vet-recommended-content-framework.md)). Vet-curated, owner-entered, or vet-record-imported content delivered rule-based under ADR-0019's four conjunctive constraints (source, delivery, framing, refusal scope) is permitted and is NOT vibe-impossible.
+- Adding drug-reference content that was summarised or copied from a publisher without a recorded human approval. Content from a publicly accessible publisher is permitted under [ADR-0019 Amendment 2026-11-16](docs/adr/0019-vet-recommended-content-framework.md) when every item carries a provenance record (publisher, source URL, retrieval date, content kind) and a per-item approval naming the human who read the source, with a rationale, taken before the item entered the database. `scripts/test_drug_reference_approval.sh`, run by `scripts/verify_before_push.sh`, enforces the record. Summaries never carry dose numbers. Owner-entered, vet-curated, and vet-record-imported content delivered rule-based under ADR-0019's four conjunctive constraints (source, delivery, framing, refusal scope) remains permitted.
 - Pre-generating DoseEvents for an entire phase (write-storm anti-pattern; the design materializes lazily at 72h horizon).
 - Removing the AlarmManager fallback in favor of WorkManager-only.
 - Adding any network library or analytics SDK in v1.
@@ -170,18 +170,20 @@ Source: meta-v1 process-debt entry-type proposal 2026-05-19, Option C.
 
 ## Fitness functions (enforced in CI)
 
-See `.github/workflows/ci.yml`. The six gates:
+See `.github/workflows/ci.yml`. The functional gates:
 
 1. **No-network**: fail if any class in `commonMain/` or `androidMain/` imports a network library.
 2. **No-analytics**: fail if Firebase, GA, Mixpanel, Segment, etc. appear in the Gradle classpath.
 3. **Scheduler purity**: fail if any function in `shared/.../scheduler/` references a platform clock other than the injected `Clock`.
 4. **Permission whitelist**: fail if AndroidManifest declares a permission not on the allowlist above.
-5. **No-PII-in-crash-log**: fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009). Enforces the no-PII claim mechanically rather than by reviewer attention.
-6. **Scheduler test coverage**: fail if `shared/.../scheduler/` line coverage < 85% (Kover-enforced).
+5. **No-PII-in-crash-log**: fail if `LocalCrashLog.kt` references any domain model, repository, DAO, or persistence symbol (per ADR-0009).
+6. **POST_NOTIFICATIONS silent notify**: `scripts/test_post_notifications_silent_failure_guard.sh` fails if `AndroidNotificationActuator.kt` calls `.notify(` before `areNotificationsEnabled()` (ADR-0011).
+7. **No PBKDF2 after TBN2**: fail if the backup path still holds PBKDF2 after the ADR-0018 trigger.
+8. **No duplicate private test class names** (ADR-0017 Lesson 2).
+9. **Manual QA catalog**: `scripts/test_manual_qa_catalog.sh` fails when a test-plan manual case is missing from `docs/manual-qa/cases/` or is not linked from `docs/manual-qa.md`. Automated-only command lines are not manual cases.
+10. **AGENTS/CLAUDE parity**: the two contract files must stay identical.
 
-Manual QA catalog: `scripts/test_manual_qa_catalog.sh` fails when a test-plan manual case is missing from `docs/manual-qa/cases/` or is not linked from `docs/manual-qa.md`. Automated-only command lines are not manual cases. The self-test is `scripts/test_test_manual_qa_catalog.sh`.
-
-POST_NOTIFICATIONS silent notify: `scripts/test_post_notifications_silent_failure_guard.sh` fails if `AndroidNotificationActuator.kt` calls `.notify(` before `areNotificationsEnabled()` (ADR-0011). The self-test is `scripts/test_test_post_notifications_silent_failure_guard.sh`.
+Coverage is a separate CI step: `koverVerify` fails when `shared/.../scheduler/` or `backup/` line coverage drops below 85%. Self-tests for the bash gates live beside them and run in the same CI job.
 
 ## Hallucination vigilance
 

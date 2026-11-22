@@ -58,6 +58,10 @@ run_check "Fitness: no-PII-in-crash-log"   bash scripts/test_no_pii_in_crash_log
 run_check "Fitness: manual-qa-catalog"     bash scripts/test_manual_qa_catalog.sh .
 run_check "Fitness: manual-qa-catalog self-test" \
     bash scripts/test_test_manual_qa_catalog.sh .
+run_check "Fitness: drug-reference-approval" \
+    bash scripts/test_drug_reference_approval.sh .
+run_check "Fitness: drug-reference-approval self-test" \
+    bash scripts/test_test_drug_reference_approval.sh .
 run_check "Fitness: no-duplicate-private-test-class-names" \
     bash scripts/test_no_duplicate_private_test_class_names.sh .
 run_check "Fitness: AGENTS/CLAUDE parity"  bash scripts/agents_claude_parity.sh .

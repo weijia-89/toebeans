@@ -5,83 +5,23 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
-## [0.4.14] - Travel-mode homeTimezone red test (2026-11-16)
+## [0.4.0] - History shows every dose status (2026-11-08)
 
 ### Added
 
-- The test-as-spec red gate for the ADR-0007 travel-mode remainder (launch-checklist timezone row, `Pet.homeTimezone` plus the `STAY_HOME_TZ` caller policy): `TravelModeHomeTimezoneContractTest` (jvmTest, package `app.toebeans.core.scheduler` beside the DST rules test) pins the desired end state where a pet with a persisted `home_timezone` and a schedule in `STAY_HOME_TZ` mode computes its doses in the pet's home timezone even when the device timezone changes, simulated through the domain layer (horizon recomputed across a Los Angeles to Tokyo device move, no OS broadcast), with a `FOLLOW_PHONE` divergence pin on the same pet. It compiles and fails today on exactly the missing `Pet.home_timezone` column (212 tests, 2 designed failures: this test plus PR #160's `VetVisitSchemaContractTest`; baseline 211 with 1). No `.sq`, model, scheduler, notification, manifest, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous schema surface. ADR-0007 gates G1 and G3 stay out of scope.
+- History lists pending, given, skipped, and missed doses from the last 30 days to show the full record, and a pet chip filters that list to one pet.
 
-## [0.4.16] - Dose history survives schedule delete (2026-11-22)
+## [0.4.1] - Demo load registers the 72-hour alarms (2026-11-08)
 
 ### Changed
 
-- Operator decision: deleting a schedule keeps the dose log. Migration 4 changes `DoseEvent.schedule_id` from NOT NULL with ON DELETE CASCADE to nullable with ON DELETE SET NULL. Given and pending dose rows survive; the enriched receiver lookup and boot rehydration INNER JOIN Schedule, so an orphaned row cannot fire an alarm for a deleted plan. Medication deletion still cascades, so Remove demo data keeps its clear-all behavior. Dose event edit on an orphaned row opens the medication form, which is where the shell already routed all dose edits. Verified locally: `scripts/verify_before_push.sh` all green, `:shared:jvmTest` 213 passed, `:androidApp:testDebugUnitTest` green, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
-## [0.4.13] - Vet-visit schema red test (2026-11-16)
+- `loadDemoData` writes the next 72 hours of pending doses and registers those alarms, to arm each demo schedule.
+
+## [0.4.2] - Boot receiver enabled flag test is red on purpose (2026-11-08)
 
 ### Added
 
-- The test-as-spec red gate for the accepted ADR-0020 F5a slice: `VetVisitSchemaContractTest` (jvmTest) pins the desired end state where a pet's vet visits (kind, date, vet clinic, notes) and vaccine records (name, date administered, next-due date) persist and round-trip, and a vaccine rule-pack entry is looked up by (species, age range, regulatory region). It compiles and fails today on exactly the missing `VetVisit`, `Vaccine`, and `VaccinationGiven` tables (211 tests, 1 designed failure; baseline 210 passing). No schema, repository, model, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous SQLDelight surface.
-
-## [0.4.15] - Emergency resources card (2026-11-16)
-
-### Added
-
-- The Today screen gains a collapsible Emergency card, rendered in both the zero-pets and populated branches, with a Settings "Emergency resources" row in the About card that opens the same content as a dialog. The card is static curated public contact info: ASPCA Animal Poison Control (888) 426-4435 and Pet Poison Helpline (855) 764-7661, both 24/7 with a fee note, verified against aspca.org and petpoisonhelpline.com on 2026-11-16; a first line directing the user to their veterinarian or the nearest emergency animal hospital; find-an-emergency-vet guidance text (no URL shipped: the VECCS certified-facility directory is sunsetting and lists only certified facilities, so the row says to search "emergency veterinarian near me" instead); and the ADR-0019 §3 framing line "toebeans does not provide medical advice. In an emergency, call a veterinary professional." Hotline taps fire user-initiated `ACTION_DIAL` intents (no permission, no network, no new dependency). No AI, no model, no dynamic content. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 284 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
-
-## [0.4.12] - Dose-history red test (2026-11-12)
-
-### Added
-
-- Red test `DoseHistorySurvivesScheduleDeleteTest` (`:shared:jvmTest`) pins the desired behavior: dose events recorded for a schedule survive `scheduleRepository.delete`. It fails on the current schema for the right reason, because the `DoseEvent.schedule_id` foreign key is `ON DELETE CASCADE` (a behavior pinned green by `SqliteForeignKeysCallbackTest`), while the `DoseEvent.sq` header itself names SET NULL as the intended policy. No implementation ships here: the fix is a schema migration, the product call belongs to the operator, and the pull request is labelled `needs-human-test-review`. `:shared:jvmTest` is red by design (211 tests, exactly the one intended failure); the full suite is not claimed green.
-
-## [0.4.11] - Remove demo data from Settings (2026-11-11)
-
-### Added
-
-- Settings Data card gains a destructive "Remove demo data" action behind a confirmation dialog. Confirming cancels every pending demo dose alarm through the notification actuator, then deletes the demo schedules, medications, and pets; the database cascades remove the demo phases and dose rows. Removal matches the fixed demo id set (the schema does not tag demo rows, so the set is the honest contract, documented in `DemoDataIds`). A no-op when no demo rows exist. The first-launch dialog does not reappear afterwards. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 271 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
-
-## [0.4.10] - Schedule edit keeps dose history (2026-11-11)
-
-### Added
-
-- Schedule Detail gains a top-bar Edit action that opens the create form in edit mode (`SCHEDULE_EDIT_ROUTE`). `loadForEdit` prefills dates, anchor mode, and phase drafts from the stored schedule; save upserts under the same schedule id and keeps the original `created_at`. Pending dose rows for the edited schedule are cancelled and deleted, then the 72-hour horizon rematerializes for the new times and the alarms re-arm. Given, skipped, and missed rows are never touched, so dose history survives the edit. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 264 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
-
-## [0.4.9] - AGP 9.5.1 reland (2026-11-11)
-
-### Changed
-
-- AGP is 9.5.1 on the Gradle 9.9.0 wrapper (reland of the closed dependabot pull request 141). AGP 9 turns on built-in Kotlin and the new DSL, so `gradle.properties` opts out with `android.builtInKotlin=false` and `android.newDsl=false` until the build files migrate to built-in Kotlin and the KMP Android library plugin. Both opt-outs are removed in AGP 10. Verified locally: `:shared:jvmTest` 210 passed, `:shared:testDebugUnitTest` 120 passed, `:androidApp:checkDebugAarMetadata` and `:androidApp:assembleDebug` exit 0.
-
-## [0.4.8] - Debug build on Gradle 9.9.0 (2026-11-09)
-
-### Fixed
-
-- `:androidApp:checkDebugAarMetadata` runs on Gradle 9.9.0 and AGP 8.7.0. Resolution pins Compose UI, foundation, animation, and runtime to 1.11.4, `core` to 1.16.0, `activity` to 1.9.2, `lifecycle` to 2.8.6, `navigation` to 2.9.6, and `kotlinx-datetime` to 0.6.2. `material3` stays unpinned. Robolectric UI tests use SDK 34. The debug APK drops the duplicate OSGI manifest from bouncycastle and jspecify.
-
-## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
-
-### Changed
-
-- The Gradle wrapper is 9.9.0. `./gradlew help` configures.
-- `wire-runtime-jvm` is excluded. `useTarget` made `ResolvedGraphResult.getVariant` call itself during dependency submission. `wire-runtime` stays 6.4.5.
-
-## [0.4.6] - Gradle 9 is the next slice (2026-11-09)
-
-### Added
-
-- Roadmap row for a Gradle 9 wrapper that configures. AGP 9 waits until that wrapper passes tests. The Monday 2026-11-09 08:00 job reads `scripts/scheduler/prompts/toebeans-gradle9.txt`.
-
-## [0.4.5] - F-Droid tester channel and listing draft (2026-11-08)
-
-### Added
-
-- Operator guide, tester tutorial, and F-Droid metadata draft, so three testers can install from an F-Droid path after a release exists. Gradle stays at versionName 0.1.0 and versionCode 1.
-
-## [0.4.4] - BootReceiver starts disabled (2026-11-08)
-
-### Changed
-
-- `BootReceiver` is `android:enabled="false"` in the manifest (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. An existing install with pending doses in the 72-hour horizon enables it on the next cold start.
+- `BootReceiverManifestEnabledTest` expects `android:enabled="false"` on `.notifications.BootReceiver` to keep the receiver off until the first schedule materializes. The manifest still sets `android:enabled="true"`, so the test is red on purpose.
 
 ## [0.4.3] - Buildscript pins and weekly Dependabot updates ([#133](https://github.com/weijia-89/toebeans/pull/133), 2026-11-08)
 
@@ -93,23 +33,90 @@ large chunk of merged work.
 - Kotlin Gradle plugin stays `2.0.21`. Alert 68 stays open until a stable release at or above 2.4.20.
 - Dependabot checks Gradle and GitHub Actions weekly. A version-update pull request waits until the release is 30 days old.
 
-## [0.4.2] - Boot receiver enabled flag test is red on purpose (2026-11-08)
-
-### Added
-
-- `BootReceiverManifestEnabledTest` expects `android:enabled="false"` on `.notifications.BootReceiver` to keep the receiver off until the first schedule materializes. The manifest still sets `android:enabled="true"`, so the test is red on purpose.
-
-## [0.4.1] - Demo load registers the 72-hour alarms (2026-11-08)
+## [0.4.4] - BootReceiver starts disabled (2026-11-08)
 
 ### Changed
 
-- `loadDemoData` writes the next 72 hours of pending doses and registers those alarms, to arm each demo schedule.
+- `BootReceiver` is `android:enabled="false"` in the manifest (ADR-0012). `AndroidNotificationActuator.schedule` enables the component. An existing install with pending doses in the 72-hour horizon enables it on the next cold start.
 
-## [0.4.0] - History shows every dose status (2026-11-08)
+## [0.4.5] - F-Droid tester channel and listing draft (2026-11-08)
 
 ### Added
 
-- History lists pending, given, skipped, and missed doses from the last 30 days to show the full record, and a pet chip filters that list to one pet.
+- Operator guide, tester tutorial, and F-Droid metadata draft, so three testers can install from an F-Droid path after a release exists. Gradle stays at versionName 0.1.0 and versionCode 1.
+
+## [0.4.6] - Gradle 9 is the next slice (2026-11-09)
+
+### Added
+
+- Roadmap row for a Gradle 9 wrapper that configures. AGP 9 waits until that wrapper passes tests. The Monday 2026-11-09 08:00 job reads `scripts/scheduler/prompts/toebeans-gradle9.txt`.
+
+## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
+
+### Changed
+
+- The Gradle wrapper is 9.9.0. `./gradlew help` configures.
+- `wire-runtime-jvm` is excluded. `useTarget` made `ResolvedGraphResult.getVariant` call itself during dependency submission. `wire-runtime` stays 6.4.5.
+
+## [0.4.8] - Debug build on Gradle 9.9.0 (2026-11-09)
+
+### Fixed
+
+- `:androidApp:checkDebugAarMetadata` runs on Gradle 9.9.0 and AGP 8.7.0. Resolution pins Compose UI, foundation, animation, and runtime to 1.11.4, `core` to 1.16.0, `activity` to 1.9.2, `lifecycle` to 2.8.6, `navigation` to 2.9.6, and `kotlinx-datetime` to 0.6.2. `material3` stays unpinned. Robolectric UI tests use SDK 34. The debug APK drops the duplicate OSGI manifest from bouncycastle and jspecify.
+
+## [0.4.9] - AGP 9.5.1 reland (2026-11-11)
+
+### Changed
+
+- AGP is 9.5.1 on the Gradle 9.9.0 wrapper (reland of the closed dependabot pull request 141). AGP 9 turns on built-in Kotlin and the new DSL, so `gradle.properties` opts out with `android.builtInKotlin=false` and `android.newDsl=false` until the build files migrate to built-in Kotlin and the KMP Android library plugin. Both opt-outs are removed in AGP 10. Verified locally: `:shared:jvmTest` 210 passed, `:shared:testDebugUnitTest` 120 passed, `:androidApp:checkDebugAarMetadata` and `:androidApp:assembleDebug` exit 0.
+
+## [0.4.10] - Schedule edit keeps dose history (2026-11-11)
+
+### Added
+
+- Schedule Detail gains a top-bar Edit action that opens the create form in edit mode (`SCHEDULE_EDIT_ROUTE`). `loadForEdit` prefills dates, anchor mode, and phase drafts from the stored schedule; save upserts under the same schedule id and keeps the original `created_at`. Pending dose rows for the edited schedule are cancelled and deleted, then the 72-hour horizon rematerializes for the new times and the alarms re-arm. Given, skipped, and missed rows are never touched, so dose history survives the edit. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 264 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
+
+## [0.4.11] - Remove demo data from Settings (2026-11-11)
+
+### Added
+
+- Settings Data card gains a destructive "Remove demo data" action behind a confirmation dialog. Confirming cancels every pending demo dose alarm through the notification actuator, then deletes the demo schedules, medications, and pets; the database cascades remove the demo phases and dose rows. Removal matches the fixed demo id set (the schema does not tag demo rows, so the set is the honest contract, documented in `DemoDataIds`). A no-op when no demo rows exist. The first-launch dialog does not reappear afterwards. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 271 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
+
+## [0.4.12] - Dose-history red test (2026-11-12)
+
+### Added
+
+- Red test `DoseHistorySurvivesScheduleDeleteTest` (`:shared:jvmTest`) pins the desired behavior: dose events recorded for a schedule survive `scheduleRepository.delete`. It fails on the current schema for the right reason, because the `DoseEvent.schedule_id` foreign key is `ON DELETE CASCADE` (a behavior pinned green by `SqliteForeignKeysCallbackTest`), while the `DoseEvent.sq` header itself names SET NULL as the intended policy. No implementation ships here: the fix is a schema migration, the product call belongs to the operator, and the pull request is labelled `needs-human-test-review`. `:shared:jvmTest` is red by design (211 tests, exactly the one intended failure); the full suite is not claimed green.
+
+## [0.4.13] - Vet-visit schema red test (2026-11-16)
+
+### Added
+
+- The test-as-spec red gate for the accepted ADR-0020 F5a slice: `VetVisitSchemaContractTest` (jvmTest) pins the desired end state where a pet's vet visits (kind, date, vet clinic, notes) and vaccine records (name, date administered, next-due date) persist and round-trip, and a vaccine rule-pack entry is looked up by (species, age range, regulatory region). It compiles and fails today on exactly the missing `VetVisit`, `Vaccine`, and `VaccinationGiven` tables (211 tests, 1 designed failure; baseline 210 passing). No schema, repository, model, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous SQLDelight surface.
+
+## [0.4.14] - Travel-mode homeTimezone red test (2026-11-16)
+
+### Added
+
+- The test-as-spec red gate for the ADR-0007 travel-mode remainder (launch-checklist timezone row, `Pet.homeTimezone` plus the `STAY_HOME_TZ` caller policy): `TravelModeHomeTimezoneContractTest` (jvmTest, package `app.toebeans.core.scheduler` beside the DST rules test) pins the desired end state where a pet with a persisted `home_timezone` and a schedule in `STAY_HOME_TZ` mode computes its doses in the pet's home timezone even when the device timezone changes, simulated through the domain layer (horizon recomputed across a Los Angeles to Tokyo device move, no OS broadcast), with a `FOLLOW_PHONE` divergence pin on the same pet. It compiles and fails today on exactly the missing `Pet.home_timezone` column (212 tests, 2 designed failures: this test plus PR #160's `VetVisitSchemaContractTest`; baseline 211 with 1). No `.sq`, model, scheduler, notification, manifest, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous schema surface. ADR-0007 gates G1 and G3 stay out of scope.
+
+## [0.4.15] - Emergency resources card (2026-11-16)
+
+### Added
+
+- The Today screen gains a collapsible Emergency card, rendered in both the zero-pets and populated branches, with a Settings "Emergency resources" row in the About card that opens the same content as a dialog. The card is static curated public contact info: ASPCA Animal Poison Control (888) 426-4435 and Pet Poison Helpline (855) 764-7661, both 24/7 with a fee note, verified against aspca.org and petpoisonhelpline.com on 2026-11-16; a first line directing the user to their veterinarian or the nearest emergency animal hospital; find-an-emergency-vet guidance text (no URL shipped: the VECCS certified-facility directory is sunsetting and lists only certified facilities, so the row says to search "emergency veterinarian near me" instead); and the ADR-0019 §3 framing line "toebeans does not provide medical advice. In an emergency, call a veterinary professional." Hotline taps fire user-initiated `ACTION_DIAL` intents (no permission, no network, no new dependency). No AI, no model, no dynamic content. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 284 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
+
+## [0.4.16] - Dose history survives schedule delete (2026-11-22)
+
+### Changed
+
+- Operator decision: deleting a schedule keeps the dose log. Migration 4 changes `DoseEvent.schedule_id` from NOT NULL with ON DELETE CASCADE to nullable with ON DELETE SET NULL. Given and pending dose rows survive; the enriched receiver lookup and boot rehydration INNER JOIN Schedule, so an orphaned row cannot fire an alarm for a deleted plan. Medication deletion still cascades, so Remove demo data keeps its clear-all behavior. Dose event edit on an orphaned row opens the medication form, which is where the shell already routed all dose edits. Verified locally: `scripts/verify_before_push.sh` all green, `:shared:jvmTest` 213 passed, `:androidApp:testDebugUnitTest` green, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
+
+## [0.4.17] - Em-dash fitness gate removed (2026-11-22)
+
+### Changed
+
+- PR [#166](https://github.com/weijia-89/toebeans/pull/166) deletes the em-dash fitness gate and its script. Voice consistency is now a review duty instead of a mechanical check. No other gate changed.
 
 ## [0.3.0] - Notification denial UX, History tab, rendered UI tests (2026-10)
 

@@ -18,7 +18,7 @@ Run all five even if step 1 or 2 reports failures. The local gauntlet's value is
 
 Order matters even on a clean repo. A contributor who fixes a lint issue and pushes without running the compile-tests step is making the same inference that ADR-0017 § Lesson 1 calls out: that lint passing implies the rest of the gauntlet would pass. That inference is unsafe whenever the diff touches a surface the local environment has not actually compiled.
 
-Until JDK 17 is available locally, CI is the only compile-tests gate. A push that fails at the Lint stage in CI makes no claim about whether the compile-tests would have passed.
+JDK 17 is available on the Mac toolchain at `/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`. Set `JAVA_HOME` to that path and `ANDROID_HOME` to `$HOME/Library/Android/sdk` before the gauntlet. A contributor without local JDK 17 still has CI as the only compile-tests gate, and a push that fails at the Lint stage in CI makes no claim about whether the compile-tests would have passed.
 
 The local gauntlet is the per-contributor mitigation, not the whole fix. The CI workflow itself still runs Lint before Gradle compile and short-circuits the latter on the former's failure, so the same inference problem reappears for any contributor without local JDK 17. Reworking `.github/workflows/ci.yml` to run lint and compile-tests as independent gates is tracked in [ADR-0017 § Followups](docs/adr/0017-lessons-from-adr-0016-ci-iteration.md#followups) as a separate, deferred work item.
 

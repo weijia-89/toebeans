@@ -5,7 +5,7 @@ A milestone names who can use the app without a broken path.
 This file is the canonical answer to what is feasible now.
 When a chat claim and this file disagree, this file wins.
 
-Last updated: 2026-11-16. Current milestone: Milestone 1.2.
+Last updated: 2026-11-22. Current milestone: Milestone 1.2.
 
 ## Milestone 1.2: Internal beta (current)
 
@@ -21,7 +21,7 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 | AGP 9. The closed pull request 141 change is relanded on the Gradle `9.9.0` wrapper: AGP is `9.5.1` and `gradle.properties` sets `android.builtInKotlin=false` and `android.newDsl=false`, because AGP 9 built-in Kotlin and the new DSL forbid the main-tracked build files (`org.jetbrains.kotlin.android` in the app module, `org.jetbrains.kotlin.multiplatform` plus `com.android.library` in the shared module). Both opt-outs are removed in AGP 10; migrating to built-in Kotlin and the KMP Android library plugin is the follow-up. Local verify is green: `:shared:jvmTest` 210 passed, `:shared:testDebugUnitTest` 120 passed, `:androidApp:checkDebugAarMetadata` and `:androidApp:assembleDebug` exit 0. The reland pull request is labelled `needs-human-test-review`; the operator reviews and merges. | vibe-dangerous | blocked-operator-approval |
 | Vet-visit and vaccine schema (ADR-0020 F5a): the red schema-contract test is written (`VetVisitSchemaContractTest`, jvmTest; compiles and fails on the missing `VetVisit`, `Vaccine`, `VaccinationGiven` tables, 211 tests with 1 designed failure). Human test review is pending; implementation of the tables, repositories, and migration starts only after the review, per ADR-0020 slice order (F4 style guide, F5a schema, F5b rule pack, F5c scheduler, UI). | vibe-dangerous | blocked-operator-approval |
 | Travel-mode homeTimezone (ADR-0007 launch-checklist timezone row): the red contract test is written (`TravelModeHomeTimezoneContractTest`, jvmTest; compiles and fails on the missing `Pet.home_timezone` column, 212 tests with 2 designed failures: this red plus the vet-visit red above). The test pins the `STAY_HOME_TZ` caller policy through a domain-layer device-timezone change, no OS broadcast. Human test review is pending; the schema migration and caller-policy implementation start only after the review. ADR-0007 gates G1 and G3 stay out of scope. | vibe-dangerous | blocked-operator-approval |
-| Dose history vs schedule delete. Operator decision 2026-11-22: history is kept. Migration 4 makes `DoseEvent.schedule_id` nullable with ON DELETE SET NULL, so given and pending dose rows survive schedule deletion. The fire path INNER JOINs Schedule, so an orphaned row is invisible to the receiver and its alarm is cancelled. Medication deletion still cascades, so Remove demo data keeps clearing demo rows. `DoseHistorySurvivesScheduleDeleteTest` and `DoseEventMigrationSafetyTest` pin both properties. | vibe-dangerous | PR pending review |
+| Dose history vs schedule delete. Operator decision 2026-11-22: history is kept. Migration 4 makes `DoseEvent.schedule_id` nullable with ON DELETE SET NULL, so given and pending dose rows survive schedule deletion. The fire path INNER JOINs Schedule, so an orphaned row is invisible to the receiver and its alarm is cancelled. Medication deletion still cascades, so Remove demo data keeps clearing demo rows. `DoseHistorySurvivesScheduleDeleteTest` and `DoseEventMigrationSafetyTest` pin both properties. | vibe-dangerous | Shipped in [#165](https://github.com/weijia-89/toebeans/pull/165), 2026-11-22 |
 | GitHub Actions `ci` is `startup_failure` with zero jobs. Run `42554072648` is on main. Run `42630625548` is on pull request 147. A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
 | F-Droid tester channel for Victoria, the operator, and the operator's spouse. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
@@ -30,6 +30,17 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 Not this run.
 ADR-0007 G1 and G3 stay in `docs/issues/v0.1-followups.md` item 2.
 Argon2id stays unwired until an ADR-0016 v2 trigger.
+
+Two `jvmTest` tests stay red by design until their implementation slices get a
+human decision: `VetVisitSchemaContractTest` and
+`TravelModeHomeTimezoneContractTest`. A local full run reports them as designed
+failures. They are not shipped behavior and are not silenced. GitHub Actions
+`ci` was reported as `startup_failure` with zero jobs, so the workflow has not
+given a green result for them; local verification is the current gate.
+
+The drug-reference approval gate runs in `scripts/verify_before_push.sh` but is
+not wired into `.github/workflows/ci.yml`. Adding it touches a review-gated
+workflow and waits for an operator decision.
 
 ### Shipped
 
@@ -61,6 +72,7 @@ Argon2id stays unwired until an ADR-0016 v2 trigger.
 | Schedule edit keeps dose history: editing a schedule's times, phases, or dates recycles only its pending dose rows; given, skipped, and missed rows survive | [PR 153](https://github.com/weijia-89/toebeans/pull/153) | 2026-11-11 |
 | Settings "Remove demo data" affordance: one confirmed action cancels pending demo alarms and deletes the demo pets, medications, schedules, and dose history by the fixed demo id set | [PR 154](https://github.com/weijia-89/toebeans/pull/154) | 2026-11-11 |
 | Emergency resources card on Today plus a Settings entry: static curated poison-control hotlines with ACTION_DIAL, find-a-vet guidance text, and no-medical-advice framing (no AI, no dynamic content, per ADR-0019) | [PR 159](https://github.com/weijia-89/toebeans/pull/159) | 2026-11-16 |
+| Em-dash fitness gate removed. Voice consistency stays a review duty; no gate enforces it. | [#166](https://github.com/weijia-89/toebeans/pull/166) | 2026-11-22 |
 
 ## History
 
