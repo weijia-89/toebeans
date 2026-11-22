@@ -39,14 +39,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.R
 import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.android.preferences.ThemeMode
+import app.toebeans.android.ui.emergency.EmergencyResourcesContent
+import app.toebeans.android.ui.emergency.emergencyDialIntent
 import app.toebeans.android.ui.theme.ToebeansTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -163,6 +167,10 @@ public fun SettingsScreen(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.semantics { heading() },
         )
+
+        // Emergency-resources dialog state (About card button opens it). Kept at the
+        // Column scope so both the About card and the dialog below can see it.
+        var showEmergencyDialog by remember { mutableStateOf(false) }
 
         SettingsCard(title = "Display") {
             // Three-way theme picker as a SingleChoiceSegmentedButtonRow. The "Auto"
@@ -457,6 +465,29 @@ public fun SettingsScreen(
             SettingsRow(label = "App version", value = "0.1.0")
             SettingsRow(label = "Storage", value = "Local-only · no cloud")
             SettingsRow(label = "Analytics", value = "None")
+            // Same static emergency content as the Today card (ADR-0019 §3 framing:
+            // public contact info, never advice). Second path to the same rows so a
+            // user who missed the Today card can still reach the hotlines.
+            TextButton(onClick = { showEmergencyDialog = true }) {
+                Text(stringResource(R.string.emergency_settings_button))
+            }
+        }
+
+        if (showEmergencyDialog) {
+            AlertDialog(
+                onDismissRequest = { showEmergencyDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showEmergencyDialog = false }) {
+                        Text(stringResource(R.string.emergency_dialog_dismiss))
+                    }
+                },
+                title = { Text(stringResource(R.string.emergency_dialog_title)) },
+                text = {
+                    EmergencyResourcesContent(
+                        onCall = { uri -> context.startActivity(emergencyDialIntent(uri)) },
+                    )
+                },
+            )
         }
 
         SettingsCard(title = "What's coming") {

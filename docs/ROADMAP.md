@@ -59,6 +59,7 @@ Vet-visit tables stay in the vet-visit ADR-0020.
 | Gradle `9.9.0` wrapper. `help` and dependency submission configure. `wire-runtime-jvm` is an exclude. | [#147](https://github.com/weijia-89/toebeans/pull/147), `78171d31` | 2026-11-09 |
 | Schedule edit keeps dose history: editing a schedule's times, phases, or dates recycles only its pending dose rows; given, skipped, and missed rows survive | [PR 153](https://github.com/weijia-89/toebeans/pull/153) | 2026-11-11 |
 | Settings "Remove demo data" affordance: one confirmed action cancels pending demo alarms and deletes the demo pets, medications, schedules, and dose history by the fixed demo id set | [PR 154](https://github.com/weijia-89/toebeans/pull/154) | 2026-11-11 |
+| Emergency resources card on Today plus a Settings entry: static curated poison-control hotlines with ACTION_DIAL, find-a-vet guidance text, and no-medical-advice framing (no AI, no dynamic content, per ADR-0019) | [PR 159](https://github.com/weijia-89/toebeans/pull/159) | 2026-11-16 |
 
 ## History
 
