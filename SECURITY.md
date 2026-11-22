@@ -23,14 +23,14 @@ See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-d
 - **No PII collected.** No user accounts. No analytics. No network calls.
 - **Backup encryption.** Manual backup export ships plain JSON in v1 per [ADR-0016](docs/adr/0016-plain-json-backup-encryption-deferred.md), which records the threat-model rationale for deferring encryption and names the four trigger conditions that reactivate the encrypted posture. The cipher design that activates on trigger is recorded in [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md). The design uses AES-256-GCM with a 128-bit authentication tag plus a passphrase-derived key via Argon2id, a memory-hard key derivation function (KDF) standardized in RFC 9106. The passphrase is **never** persisted.
 - **Android Auto Backup.** Encryption is provided by the Android platform's per-user device-bound key. If a user enables this feature, their data lives in their own Google account backup quota; toebeans never sees it.
-- **Permissions.** AndroidManifest is restricted to the explicit allowlist in [`AGENTS.md`](AGENTS.md). Adding any permission requires an ADR and human review.
+- **Permissions.** AndroidManifest is restricted to the explicit allowlist in the local agent contract. Adding any permission requires an ADR and human review.
 
 ## Supply chain posture
 
 - SLSA Build Track L1 at v0.1; L2 target by slice 6.
 - All Gradle dependencies pinned to specific versions in `gradle/libs.versions.toml`.
 - Pull request CI runs `actions/dependency-review-action` and fails the job when a newly added dependency has a high-severity advisory (`.github/workflows/ci.yml`, job `dependency-review`).
-- Hallucinated-package vigilance per [`AGENTS.md` § Hallucination vigilance](AGENTS.md#hallucination-vigilance). Every new import requires explicit human verification against Maven Central.
+- Hallucinated-package vigilance per the local agent contract. Every new import requires explicit human verification against Maven Central.
 
 ### Buildscript-transitive vs. app-runtime dependencies
 
@@ -61,11 +61,11 @@ The first such log is
 
 ### Dependabot pull requests
 
-`.github/dependabot.yml` checks Gradle and GitHub Actions once a week. A version-update pull request waits until the release is 30 days old. That wait matches the first-seen rule in [`AGENTS.md`](AGENTS.md).
+`.github/dependabot.yml` checks Gradle and GitHub Actions once a week. A version-update pull request waits until the release is 30 days old. That wait matches the first-seen rule in the local agent contract.
 
 Security update pull requests are already enabled on the GitHub repository. The 30-day wait does not apply to them.
 
-Dependabot does not merge its own pull requests. A Gradle version change still needs human review per [`AGENTS.md`](AGENTS.md).
+Dependabot does not merge its own pull requests. A Gradle version change still needs human review per the local agent contract.
 
 This config file does not close alerts. An `ignore` rule would only stop version-update pull requests. The 2026-05-18 triage recorded that limit, and it still holds. The open-alert work list is [`docs/superpowers/plans/2026-11-08-dependabot-alerts.md`](docs/superpowers/plans/2026-11-08-dependabot-alerts.md).
 

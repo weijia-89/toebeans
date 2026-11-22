@@ -1,6 +1,6 @@
 # Contributing to toebeans
 
-toebeans is a pet medication tracker for Android. It runs locally and never talks to the network. The design refuses to act like a vet. The canonical contributor reference is [AGENTS.md](AGENTS.md); read it before opening a PR. This file is the wayfinding surface for new contributors, and AGENTS.md is the rulebook.
+toebeans is a pet medication tracker for Android. It runs locally and never talks to the network. The design refuses to act like a vet. This file is the canonical contributor reference; read it before opening a PR. A detailed agent contract is kept as a local working copy and is not published in this repository.
 
 ## Pre-push gauntlet ordering
 
@@ -38,7 +38,7 @@ The CI workflow itself uses a fresh dependency resolution on every run (no cache
 
 ## What to read before contributing
 
-- [AGENTS.md](AGENTS.md). The load-bearing contract for any agent or human working on the codebase, including vibe-safety tiers, the permission allowlist, the refusal list, and the CI fitness functions.
+- The local agent contract. Kept in each contributor's working copy and not published here. It carries the vibe-safety tiers, the permission allowlist, the refusal list, and the CI fitness functions.
 - [docs/ROADMAP.md](docs/ROADMAP.md). The current milestone, what is shippable now, what is deferred.
 - [docs/adr/](docs/adr/). Architecture decisions in MADR format.
 - [README.md](README.md). What the app does today and what it deliberately does not.
@@ -47,9 +47,9 @@ The CI workflow itself uses a fresh dependency resolution on every run (no cache
 ## Commit hygiene
 
 - **Conventional Commits prefix.** Every commit message starts with `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, or `ci:`. The vibe-safety tier of the change appears in trailing brackets when relevant, for example `[vibe-dangerous]` or `[vibe-careful]`.
-- **Calibration-entry pairing for vibe-dangerous paths.** Any commit that touches a vibe-dangerous surface listed in [AGENTS.md § Vibe-safety tiers](AGENTS.md#vibe-safety-tiers-per-code-helper-5) must also stage a new entry in `.codeit/calibration.jsonl` recording the change's confidence score. The pre-commit hook at `scripts/git-hooks/pre-commit` enforces this mechanically. Install it once per clone with `bash scripts/install-git-hooks.sh`.
-- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in [AGENTS.md § Refusal list](AGENTS.md#refusal-list-will-not-produce-without-justification) applies to commit messages too. No theatrical phrasing.
+- **Calibration-entry pairing for vibe-dangerous paths.** Any commit that touches a vibe-dangerous surface listed in the local agent contract section on vibe-safety tiers must also stage a new entry in `.codeit/calibration.jsonl` recording the change's confidence score. The pre-commit hook at `scripts/git-hooks/pre-commit` enforces this mechanically. Install it once per clone with `bash scripts/install-git-hooks.sh`.
+- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in the local agent contract applies to commit messages too. No theatrical phrasing.
 
 ## Tests as specs
 
-The full test-as-spec contract is in [AGENTS.md § Test-as-spec rules](AGENTS.md#test-as-spec-rules). For any change to a vibe-dangerous surface, the failing test lands first in its own commit and gets human review before the implementation lands.
+The full test-as-spec contract is in the local agent contract. For any change to a vibe-dangerous surface, the failing test lands first in its own commit and gets human review before the implementation lands.
