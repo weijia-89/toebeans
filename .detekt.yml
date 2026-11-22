@@ -4,6 +4,16 @@
 # detekt 2 removed the `build` block (maxIssues/weights). Failure policy now
 # lives in the Gradle extension via failOnSeverity (default: Error).
 
+# detekt 2 also removed detekt 1's global `exclusions.generatedCode` config.
+# SQLDelight emits Kotlin into shared/build/generated/ on every build; detekt
+# now analyses that output and reports naming / nullability / line-length
+# issues on code that no human authors and that no shared/src/ edit can fix
+# (it is regenerated on every build). These are confirmed false positives.
+# The six rules below exclude generated build output ONLY; every hand-written
+# source file under shared/src/ stays fully analysed. Pattern intentionally
+# scoped to generated build dirs, not to shared/src/.
+# See session log "Agent detekt-shared-cleanup" for exact rule/file/reason.
+
 style:
   active: true
   MagicNumber:
@@ -11,6 +21,8 @@ style:
   MaxLineLength:
     active: true
     maxLineLength: 120
+    # Confirm FP: generated SQLDelight queries exceed 120 chars; not authored.
+    excludes: ['**/build/**']
   ReturnCount:
     active: true
     # Bumped from 4 to 6 because two legitimate guard-clause functions hit
@@ -52,13 +64,25 @@ complexity:
     # @Composable screen function naturally grows past 60 lines without
     # being meaningfully "long." Detekt's standard exception list.
     ignoreAnnotated: ['Composable']
+    # Confirm FP: generated SQLDelight query functions are long; not authored.
+    excludes: ['**/build/**']
   LongParameterList:
     active: true
     # @Composable accepts state, callbacks, modifier, contentPadding,
     # viewModel — five-plus is the norm. Don't flag.
     ignoreAnnotated: ['Composable']
+    # Confirm FP: generated SQLDelight query signatures take many columns.
+    excludes: ['**/build/**']
 
 naming:
+  # Confirm FP: generated SQLDelight model constructors use snake_case column names.
+  ConstructorParameterNaming:
+    active: true
+    excludes: ['**/build/**']
+  # Confirm FP: generated SQLDelight query functions use snake_case column names.
+  FunctionParameterNaming:
+    active: true
+    excludes: ['**/build/**']
   PackageNaming:
     # YAML single-quoted strings preserve backslashes literally, so the
     # double-backslash form '\\.' becomes a regex meaning
@@ -69,6 +93,13 @@ naming:
     # Compose convention is PascalCase @Composable functions
     # (Button(), Text(), HomeScreen()). Don't flag.
     ignoreAnnotated: ['Composable']
+
+# Confirm FP: generated SQLDelight queries use !! on nullable DB columns by design.
+# Keep detekt 2's default test-path excludes intact alongside the generated-path one.
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true
+    excludes: ['**/build/**', '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
 
 empty-blocks:
   EmptyFunctionBlock:

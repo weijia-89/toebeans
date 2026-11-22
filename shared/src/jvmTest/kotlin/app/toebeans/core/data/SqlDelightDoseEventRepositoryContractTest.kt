@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.notifications.SqlDelightReminderLookup
-import kotlinx.coroutines.Dispatchers
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlin.test.Test
@@ -41,7 +41,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
         seedParentChain(database, scheduleId = SCHEDULE_ID)
         return SqlDelightDoseEventRepository(
             database = database,
-            dispatcher = Dispatchers.Unconfined,
+            dispatcher = unconfinedTestDispatcher(),
         )
     }
 
@@ -56,7 +56,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             val repo =
                 SqlDelightDoseEventRepository(
                     database = localDb,
-                    dispatcher = Dispatchers.Unconfined,
+                    dispatcher = unconfinedTestDispatcher(),
                 )
             val at = Instant.parse("2026-05-24T08:00:00Z")
             repo.recordGivenNow(
@@ -95,7 +95,7 @@ class SqlDelightDoseEventRepositoryContractTest : DoseEventRepositoryContract() 
             val repo =
                 SqlDelightDoseEventRepository(
                     database = localDb,
-                    dispatcher = Dispatchers.Unconfined,
+                    dispatcher = unconfinedTestDispatcher(),
                 )
             val at = Instant.parse("2026-05-24T10:00:00Z")
             repo.recordGivenNow(

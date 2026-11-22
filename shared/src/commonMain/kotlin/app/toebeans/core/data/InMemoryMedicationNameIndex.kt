@@ -1,5 +1,6 @@
 package app.toebeans.core.data
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -18,13 +19,14 @@ import kotlinx.coroutines.withContext
  */
 public class InMemoryMedicationNameIndex(
     private val medicationList: List<String> = BUNDLED_MEDICATION_NAMES,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : MedicationNameIndexRepository {
     private var medicationNames: List<String>? = null
     private val loadLock = Any()
 
     private suspend fun ensureLoaded() {
         if (medicationNames != null) return
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             synchronized(loadLock) {
                 if (medicationNames == null) {
                     medicationNames = medicationList.sortedBy { it.lowercase() }
@@ -62,7 +64,7 @@ public class InMemoryMedicationNameIndex(
 
     override suspend fun getAll(): List<String> {
         ensureLoaded()
-        return medicationNames ?: emptyList()
+        return medicationNames.orEmpty()
     }
 }
 

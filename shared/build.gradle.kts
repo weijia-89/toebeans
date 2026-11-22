@@ -169,6 +169,34 @@ detekt {
     allRules.set(false)
 }
 
+// detekt 2 makes the umbrella `:shared:detekt` task NO-SOURCE: only the per-compilation
+// and per-source-set tasks below actually analyse shared Kotlin. Collect them so `check`,
+// CI and pre-push cannot silently skip shared lint. Run with --no-configuration-cache
+// (detekt 2.0.0-alpha.6 is not configuration-cache safe).
+val detektSharedTaskNames =
+    listOf(
+        "detektMainAndroid",
+        "detektMainJvm",
+        "detektHostTestAndroid",
+        "detektTestJvm",
+        "detektCommonMainSourceSet",
+        "detektCommonTestSourceSet",
+        "detektAndroidMainSourceSet",
+        "detektJvmMainSourceSet",
+        "detektJvmTestSourceSet",
+    )
+
+val detektShared =
+    tasks.register("detektShared") {
+        group = "verification"
+        description = "Runs every detekt task that analyses :shared sources under detekt 2."
+        dependsOn(detektSharedTaskNames.map { tasks.named(it) })
+    }
+
+tasks.named("check") {
+    dependsOn(detektShared)
+}
+
 // Test failures are now fatal. The v0.1 `ignoreFailures = true` block has been removed
 // because DefaultScheduleCalculator is implemented and all SchedulePhaseRulesTest cases
 // pass. Any future test regression should fail the build at every layer (local, CI).

@@ -59,22 +59,138 @@ class TravelModeHomeTimezoneContractTest {
     @Test
     fun `stay home tz doses stay on the pet's home timezone when the device timezone changes`() {
         val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        ToebeansDatabase.Schema.create(freshDriver)
-        freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
         val db = ToebeansDatabase(freshDriver)
         val createdAtMs = Instant.parse("2026-07-01T00:00:00Z").toEpochMilliseconds()
+        val homeZone = seedSchema(freshDriver, db, createdAtMs)
+
+        val staySchedule =
+            Schedule(
+                id = "sched-stay",
+                medicationId = "m-tz",
+                startDate = LocalDate(2026, 7, 6),
+                endDate = null,
+                createdAt = Instant.parse("2026-07-01T00:00:00Z"),
+                anchorMode = AnchorMode.STAY_HOME_TZ,
+            )
+        val phase =
+            SchedulePhase(
+                id = "phase-stay",
+                scheduleId = "sched-stay",
+                phaseOrder = 0,
+                durationDays = 3,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+                doseUnit = null,
+            )
+        // One UTC-wide window covers every case below so dose counts stay comparable.
+        val windowStart = Instant.parse("2026-07-05T00:00:00Z")
+        val windowEnd = Instant.parse("2026-07-10T00:00:00Z")
+
+        assertStayPins(staySchedule, phase, homeZone, windowStart, windowEnd)
+        assertFollowPins(staySchedule, phase, windowStart, windowEnd)
+    }
+
+    private fun computeDoses(
+        schedule: Schedule,
+        phase: SchedulePhase,
+        zone: TimeZone,
+        start: Instant,
+        end: Instant,
+    ) = calculator.computeScheduledDoses(
+        schedule = schedule,
+        phases = listOf(phase),
+        timeZone = zone,
+        fromInclusive = start,
+        toExclusive = end,
+    )
+
+    private fun assertStayPins(
+        staySchedule: Schedule,
+        phase: SchedulePhase,
+        homeZone: TimeZone,
+        windowStart: Instant,
+        windowEnd: Instant,
+    ) {
+        // Policy pin: the materialization layer passes the pet's home timezone for a
+        // STAY_HOME_TZ schedule. 08:00 in America/New_York (EDT) is 12:00 UTC.
+        val stayDoses = computeDoses(staySchedule, phase, homeZone, windowStart, windowEnd)
+        assertEquals(
+            listOf(
+                Instant.parse("2026-07-06T12:00:00Z"),
+                Instant.parse("2026-07-07T12:00:00Z"),
+                Instant.parse("2026-07-08T12:00:00Z"),
+            ),
+            stayDoses.map { it.scheduledAt },
+            "STAY_HOME_TZ doses must be anchored to the pet's home timezone (08:00 New York)",
+        )
+
+        // Device-timezone change, simulated through the domain layer: the device moves
+        // from America/Los_Angeles to Asia/Tokyo and the horizon is recomputed. The
+        // STAY_HOME_TZ caller policy still passes the pet's home timezone, so the dose
+        // instants are identical after the change.
+        val stayDosesAfterChange = computeDoses(staySchedule, phase, homeZone, windowStart, windowEnd)
+        assertEquals(
+            stayDoses.map { it.scheduledAt },
+            stayDosesAfterChange.map { it.scheduledAt },
+            "a device timezone change must not move STAY_HOME_TZ dose instants",
+        )
+    }
+
+    private fun assertFollowPins(
+        staySchedule: Schedule,
+        phase: SchedulePhase,
+        windowStart: Instant,
+        windowEnd: Instant,
+    ) {
+        // Divergence pin: the same pet's FOLLOW_PHONE schedule DOES follow the device.
+        // Before the change 08:00 Los Angeles (PDT) is 15:00 UTC; after it 08:00 Tokyo
+        // (JST) is 23:00 UTC the previous calendar day.
+        val followSchedule = staySchedule.copy(id = "sched-follow", anchorMode = AnchorMode.FOLLOW_PHONE)
+        val followPhase = phase.copy(id = "phase-follow", scheduleId = "sched-follow")
+        val la = TimeZone.of("America/Los_Angeles")
+        val tokyo = TimeZone.of("Asia/Tokyo")
+        val followBefore = computeDoses(followSchedule, followPhase, la, windowStart, windowEnd)
+        assertEquals(
+            listOf(
+                Instant.parse("2026-07-06T15:00:00Z"),
+                Instant.parse("2026-07-07T15:00:00Z"),
+                Instant.parse("2026-07-08T15:00:00Z"),
+            ),
+            followBefore.map { it.scheduledAt },
+            "FOLLOW_PHONE doses follow the device timezone before the change",
+        )
+        val followAfter = computeDoses(followSchedule, followPhase, tokyo, windowStart, windowEnd)
+        assertEquals(
+            listOf(
+                Instant.parse("2026-07-05T23:00:00Z"),
+                Instant.parse("2026-07-06T23:00:00Z"),
+                Instant.parse("2026-07-07T23:00:00Z"),
+            ),
+            followAfter.map { it.scheduledAt },
+            "FOLLOW_PHONE doses shift with the device timezone after the change",
+        )
+    }
+
+    private fun seedSchema(
+        driver: SqlDriver,
+        db: ToebeansDatabase,
+        createdAtMs: Long,
+    ): TimeZone {
+        ToebeansDatabase.Schema.create(driver)
+        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
 
         // RED gate: ADR-0007 travel mode must add the optional home_timezone column to Pet.
         // Today Pet.sq declares no such column, so this assertion fails first and the
         // policy pins below execute only after the schema lands.
         assertTrue(
-            "home_timezone" in columnNames(freshDriver, "Pet"),
+            "home_timezone" in columnNames(driver, "Pet"),
             "ADR-0007 travel-mode schema missing: Pet.home_timezone column does not exist yet",
         )
 
         // Persisted pet row with a home timezone. Raw SQL stands in for the generated
         // insertPet, which cannot know the column until the implementation slice adds it.
-        freshDriver.execute(
+        driver.execute(
             null,
             """
             INSERT INTO Pet (id, name, species, birthdate_iso, weight_kg, notes, created_at, archived_at, home_timezone)
@@ -82,8 +198,7 @@ class TravelModeHomeTimezoneContractTest {
             """.trimIndent(),
             0,
         )
-        val homeZoneId = queryScalar(freshDriver, "SELECT home_timezone FROM Pet WHERE id = 'p-tz'")
-        val homeZone = TimeZone.of(homeZoneId)
+        val homeZoneId = queryScalar(driver, "SELECT home_timezone FROM Pet WHERE id = 'p-tz'")
         assertEquals(
             "America/New_York",
             homeZoneId,
@@ -118,110 +233,7 @@ class TravelModeHomeTimezoneContractTest {
             dose_amount = null,
             dose_unit = null,
         )
-
-        val staySchedule =
-            Schedule(
-                id = "sched-stay",
-                medicationId = "m-tz",
-                startDate = LocalDate(2026, 7, 6),
-                endDate = null,
-                createdAt = Instant.parse("2026-07-01T00:00:00Z"),
-                anchorMode = AnchorMode.STAY_HOME_TZ,
-            )
-        val phase =
-            SchedulePhase(
-                id = "phase-stay",
-                scheduleId = "sched-stay",
-                phaseOrder = 0,
-                durationDays = 3,
-                dosesPerDay = 1,
-                doseTimesLocal = listOf(LocalTime(8, 0)),
-                doseAmount = null,
-                doseUnit = null,
-            )
-        // One UTC-wide window covers every case below so dose counts stay comparable.
-        val windowStart = Instant.parse("2026-07-05T00:00:00Z")
-        val windowEnd = Instant.parse("2026-07-10T00:00:00Z")
-
-        // Policy pin: the materialization layer passes the pet's home timezone for a
-        // STAY_HOME_TZ schedule. 08:00 in America/New_York (EDT) is 12:00 UTC.
-        val stayDoses =
-            calculator.computeScheduledDoses(
-                schedule = staySchedule,
-                phases = listOf(phase),
-                timeZone = homeZone,
-                fromInclusive = windowStart,
-                toExclusive = windowEnd,
-            )
-        assertEquals(
-            listOf(
-                Instant.parse("2026-07-06T12:00:00Z"),
-                Instant.parse("2026-07-07T12:00:00Z"),
-                Instant.parse("2026-07-08T12:00:00Z"),
-            ),
-            stayDoses.map { it.scheduledAt },
-            "STAY_HOME_TZ doses must be anchored to the pet's home timezone (08:00 New York)",
-        )
-
-        // Device-timezone change, simulated through the domain layer: the device moves
-        // from America/Los_Angeles to Asia/Tokyo and the horizon is recomputed. The
-        // STAY_HOME_TZ caller policy still passes the pet's home timezone, so the dose
-        // instants are identical after the change.
-        val tokyo = TimeZone.of("Asia/Tokyo")
-        val stayDosesAfterChange =
-            calculator.computeScheduledDoses(
-                schedule = staySchedule,
-                phases = listOf(phase),
-                timeZone = homeZone,
-                fromInclusive = windowStart,
-                toExclusive = windowEnd,
-            )
-        assertEquals(
-            stayDoses.map { it.scheduledAt },
-            stayDosesAfterChange.map { it.scheduledAt },
-            "a device timezone change must not move STAY_HOME_TZ dose instants",
-        )
-
-        // Divergence pin: the same pet's FOLLOW_PHONE schedule DOES follow the device.
-        // Before the change 08:00 Los Angeles (PDT) is 15:00 UTC; after it 08:00 Tokyo
-        // (JST) is 23:00 UTC the previous calendar day.
-        val followSchedule = staySchedule.copy(id = "sched-follow", anchorMode = AnchorMode.FOLLOW_PHONE)
-        val followPhase = phase.copy(id = "phase-follow", scheduleId = "sched-follow")
-        val la = TimeZone.of("America/Los_Angeles")
-        val followBefore =
-            calculator.computeScheduledDoses(
-                schedule = followSchedule,
-                phases = listOf(followPhase),
-                timeZone = la,
-                fromInclusive = windowStart,
-                toExclusive = windowEnd,
-            )
-        assertEquals(
-            listOf(
-                Instant.parse("2026-07-06T15:00:00Z"),
-                Instant.parse("2026-07-07T15:00:00Z"),
-                Instant.parse("2026-07-08T15:00:00Z"),
-            ),
-            followBefore.map { it.scheduledAt },
-            "FOLLOW_PHONE doses follow the device timezone before the change",
-        )
-        val followAfter =
-            calculator.computeScheduledDoses(
-                schedule = followSchedule,
-                phases = listOf(followPhase),
-                timeZone = tokyo,
-                fromInclusive = windowStart,
-                toExclusive = windowEnd,
-            )
-        assertEquals(
-            listOf(
-                Instant.parse("2026-07-05T23:00:00Z"),
-                Instant.parse("2026-07-06T23:00:00Z"),
-                Instant.parse("2026-07-07T23:00:00Z"),
-            ),
-            followAfter.map { it.scheduledAt },
-            "FOLLOW_PHONE doses shift with the device timezone after the change",
-        )
+        return TimeZone.of(homeZoneId)
     }
 
     private fun columnNames(

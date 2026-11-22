@@ -68,13 +68,13 @@ internal class AndroidBackupCipherV2(
         val minimumEnvelopeSize = magicLen + saltLen + ivLen + tagLen
 
         if (envelope.size < minimumEnvelopeSize) {
-            throw BackupDecryptException("Envelope too short (${envelope.size} bytes).")
+            decryptFailure("Envelope too short (${envelope.size} bytes).")
         }
 
         val expectedMagic = BackupCipherV2.MAGIC.toByteArray(Charsets.US_ASCII)
         val actualMagic = envelope.copyOfRange(0, magicLen)
         if (!actualMagic.contentEquals(expectedMagic)) {
-            throw BackupDecryptException("Not a toebeans backup envelope (magic mismatch; expected TBN2).")
+            decryptFailure("Not a toebeans backup envelope (magic mismatch; expected TBN2).")
         }
 
         val saltStart = magicLen
@@ -90,20 +90,24 @@ internal class AndroidBackupCipherV2(
             val key = SecretKeySpec(keyBytes, "AES")
             val aad = buildAad(expectedMagic, salt, iv)
 
-            return try {
+            // runCatching catches Throwable, preserving the uniform-failure contract per ADR-0018.
+            return runCatching {
                 val cipher =
                     Cipher.getInstance("AES/GCM/NoPadding").apply {
                         init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(BackupCipherV2.GCM_TAG_BITS, iv))
                         updateAAD(aad)
                     }
                 cipher.doFinal(ciphertext)
-            } catch (t: Throwable) {
-                throw BackupDecryptException("Backup could not be decrypted.", t)
-            }
+            }.getOrElse { decryptFailure("Backup could not be decrypted.", it) }
         } finally {
             keyBytes.fill(0)
         }
     }
+
+    private fun decryptFailure(
+        message: String,
+        cause: Throwable? = null,
+    ): Nothing = throw BackupDecryptException(message, cause)
 
     private fun buildAad(
         magic: ByteArray,

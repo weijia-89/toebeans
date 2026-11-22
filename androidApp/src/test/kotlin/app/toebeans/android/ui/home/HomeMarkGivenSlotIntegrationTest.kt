@@ -1,6 +1,7 @@
 package app.toebeans.android.ui.home
 
 import android.content.Context
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.SqlDelightDoseEventRepository
 import app.toebeans.core.data.SqlDelightMedicationRepository
 import app.toebeans.core.data.SqlDelightPetRepository
@@ -15,6 +16,7 @@ import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.model.Species
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
+import app.toebeans.core.scheduler.MaterializeHorizonRequest
 import app.toebeans.core.scheduler.ReminderRescheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -144,22 +146,26 @@ class HomeMarkGivenSlotIntegrationTest {
 
             val now = todayStart + 1.hours
             ReminderRescheduler.materializeHorizonForSchedule(
-                schedule = schedule,
-                phases = listOf(phase),
-                medicationId = medId,
-                doseEventRepository = doseRepo,
-                scheduleCalculator = calculator,
-                timeZone = zone,
-                now = now,
+                MaterializeHorizonRequest(
+                    schedule = schedule,
+                    phases = listOf(phase),
+                    medicationId = medId,
+                    doseEventRepository = doseRepo,
+                    scheduleCalculator = calculator,
+                    timeZone = zone,
+                    now = now,
+                ),
             )
 
             val stableId = ReminderRescheduler.doseEventIdForSlot(schedId, slot)
             doseRepo.recordGivenForSlot(
-                doseEventId = stableId,
-                scheduleId = schedId,
-                medicationId = medId,
-                scheduledAt = slot,
-                resolvedAt = now + kotlin.time.Duration.parse("5m"),
+                GivenSlotRequest(
+                    doseEventId = stableId,
+                    scheduleId = schedId,
+                    medicationId = medId,
+                    scheduledAt = slot,
+                    resolvedAt = now + kotlin.time.Duration.parse("5m"),
+                ),
             )
 
             val midnight = todayStart

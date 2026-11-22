@@ -115,8 +115,7 @@ class Argon2idKdfTest {
         // (passphrase, salt, params) above produce this exact 32-byte output
         // under the reference impl. If BouncyCastle ever regresses and silently
         // weakens the KDF, this test catches it byte-for-byte.
-        @Suppress("ktlint:standard:property-naming")
-        val EXPECTED_KAT_OUTPUT: ByteArray =
+        val expectedKatOutput: ByteArray =
             byteArrayOf(
                 0xb8.toByte(),
                 0xd6.toByte(),
@@ -155,10 +154,10 @@ class Argon2idKdfTest {
         val derived = kdf.derive(passphrase, salt)
         assertEquals(32, derived.size, "KAT output must be 32 bytes")
         assertFalse(
-            EXPECTED_KAT_OUTPUT.isEmpty(),
+            expectedKatOutput.isEmpty(),
             "KAT expected output is the D1 TODO; the assertion below must be wired in by D1",
         )
-        assertContentEquals(EXPECTED_KAT_OUTPUT, derived, "derivation must match the cross-checked reference vector")
+        assertContentEquals(expectedKatOutput, derived, "derivation must match the cross-checked reference vector")
     }
 
     @Test

@@ -109,7 +109,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     fun `upsert then observeForMedication round-trips schedule plus phases`() =
         runTest {
             val sched = schedule("s1", "m1")
-            val phases = listOf(phase("s1", 0))
+            val phases = listOf(phase(PhaseSeed("s1", 0)))
             repo.upsert(sched, phases)
 
             val emitted = repo.observeForMedication("m1").first()
@@ -133,7 +133,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             repo.observeById("s1").test {
                 assertNull(awaitItem(), "first emission is null for absent id")
                 val sched = schedule("s1", "m1")
-                repo.upsert(sched, listOf(phase("s1", 0)))
+                repo.upsert(sched, listOf(phase(PhaseSeed("s1", 0))))
                 assertEquals(sched, awaitItem(), "emission after upsert is the new schedule")
                 repo.delete("s1")
                 assertNull(awaitItem(), "emission after delete is null")
@@ -149,9 +149,9 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             // matching the KDoc on ScheduleRepository.observePhases.
             val phases =
                 listOf(
-                    phase("s1", 2),
-                    phase("s1", 0),
-                    phase("s1", 1),
+                    phase(PhaseSeed("s1", 2)),
+                    phase(PhaseSeed("s1", 0)),
+                    phase(PhaseSeed("s1", 1)),
                 )
             repo.upsert(schedule("s1", "m1"), phases)
 
@@ -166,9 +166,9 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `upsert is idempotent on Schedule id (replace, not duplicate)`() =
         runTest {
-            repo.upsert(schedule("s1", "m1"), listOf(phase("s1", 0)))
+            repo.upsert(schedule("s1", "m1"), listOf(phase(PhaseSeed("s1", 0))))
             val updated = schedule("s1", "m1", startDate = LocalDate(2026, 6, 1))
-            repo.upsert(updated, listOf(phase("s1", 0)))
+            repo.upsert(updated, listOf(phase(PhaseSeed("s1", 0))))
 
             val emitted = repo.observeForMedication("m1").first()
             assertEquals(1, emitted.size, "second upsert with same id must replace, not duplicate")
@@ -185,7 +185,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
             // Individually valid (each phase has phaseOrder >= 0), collectively invalid
             // (the set [0, 2] is not dense 0..N-1; phase 1 is missing). Per ScheduleRepository.upsert
             // KDoc, the repository must reject this.
-            val gapped = listOf(phase("s1", 0), phase("s1", 2))
+            val gapped = listOf(phase(PhaseSeed("s1", 0)), phase(PhaseSeed("s1", 2)))
             assertFailsWith<IllegalArgumentException>(
                 "upsert must reject a non-dense phaseOrder sequence per the interface KDoc",
             ) {
@@ -196,7 +196,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `delete removes schedule AND its phases (observePhases emits empty after delete)`() =
         runTest {
-            repo.upsert(schedule("s1", "m1"), listOf(phase("s1", 0), phase("s1", 1)))
+            repo.upsert(schedule("s1", "m1"), listOf(phase(PhaseSeed("s1", 0)), phase(PhaseSeed("s1", 1))))
             repo.delete("s1")
 
             val schedulesAfter = repo.observeForMedication("m1").first()
@@ -234,7 +234,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                     startDate = LocalDate(2026, 5, 1),
                     endDate = LocalDate(2026, 5, 18),
                 )
-            repo.upsert(expired, listOf(phase("s-expired", 0)))
+            repo.upsert(expired, listOf(phase(PhaseSeed("s-expired", 0))))
 
             val emitted = repo.observeActiveWithPhases(LocalDate(2026, 5, 19)).first()
             assertTrue(
@@ -253,7 +253,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                     startDate = LocalDate(2026, 5, 1),
                     endDate = LocalDate(2026, 5, 19),
                 )
-            repo.upsert(endsToday, listOf(phase("s-today", 0)))
+            repo.upsert(endsToday, listOf(phase(PhaseSeed("s-today", 0))))
 
             val emitted = repo.observeActiveWithPhases(LocalDate(2026, 5, 19)).first()
             assertTrue(
@@ -265,8 +265,8 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `delete on parent Medication cascades to Schedule and SchedulePhase rows`() =
         runTest {
-            repo.upsert(schedule("s1", "m1"), listOf(phase("s1", 0), phase("s1", 1)))
-            repo.upsert(schedule("s2", "m1"), listOf(phase("s2", 0)))
+            repo.upsert(schedule("s1", "m1"), listOf(phase(PhaseSeed("s1", 0)), phase(PhaseSeed("s1", 1))))
+            repo.upsert(schedule("s2", "m1"), listOf(phase(PhaseSeed("s2", 0))))
 
             // sdk-review F3: SqlDelight subclass proves FK CASCADE; commonTest fake simulates it.
             deleteParentMedication("m1")
@@ -302,7 +302,7 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                     medicationId = "m1",
                     anchorMode = AnchorMode.ELAPSED_INTERVAL,
                 )
-            repo.upsert(sched, listOf(phase("s-anchor", 0)))
+            repo.upsert(sched, listOf(phase(PhaseSeed("s-anchor", 0))))
 
             val emitted = repo.observeById("s-anchor").first()
             assertEquals(
@@ -338,25 +338,27 @@ abstract class ScheduleRepositoryContract : MedicalRepositoryContract() {
                 anchorMode = anchorMode,
             )
 
-        private fun phase(
-            scheduleId: String,
-            order: Int,
-            durationDays: Int = 7,
-            dosesPerDay: Int = 1,
-            doseTimesLocal: List<LocalTime> = listOf(LocalTime(8, 0)),
-            doseAmount: String? = null,
-            dayInterval: Int = 1,
-        ): SchedulePhase =
+        private data class PhaseSeed(
+            val scheduleId: String,
+            val order: Int,
+            val durationDays: Int = 7,
+            val dosesPerDay: Int = 1,
+            val doseTimesLocal: List<LocalTime> = listOf(LocalTime(8, 0)),
+            val doseAmount: String? = null,
+            val dayInterval: Int = 1,
+        )
+
+        private fun phase(seed: PhaseSeed): SchedulePhase =
             SchedulePhase(
-                id = "$scheduleId-p$order",
-                scheduleId = scheduleId,
-                phaseOrder = order,
-                durationDays = durationDays,
-                dosesPerDay = dosesPerDay,
-                doseTimesLocal = doseTimesLocal,
-                doseAmount = doseAmount,
+                id = "${seed.scheduleId}-p${seed.order}",
+                scheduleId = seed.scheduleId,
+                phaseOrder = seed.order,
+                durationDays = seed.durationDays,
+                dosesPerDay = seed.dosesPerDay,
+                doseTimesLocal = seed.doseTimesLocal,
+                doseAmount = seed.doseAmount,
                 doseUnit = null,
-                dayInterval = dayInterval,
+                dayInterval = seed.dayInterval,
             )
     }
 }

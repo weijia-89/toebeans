@@ -3,6 +3,7 @@ package app.toebeans.android.ui.settings
 import app.toebeans.core.backup.BackupAggregator
 import app.toebeans.core.backup.BackupSerializer
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -346,14 +347,13 @@ private class InMemoryDoseEventRepo : DoseEventRepository {
         return event
     }
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent {
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent {
+        val doseEventId = request.doseEventId
+        val scheduleId = request.scheduleId
+        val medicationId = request.medicationId
+        val scheduledAt = request.scheduledAt
+        val resolvedAt = request.resolvedAt
+        val note = request.note
         val event =
             DoseEvent(
                 id = doseEventId,

@@ -1,6 +1,5 @@
 package app.toebeans.core.data
 
-import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseEvent
@@ -8,7 +7,7 @@ import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
-import kotlinx.coroutines.Dispatchers
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -37,9 +36,6 @@ import kotlin.test.assertEquals
  * `PRAGMA foreign_keys=ON` per connection so the real SQLite CASCADE fires.
  */
 class DoseHistorySurvivesScheduleDeleteTest {
-    private lateinit var database: ToebeansDatabase
-    private lateinit var driver: SqlDriver
-
     @Test
     fun `dose history survives schedule delete`() =
         runTest {
@@ -48,35 +44,16 @@ class DoseHistorySurvivesScheduleDeleteTest {
             freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
             val localDb = ToebeansDatabase(freshDriver)
             val createdAt = Instant.parse("2026-05-19T00:00:00Z")
-            localDb.petQueries.insertPet(
-                id = "p-hist",
-                name = "History Pet",
-                species = "dog",
-                birthdate_iso = null,
-                weight_kg = 1.0,
-                notes = null,
-                created_at = createdAt.toEpochMilliseconds(),
-                archived_at = null,
-            )
-            localDb.medicationQueries.insertMedication(
-                id = "m-hist",
-                pet_id = "p-hist",
-                name = "History Med",
-                dose_amount = "1mg",
-                dose_unit = "MG",
-                notes = null,
-                created_at = createdAt.toEpochMilliseconds(),
-                discontinued_at = null,
-            )
+            seedPetAndMedication(localDb, createdAt)
             val scheduleRepository =
                 SqlDelightScheduleRepository(
                     database = localDb,
-                    dispatcher = Dispatchers.Unconfined,
+                    dispatcher = unconfinedTestDispatcher(),
                 )
             val doseEventRepository =
                 SqlDelightDoseEventRepository(
                     database = localDb,
-                    dispatcher = Dispatchers.Unconfined,
+                    dispatcher = unconfinedTestDispatcher(),
                 )
             val schedule =
                 Schedule(
@@ -101,28 +78,7 @@ class DoseHistorySurvivesScheduleDeleteTest {
                     ),
                 ),
             )
-            val givenEvent =
-                DoseEvent(
-                    id = "dose-hist-given",
-                    scheduleId = schedule.id,
-                    medicationId = "m-hist",
-                    scheduledAt = Instant.parse("2026-05-24T08:00:00Z"),
-                    firedAt = Instant.parse("2026-05-24T08:00:01Z"),
-                    resolvedAt = Instant.parse("2026-05-24T08:12:00Z"),
-                    status = DoseStatus.GIVEN,
-                    note = "breakfast dose",
-                )
-            val pendingEvent =
-                DoseEvent(
-                    id = "dose-hist-pending",
-                    scheduleId = schedule.id,
-                    medicationId = "m-hist",
-                    scheduledAt = Instant.parse("2026-05-24T20:00:00Z"),
-                    firedAt = null,
-                    resolvedAt = null,
-                    status = DoseStatus.PENDING,
-                    note = null,
-                )
+            val (givenEvent, pendingEvent) = sampleEvents(schedule.id)
             doseEventRepository.upsert(givenEvent)
             doseEventRepository.upsert(pendingEvent)
 
@@ -135,4 +91,56 @@ class DoseHistorySurvivesScheduleDeleteTest {
                 "dose history for the deleted schedule must survive, not be cascade-wiped",
             )
         }
+
+    private fun seedPetAndMedication(
+        db: ToebeansDatabase,
+        createdAt: Instant,
+    ) {
+        db.petQueries.insertPet(
+            id = "p-hist",
+            name = "History Pet",
+            species = "dog",
+            birthdate_iso = null,
+            weight_kg = 1.0,
+            notes = null,
+            created_at = createdAt.toEpochMilliseconds(),
+            archived_at = null,
+        )
+        db.medicationQueries.insertMedication(
+            id = "m-hist",
+            pet_id = "p-hist",
+            name = "History Med",
+            dose_amount = "1mg",
+            dose_unit = "MG",
+            notes = null,
+            created_at = createdAt.toEpochMilliseconds(),
+            discontinued_at = null,
+        )
+    }
+
+    private fun sampleEvents(scheduleId: String): Pair<DoseEvent, DoseEvent> {
+        val given =
+            DoseEvent(
+                id = "dose-hist-given",
+                scheduleId = scheduleId,
+                medicationId = "m-hist",
+                scheduledAt = Instant.parse("2026-05-24T08:00:00Z"),
+                firedAt = Instant.parse("2026-05-24T08:00:01Z"),
+                resolvedAt = Instant.parse("2026-05-24T08:12:00Z"),
+                status = DoseStatus.GIVEN,
+                note = "breakfast dose",
+            )
+        val pending =
+            DoseEvent(
+                id = "dose-hist-pending",
+                scheduleId = scheduleId,
+                medicationId = "m-hist",
+                scheduledAt = Instant.parse("2026-05-24T20:00:00Z"),
+                firedAt = null,
+                resolvedAt = null,
+                status = DoseStatus.PENDING,
+                note = null,
+            )
+        return given to pending
+    }
 }

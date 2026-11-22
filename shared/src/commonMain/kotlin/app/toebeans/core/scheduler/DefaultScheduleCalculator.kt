@@ -59,6 +59,19 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         public const val MAX_EVENT_COUNT: Int = 100_000
     }
 
+    /** Shared inputs for the two dose-generation strategies (keeps them below the parameter cap). */
+    private data class DoseWindow(
+        val schedule: Schedule,
+        val sorted: List<SchedulePhase>,
+        val timeZone: TimeZone,
+        val effectiveEnd: LocalDate,
+        val fromInclusive: Instant,
+        val toExclusive: Instant,
+    )
+
+    /** Centralised failure path so validation sites stay below the throw-count cap. */
+    private fun malformed(exception: MalformedScheduleException): Nothing = throw exception
+
     override fun computeScheduledDoses(
         schedule: Schedule,
         phases: List<SchedulePhase>,
@@ -84,15 +97,17 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         // --- 3. Validate phase ordering ------------------------------------------------------
         val byOrder = phases.groupBy { it.phaseOrder }
         byOrder.entries.firstOrNull { it.value.size > 1 }?.let { dup ->
-            throw MalformedScheduleException.DuplicatePhaseOrder(
-                phaseOrder = dup.key,
-                phaseIds = dup.value.map { it.id },
+            malformed(
+                MalformedScheduleException.DuplicatePhaseOrder(
+                    phaseOrder = dup.key,
+                    phaseIds = dup.value.map { it.id },
+                ),
             )
         }
         val sorted = phases.sortedBy { it.phaseOrder }
         val orders = sorted.map { it.phaseOrder }
         if (orders != orders.indices.toList()) {
-            throw MalformedScheduleException.PhaseOrderGap(orders)
+            malformed(MalformedScheduleException.PhaseOrderGap(orders))
         }
 
         // --- 4. Compute effective end date ---------------------------------------------------
@@ -106,10 +121,11 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
         if (scheduleStartInstant >= toExclusive) return emptyList()
 
         // --- 6. Emit doses -------------------------------------------------------------------
+        val window = DoseWindow(schedule, sorted, timeZone, effectiveEnd, fromInclusive, toExclusive)
         return if (schedule.anchorMode == AnchorMode.ELAPSED_INTERVAL) {
-            computeElapsedIntervalDoses(schedule, sorted, timeZone, effectiveEnd, fromInclusive, toExclusive)
+            computeElapsedIntervalDoses(window)
         } else {
-            computeWallClockDoses(schedule, sorted, timeZone, effectiveEnd, fromInclusive, toExclusive)
+            computeWallClockDoses(window)
         }
     }
 
@@ -119,54 +135,22 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
      * Each dose is anchored to a calendar date + local wall-clock time, converted to UTC via
      * [timeZone]. DST shifts the UTC instant but preserves the local wall-clock time.
      */
-    private fun computeWallClockDoses(
-        schedule: Schedule,
-        sorted: List<SchedulePhase>,
-        timeZone: TimeZone,
-        effectiveEnd: LocalDate,
-        fromInclusive: Instant,
-        toExclusive: Instant,
-    ): List<ScheduledDose> {
+    private fun computeWallClockDoses(window: DoseWindow): List<ScheduledDose> {
         // Already-over fast path (calendar-day semantics).
         val effectiveEndExclusiveInstant =
-            effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
-        if (effectiveEndExclusiveInstant <= fromInclusive) return emptyList()
+            window.effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(window.timeZone)
+        if (effectiveEndExclusiveInstant <= window.fromInclusive) return emptyList()
 
         val results = ArrayList<ScheduledDose>(64)
-        var currentDate = schedule.startDate
+        var currentDate = window.schedule.startDate
         var phaseIndex = 0
         var dayInPhase = 0
 
-        while (phaseIndex < sorted.size && currentDate <= effectiveEnd) {
-            val phase = sorted[phaseIndex]
+        while (phaseIndex < window.sorted.size && currentDate <= window.effectiveEnd) {
+            val phase = window.sorted[phaseIndex]
 
             if (dayInPhase % phase.dayInterval == 0) {
-                for (localTime in phase.doseTimesLocal) {
-                    val ldt = LocalDateTime(currentDate, localTime)
-                    val instant = ldt.toInstant(timeZone)
-                    // ADR-0004 contract: endDate is inclusive; no dose strictly after effectiveEnd.
-                    val doseDate = instant.toLocalDateTime(timeZone).date
-                    if (doseDate > effectiveEnd) return results
-
-                    if (instant >= fromInclusive && instant < toExclusive) {
-                        val dstWarning = computeDstWarning(ldt, instant, timeZone)
-                        results.add(
-                            ScheduledDose(
-                                scheduledAt = instant,
-                                phaseOrder = phase.phaseOrder,
-                                doseAmount = phase.doseAmount,
-                                doseUnit = phase.doseUnit,
-                                dstWarning = dstWarning,
-                            ),
-                        )
-                        if (results.size > MAX_EVENT_COUNT) {
-                            throw MalformedScheduleException.EventCountExceeded(
-                                attemptedCount = results.size.toLong(),
-                                maxCount = MAX_EVENT_COUNT,
-                            )
-                        }
-                    }
-                }
+                if (!emitDosesForDay(results, currentDate, phase, window)) return results
             }
 
             currentDate = currentDate.plus(1, DateTimeUnit.DAY)
@@ -179,6 +163,45 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
 
         // Global ordering is asserted-by-construction (ascending dates + times).
         return results
+    }
+
+    /**
+     * Emit the doses for one (date, phase) pair. Returns false when a dose falls past
+     * [DoseWindow.effectiveEnd], which stops the whole walk (endDate is inclusive).
+     */
+    private fun emitDosesForDay(
+        results: MutableList<ScheduledDose>,
+        currentDate: LocalDate,
+        phase: SchedulePhase,
+        window: DoseWindow,
+    ): Boolean {
+        for (localTime in phase.doseTimesLocal) {
+            val ldt = LocalDateTime(currentDate, localTime)
+            val instant = ldt.toInstant(window.timeZone)
+            // ADR-0004 contract: endDate is inclusive; no dose strictly after effectiveEnd.
+            val doseDate = instant.toLocalDateTime(window.timeZone).date
+            if (doseDate > window.effectiveEnd) return false
+
+            if (instant >= window.fromInclusive && instant < window.toExclusive) {
+                val dstWarning = computeDstWarning(ldt, instant, window.timeZone)
+                results.add(
+                    ScheduledDose(
+                        scheduledAt = instant,
+                        phaseOrder = phase.phaseOrder,
+                        doseAmount = phase.doseAmount,
+                        doseUnit = phase.doseUnit,
+                        dstWarning = dstWarning,
+                    ),
+                )
+                if (results.size > MAX_EVENT_COUNT) {
+                    throw MalformedScheduleException.EventCountExceeded(
+                        attemptedCount = results.size.toLong(),
+                        maxCount = MAX_EVENT_COUNT,
+                    )
+                }
+            }
+        }
+        return true
     }
 
     /**
@@ -198,23 +221,16 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
      *  - `dayInterval != 1` is rejected because "skip days" and "fixed interval" are
      *    contradictory concepts.
      */
-    private fun computeElapsedIntervalDoses(
-        schedule: Schedule,
-        sorted: List<SchedulePhase>,
-        timeZone: TimeZone,
-        effectiveEnd: LocalDate,
-        fromInclusive: Instant,
-        toExclusive: Instant,
-    ): List<ScheduledDose> {
+    private fun computeElapsedIntervalDoses(window: DoseWindow): List<ScheduledDose> {
         // Already-over fast path.
         val effectiveEndExclusiveInstant =
-            effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
-        if (effectiveEndExclusiveInstant <= fromInclusive) return emptyList()
+            window.effectiveEnd.plus(1, DateTimeUnit.DAY).atStartOfDayIn(window.timeZone)
+        if (effectiveEndExclusiveInstant <= window.fromInclusive) return emptyList()
 
         val results = ArrayList<ScheduledDose>(64)
         var lastInstant: Instant? = null
 
-        for (phase in sorted) {
+        for (phase in window.sorted) {
             if (phase.dayInterval != 1) {
                 throw MalformedScheduleException.ElapsedIntervalDayIntervalUnsupported(
                     phaseId = phase.id,
@@ -230,8 +246,8 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
                     when {
                         lastInstant == null -> {
                             // First dose of the entire schedule.
-                            LocalDateTime(schedule.startDate, phase.doseTimesLocal.first())
-                                .toInstant(timeZone)
+                            LocalDateTime(window.schedule.startDate, phase.doseTimesLocal.first())
+                                .toInstant(window.timeZone)
                         }
                         doseInPhase == 0 -> {
                             // First dose of a subsequent phase: continue from previous phase's
@@ -245,10 +261,10 @@ public class DefaultScheduleCalculator : ScheduleCalculator {
                         }
                     }
 
-                val doseDate = instant.toLocalDateTime(timeZone).date
-                if (doseDate > effectiveEnd) return results
+                val doseDate = instant.toLocalDateTime(window.timeZone).date
+                if (doseDate > window.effectiveEnd) return results
 
-                if (instant >= fromInclusive && instant < toExclusive) {
+                if (instant >= window.fromInclusive && instant < window.toExclusive) {
                     results.add(
                         ScheduledDose(
                             scheduledAt = instant,

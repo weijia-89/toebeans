@@ -6,10 +6,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
@@ -330,14 +332,7 @@ private class FakeDoseRepoEditRender : DoseEventRepository {
         note: String?,
     ): app.toebeans.core.model.DoseEvent = error("unused in edit render tests")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): app.toebeans.core.model.DoseEvent = error("unused in edit render tests")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent = error("unused in edit render tests")
 
     override suspend fun delete(doseEventId: String) {
         store.value = store.value.filterNot { it.id == doseEventId }

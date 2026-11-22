@@ -61,45 +61,7 @@ class DoseEventMigrationSafetyTest {
 
         val db = ToebeansDatabase(driver)
         val now = Instant.parse("2026-05-24T08:00:00Z").toEpochMilliseconds()
-        db.petQueries.insertPet(
-            id = "pet-mig",
-            name = "Migration Pet",
-            species = "dog",
-            birthdate_iso = null,
-            weight_kg = 5.0,
-            notes = null,
-            created_at = now,
-            archived_at = null,
-        )
-        db.medicationQueries.insertMedication(
-            id = "med-mig",
-            pet_id = "pet-mig",
-            name = "Migration Med",
-            dose_amount = "1",
-            dose_unit = "MG",
-            notes = null,
-            created_at = now,
-            discontinued_at = null,
-        )
-        db.scheduleQueries.insertSchedule(
-            id = "sched-mig",
-            medication_id = "med-mig",
-            start_date_iso = "2026-05-01",
-            end_date_iso = null,
-            created_at = now,
-            anchor_mode = "FOLLOW_PHONE",
-        )
-        db.doseEventQueries.insertDoseEvent(
-            id = "dose-mig",
-            schedule_id = "sched-mig",
-            medication_id = "med-mig",
-            scheduled_at = now,
-            fired_at = now,
-            resolved_at = now,
-            status = DoseStatus.GIVEN.wireName,
-            note = null,
-        )
-        db.notificationAuditQueries.recordDelivery(id = "dose-mig", deliveredAt = now)
+        seedLegacyRows(db, now)
 
         ToebeansDatabase.Schema.migrate(driver, 4, 5)
 
@@ -185,5 +147,50 @@ class DoseEventMigrationSafetyTest {
             db.doseEventQueries.selectEnrichedReminderById("dose-orphan").executeAsOneOrNull(),
             "an orphaned dose must not fire for a deleted schedule",
         )
+    }
+
+    private fun seedLegacyRows(
+        db: ToebeansDatabase,
+        now: Long,
+    ) {
+        db.petQueries.insertPet(
+            id = "pet-mig",
+            name = "Migration Pet",
+            species = "dog",
+            birthdate_iso = null,
+            weight_kg = 5.0,
+            notes = null,
+            created_at = now,
+            archived_at = null,
+        )
+        db.medicationQueries.insertMedication(
+            id = "med-mig",
+            pet_id = "pet-mig",
+            name = "Migration Med",
+            dose_amount = "1",
+            dose_unit = "MG",
+            notes = null,
+            created_at = now,
+            discontinued_at = null,
+        )
+        db.scheduleQueries.insertSchedule(
+            id = "sched-mig",
+            medication_id = "med-mig",
+            start_date_iso = "2026-05-01",
+            end_date_iso = null,
+            created_at = now,
+            anchor_mode = "FOLLOW_PHONE",
+        )
+        db.doseEventQueries.insertDoseEvent(
+            id = "dose-mig",
+            schedule_id = "sched-mig",
+            medication_id = "med-mig",
+            scheduled_at = now,
+            fired_at = now,
+            resolved_at = now,
+            status = DoseStatus.GIVEN.wireName,
+            note = null,
+        )
+        db.notificationAuditQueries.recordDelivery(id = "dose-mig", deliveredAt = now)
     }
 }

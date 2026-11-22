@@ -66,11 +66,13 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
 
             val given =
                 repo.recordGivenForSlot(
-                    doseEventId = "ignored-random-id",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = slot,
-                    resolvedAt = resolved,
+                    GivenSlotRequest(
+                        doseEventId = "ignored-random-id",
+                        scheduleId = contractScheduleId,
+                        medicationId = contractMedicationId,
+                        scheduledAt = slot,
+                        resolvedAt = resolved,
+                    ),
                 )
 
             assertEquals("dose-pending-slot", given.id, "must reuse materialized pending id")
@@ -88,19 +90,23 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
 
             val first =
                 repo.recordGivenForSlot(
-                    doseEventId = "dose-slot-a",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = slot,
-                    resolvedAt = firstResolved,
+                    GivenSlotRequest(
+                        doseEventId = "dose-slot-a",
+                        scheduleId = contractScheduleId,
+                        medicationId = contractMedicationId,
+                        scheduledAt = slot,
+                        resolvedAt = firstResolved,
+                    ),
                 )
             val second =
                 repo.recordGivenForSlot(
-                    doseEventId = "dose-slot-b",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = slot,
-                    resolvedAt = secondResolved,
+                    GivenSlotRequest(
+                        doseEventId = "dose-slot-b",
+                        scheduleId = contractScheduleId,
+                        medicationId = contractMedicationId,
+                        scheduledAt = slot,
+                        resolvedAt = secondResolved,
+                    ),
                 )
 
             assertEquals(first.id, second.id, "second call must replace the same slot row")
@@ -194,59 +200,7 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
     fun `observeAllRecent filters GIVEN since midnight and caps at 50 for Home Logged today`() =
         runTest {
             val since = Instant.parse("2026-05-24T00:00:00Z")
-            val givenBeforeSince = Instant.parse("2026-05-23T20:00:00Z")
-            val pendingAfterSince = Instant.parse("2026-05-24T07:00:00Z")
-            val givenMorning = Instant.parse("2026-05-24T08:00:00Z")
-            val givenNoon = Instant.parse("2026-05-24T12:00:00Z")
-
-            repo.upsert(
-                DoseEvent(
-                    id = "dose-given-before-since",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = givenBeforeSince,
-                    firedAt = givenBeforeSince,
-                    resolvedAt = givenBeforeSince,
-                    status = DoseStatus.GIVEN,
-                    note = null,
-                ),
-            )
-            repo.upsert(
-                DoseEvent(
-                    id = "dose-pending-after-since",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = pendingAfterSince,
-                    firedAt = null,
-                    resolvedAt = null,
-                    status = DoseStatus.PENDING,
-                    note = null,
-                ),
-            )
-            repo.upsert(
-                DoseEvent(
-                    id = "dose-given-morning",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = givenMorning,
-                    firedAt = givenMorning,
-                    resolvedAt = givenMorning,
-                    status = DoseStatus.GIVEN,
-                    note = "morning",
-                ),
-            )
-            repo.upsert(
-                DoseEvent(
-                    id = "dose-given-noon",
-                    scheduleId = contractScheduleId,
-                    medicationId = contractMedicationId,
-                    scheduledAt = givenNoon,
-                    firedAt = givenNoon,
-                    resolvedAt = givenNoon,
-                    status = DoseStatus.GIVEN,
-                    note = "noon",
-                ),
-            )
+            seedRecentDoses()
 
             val recent = repo.observeAllRecent(since).first()
             assertEquals(2, recent.size, "only GIVEN rows on/after sinceInclusive")
@@ -379,8 +333,7 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
     @Test
     fun `markStalePendingAsMissed mixed batch only stale pending transition`() =
         runTest {
-            val reference = Instant.parse("2026-05-24T08:00:00Z") // current time reference
-            val cutoff = Instant.parse("2026-05-24T04:00:00Z") // 4 hours before reference
+            val cutoff = Instant.parse("2026-05-24T04:00:00Z") // 4 hours before the reference time
 
             // Pending within timeout (scheduled at reference - 2h = 6h ago)
             repo.upsert(
@@ -449,4 +402,59 @@ abstract class DoseEventRepositoryContract : MedicalRepositoryContract() {
             assertEquals(DoseStatus.SKIPPED, all.single { it.id == "skipped-stale" }.status)
             assertEquals(DoseStatus.GIVEN, all.single { it.id == "given-stale" }.status)
         }
+
+    private suspend fun seedRecentDoses() {
+        val givenBeforeSince = Instant.parse("2026-05-23T20:00:00Z")
+        val pendingAfterSince = Instant.parse("2026-05-24T07:00:00Z")
+        val givenMorning = Instant.parse("2026-05-24T08:00:00Z")
+        val givenNoon = Instant.parse("2026-05-24T12:00:00Z")
+        repo.upsert(
+            DoseEvent(
+                id = "dose-given-before-since",
+                scheduleId = contractScheduleId,
+                medicationId = contractMedicationId,
+                scheduledAt = givenBeforeSince,
+                firedAt = givenBeforeSince,
+                resolvedAt = givenBeforeSince,
+                status = DoseStatus.GIVEN,
+                note = null,
+            ),
+        )
+        repo.upsert(
+            DoseEvent(
+                id = "dose-pending-after-since",
+                scheduleId = contractScheduleId,
+                medicationId = contractMedicationId,
+                scheduledAt = pendingAfterSince,
+                firedAt = null,
+                resolvedAt = null,
+                status = DoseStatus.PENDING,
+                note = null,
+            ),
+        )
+        repo.upsert(
+            DoseEvent(
+                id = "dose-given-morning",
+                scheduleId = contractScheduleId,
+                medicationId = contractMedicationId,
+                scheduledAt = givenMorning,
+                firedAt = givenMorning,
+                resolvedAt = givenMorning,
+                status = DoseStatus.GIVEN,
+                note = "morning",
+            ),
+        )
+        repo.upsert(
+            DoseEvent(
+                id = "dose-given-noon",
+                scheduleId = contractScheduleId,
+                medicationId = contractMedicationId,
+                scheduledAt = givenNoon,
+                firedAt = givenNoon,
+                resolvedAt = givenNoon,
+                status = DoseStatus.GIVEN,
+                note = "noon",
+            ),
+        )
+    }
 }

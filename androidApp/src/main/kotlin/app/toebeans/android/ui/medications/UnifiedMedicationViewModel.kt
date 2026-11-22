@@ -17,6 +17,7 @@ import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.MalformedScheduleException
+import app.toebeans.core.scheduler.MaterializeHorizonRequest
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import app.toebeans.core.scheduler.TimeZonePolicy
@@ -258,13 +259,15 @@ public class UnifiedMedicationViewModel(
             scheduleRepository.upsert(schedule, phases)
             val reminders =
                 ReminderRescheduler.materializeHorizonForSchedule(
-                    schedule = schedule,
-                    phases = phases,
-                    medicationId = medication.id,
-                    doseEventRepository = doseEventRepository,
-                    scheduleCalculator = scheduleCalculator,
-                    timeZone = (resolved as TimeZonePolicy.Resolution.Use).timeZone,
-                    now = Clock.System.now(),
+                    MaterializeHorizonRequest(
+                        schedule = schedule,
+                        phases = phases,
+                        medicationId = medication.id,
+                        doseEventRepository = doseEventRepository,
+                        scheduleCalculator = scheduleCalculator,
+                        timeZone = (resolved as TimeZonePolicy.Resolution.Use).timeZone,
+                        now = Clock.System.now(),
+                    ),
                 )
             for (reminder in reminders) {
                 notificationActuator.schedule(reminder)

@@ -17,16 +17,16 @@ public enum class NotificationDegraded {
  * ADR-0011 return value. [Failed] is reserved for a later slice that catches
  * unexpected notify failures. This slice does not swallow those exceptions.
  */
-public sealed class NotificationOutcome {
+public sealed interface NotificationOutcome {
     public data class Posted(
         val notificationId: Int,
-    ) : NotificationOutcome()
+    ) : NotificationOutcome
 
-    public data object PermissionDenied : NotificationOutcome()
+    public data object PermissionDenied : NotificationOutcome
 
     public data class Failed(
         val reason: String,
-    ) : NotificationOutcome()
+    ) : NotificationOutcome
 }
 
 /**

@@ -40,7 +40,14 @@ public object PetAgeFormatter {
         if (days < 0) return "future birthdate"
         if (days == 0) return "born today"
         if (days < 7) return pluralize(days, "day")
+        return formatWeeksAndOlder(birthdate, today, days)
+    }
 
+    private fun formatWeeksAndOlder(
+        birthdate: LocalDate,
+        today: LocalDate,
+        days: Int,
+    ): String {
         val weeks = days / 7
         if (weeks < 2) return "1 week old"
 

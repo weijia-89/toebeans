@@ -5,6 +5,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -48,7 +49,7 @@ class SqlDelightPetRepositoryContractTest : PetRepositoryContract() {
         database = ToebeansDatabase(driver)
         return SqlDelightPetRepository(
             database = database,
-            dispatcher = Dispatchers.Unconfined,
+            dispatcher = unconfinedTestDispatcher(),
         )
     }
 
@@ -62,7 +63,7 @@ class SqlDelightPetRepositoryContractTest : PetRepositoryContract() {
             val repo =
                 SqlDelightPetRepository(
                     database = localDb,
-                    dispatcher = Dispatchers.Unconfined,
+                    dispatcher = unconfinedTestDispatcher(),
                 )
             val createdAt = Instant.parse("2026-05-19T00:00:00Z")
             val pet =

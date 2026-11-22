@@ -4,6 +4,7 @@ import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.model.Pet
 import kotlinx.coroutines.flow.first
 
 /**
@@ -58,16 +59,7 @@ public class BackupImporter(
         val existingScheduleIds = scheduleRepository.observeAll().first().mapTo(mutableSetOf()) { it.id }
         val existingDoseEventIds = doseEventRepository.observeAll().first().mapTo(mutableSetOf()) { it.id }
 
-        var petsAdded = 0
-        var petsSkipped = 0
-        for (pet in backup.pets) {
-            if (pet.id in existingPetIds) {
-                petsSkipped++
-            } else {
-                petRepository.upsert(pet)
-                petsAdded++
-            }
-        }
+        val (petsAdded, petsSkipped) = importPets(backup.pets, existingPetIds)
 
         var medsAdded = 0
         var medsSkipped = 0
@@ -125,6 +117,23 @@ public class BackupImporter(
             doseEventsAdded = doseEventsAdded,
             doseEventsSkipped = doseEventsSkipped,
         )
+    }
+
+    private suspend fun importPets(
+        pets: List<Pet>,
+        existingIds: Set<String>,
+    ): Pair<Int, Int> {
+        var added = 0
+        var skipped = 0
+        for (pet in pets) {
+            if (pet.id in existingIds) {
+                skipped++
+            } else {
+                petRepository.upsert(pet)
+                added++
+            }
+        }
+        return added to skipped
     }
 }
 

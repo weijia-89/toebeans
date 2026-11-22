@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
@@ -273,14 +274,8 @@ private class InMemDoseRepoB8Render : DoseEventRepository {
         note: String?,
     ): DoseEvent = error("unused in ScheduleCreateFormErrorBannerRenderTest")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent = error("unused in ScheduleCreateFormErrorBannerRenderTest")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
+        error("unused in ScheduleCreateFormErrorBannerRenderTest")
 
     override suspend fun delete(doseEventId: String) {
         store.removeAll { it.id == doseEventId }

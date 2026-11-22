@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.data.SqlDelightDoseEventRepository
 import app.toebeans.core.db.ToebeansDatabase
-import kotlinx.coroutines.Dispatchers
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,7 +70,6 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
     }
 
     override fun archiveSeededPet() {
-        val createdAt = Instant.parse("2026-05-19T00:00:00Z").toEpochMilliseconds()
         val archivedAt = Instant.parse("2026-05-20T12:00:00Z").toEpochMilliseconds()
         database.petQueries.archivePet(
             archived_at = archivedAt,
@@ -158,7 +157,7 @@ class SqlDelightReminderLookupContractTest : ReminderLookupContract() {
         lookup.lookup(reminder.id)
         val firedAt = Instant.parse("2026-05-26T09:00:01Z")
         // sdk-review F3: persistence only; ordering falsifier is DoseAlarmReceiverLookupTest.
-        SqlDelightDoseEventRepository(database, Dispatchers.Unconfined).markFired(reminder.id, firedAt)
+        SqlDelightDoseEventRepository(database, unconfinedTestDispatcher()).markFired(reminder.id, firedAt)
         assertEquals(
             firedAt.toEpochMilliseconds(),
             database.doseEventQueries

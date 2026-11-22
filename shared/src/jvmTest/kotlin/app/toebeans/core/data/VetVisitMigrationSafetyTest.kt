@@ -33,14 +33,22 @@ class VetVisitMigrationSafetyTest {
         driver.execute(null, "PRAGMA user_version = 5", 0)
     }
 
-    private fun seedDoseChain(
-        db: ToebeansDatabase,
-        petId: String,
-        medId: String,
-        schedId: String,
-        doseId: String,
-        now: Long,
-    ) {
+    private data class DoseChainSeed(
+        val db: ToebeansDatabase,
+        val petId: String,
+        val medId: String,
+        val schedId: String,
+        val doseId: String,
+        val now: Long,
+    )
+
+    private fun seedDoseChain(seed: DoseChainSeed) {
+        val db = seed.db
+        val petId = seed.petId
+        val medId = seed.medId
+        val schedId = seed.schedId
+        val doseId = seed.doseId
+        val now = seed.now
         db.petQueries.insertPet(
             id = petId,
             name = "Migration Pet",
@@ -160,16 +168,10 @@ class VetVisitMigrationSafetyTest {
 
     private fun foreignKeyViolations(driver: SqlDriver): List<String> = stringList(driver, "PRAGMA foreign_key_check")
 
-    @Test
-    fun `migration 5 preserves seeded rows and adds the vet tables with intact constraints`() {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        ToebeansDatabase.Schema.create(driver)
-        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
-        createOldVersionFiveSchema(driver)
-
-        val db = ToebeansDatabase(driver)
-        val now = Instant.parse("2026-05-24T08:00:00Z").toEpochMilliseconds()
-        seedDoseChain(db, "pet-mig", "med-mig", "sched-mig", "dose-mig", now)
+    private fun seedVetPet(
+        db: ToebeansDatabase,
+        now: Long,
+    ) {
         db.petQueries.insertPet(
             id = "pet-vet",
             name = "Vet Pet",
@@ -180,6 +182,35 @@ class VetVisitMigrationSafetyTest {
             created_at = now,
             archived_at = null,
         )
+    }
+
+    private fun assertVetSchema(driver: SqlDriver) {
+        val tables = stringList(driver, "SELECT name FROM sqlite_master WHERE type = 'table'")
+        assertTrue(
+            setOf("VetVisit", "Vaccine", "VaccinationGiven").all(tables::contains),
+            "migration 5 must create all three vet tables: $tables",
+        )
+        val indexes = stringList(driver, "SELECT name FROM sqlite_master WHERE type = 'index'")
+        assertTrue(
+            setOf("VetVisit_pet_id_idx", "Vaccine_species_idx", "VaccinationGiven_vaccine_id_idx")
+                .all(indexes::contains),
+            "migration 5 must create the vet indexes: $indexes",
+        )
+        assertEquals(emptyList(), foreignKeyViolations(driver))
+        assertEquals("ok", scalarText(driver, "PRAGMA integrity_check"))
+    }
+
+    @Test
+    fun `migration 5 preserves seeded rows and adds the vet tables with intact constraints`() {
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        ToebeansDatabase.Schema.create(driver)
+        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
+        createOldVersionFiveSchema(driver)
+
+        val db = ToebeansDatabase(driver)
+        val now = Instant.parse("2026-05-24T08:00:00Z").toEpochMilliseconds()
+        seedDoseChain(DoseChainSeed(db, "pet-mig", "med-mig", "sched-mig", "dose-mig", now))
+        seedVetPet(db, now)
 
         ToebeansDatabase.Schema.migrate(driver, 5, 6)
 
@@ -220,19 +251,7 @@ class VetVisitMigrationSafetyTest {
             "migration must not erase the delivery audit row",
         )
 
-        val tables = stringList(driver, "SELECT name FROM sqlite_master WHERE type = 'table'")
-        assertTrue(
-            setOf("VetVisit", "Vaccine", "VaccinationGiven").all(tables::contains),
-            "migration 5 must create all three vet tables: $tables",
-        )
-        val indexes = stringList(driver, "SELECT name FROM sqlite_master WHERE type = 'index'")
-        assertTrue(
-            setOf("VetVisit_pet_id_idx", "Vaccine_species_idx", "VaccinationGiven_vaccine_id_idx")
-                .all(indexes::contains),
-            "migration 5 must create the vet indexes: $indexes",
-        )
-        assertEquals(emptyList(), foreignKeyViolations(driver))
-        assertEquals("ok", scalarText(driver, "PRAGMA integrity_check"))
+        assertVetSchema(driver)
 
         seedVetRows(driver, "pet-vet")
         db.petQueries.deletePet("pet-vet")
@@ -292,7 +311,7 @@ class VetVisitMigrationSafetyTest {
         createOldVersionFiveSchema(driver)
         val db = ToebeansDatabase(driver)
         val now = Instant.parse("2026-05-24T08:00:00Z").toEpochMilliseconds()
-        seedDoseChain(db, "pet-mig", "med-mig", "sched-mig", "dose-mig", now)
+        seedDoseChain(DoseChainSeed(db, "pet-mig", "med-mig", "sched-mig", "dose-mig", now))
 
         ToebeansDatabase.Schema.migrate(driver, 5, 6)
         seedVetRows(driver, "pet-mig")

@@ -87,7 +87,7 @@ internal class JvmBackupCipherV2(
         val minimumEnvelopeSize = magicLen + saltLen + ivLen + tagLen
 
         if (envelope.size < minimumEnvelopeSize) {
-            throw BackupDecryptException("Envelope too short (${envelope.size} bytes).")
+            decryptFailure("Envelope too short (${envelope.size} bytes).")
         }
 
         val expectedMagic = BackupCipherV2.MAGIC.toByteArray(Charsets.US_ASCII)
@@ -97,7 +97,7 @@ internal class JvmBackupCipherV2(
             // depend on the passphrase, so surfacing it with a structural
             // message ("magic"/"TBN") leaks no oracle. The TBN1 envelope test
             // pins this contract.
-            throw BackupDecryptException("Not a toebeans backup envelope (magic mismatch; expected TBN2).")
+            decryptFailure("Not a toebeans backup envelope (magic mismatch; expected TBN2).")
         }
 
         val saltStart = magicLen
@@ -113,20 +113,15 @@ internal class JvmBackupCipherV2(
             val key = SecretKeySpec(keyBytes, "AES")
             val aad = buildAad(expectedMagic, salt, iv)
 
-            return try {
+            // runCatching catches Throwable, preserving the uniform-failure contract per ADR-0018.
+            return runCatching {
                 val cipher =
                     Cipher.getInstance("AES/GCM/NoPadding").apply {
                         init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(BackupCipherV2.GCM_TAG_BITS, iv))
                         updateAAD(aad)
                     }
                 cipher.doFinal(ciphertext)
-            } catch (t: Throwable) {
-                // Wrong passphrase, tampered ciphertext, tampered AAD (via salt
-                // or iv flip), or post-magic truncation all surface here. We
-                // MUST NOT leak which one — the uniform message is the
-                // indistinguishability contract per ADR-0018 § Followups.
-                throw BackupDecryptException("Backup could not be decrypted.", t)
-            }
+            }.getOrElse { decryptFailure("Backup could not be decrypted.", it) }
         } finally {
             keyBytes.fill(0)
         }
@@ -139,6 +134,11 @@ internal class JvmBackupCipherV2(
      * ADR-0018 (magic, salt, iv)` in [BackupCipherV2Test]; any other
      * permutation produces a GCM tag mismatch against the reference vector.
      */
+    private fun decryptFailure(
+        message: String,
+        cause: Throwable? = null,
+    ): Nothing = throw BackupDecryptException(message, cause)
+
     private fun buildAad(
         magic: ByteArray,
         salt: ByteArray,
@@ -156,6 +156,10 @@ internal class JvmBackupCipherV2(
 }
 
 public actual class BackupCipherV2Factory public actual constructor(
+    // detekt 2 FP: this private property is read by create() below but detekt's
+    // type resolver misses usages across `actual` members. Cannot drop `private val`
+    // (plain ctor params are not visible to member functions).
+    @Suppress("UnusedPrivateProperty")
     private val argon2idKdf: Argon2idKdf,
 ) {
     public actual fun create(): BackupCipherV2 = JvmBackupCipherV2(argon2idKdf)
