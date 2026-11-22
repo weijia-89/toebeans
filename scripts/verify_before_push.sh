@@ -68,6 +68,8 @@ run_check "Fitness: no-duplicate-private-test-class-names" \
 run_check "Fitness: AGENTS/CLAUDE parity"  bash scripts/agents_claude_parity.sh .
 run_check "Fitness: AGENTS/CLAUDE parity self-test" \
     bash scripts/test_test_agents_claude_parity.sh .
+run_check "Removed review gate absence guard" \
+    bash scripts/test_no_trainer_gate.sh .
 run_check "Fitness: AGP-9 built-in-Kotlin migration" \
     bash scripts/test_agp9_builtin_kotlin_migration.sh .
 run_check "Fitness: AGP-9 built-in-Kotlin migration self-test" \
