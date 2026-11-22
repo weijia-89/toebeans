@@ -32,7 +32,7 @@ Whenever a commit adds, upgrades, or removes a Gradle dependency (any line in `g
 
 The reason is mechanical. Gradle caches resolved dependencies aggressively. A contributor who edits `libs.versions.toml`, then runs the gauntlet without the `--refresh-dependencies` flag, may see green compile-tests that were resolved against the stale cache. The CI runner has no cache and resolves cleanly, so a dependency typo or a version that fails to resolve will fail in CI even though the local gauntlet was green.
 
-The first dependency addition this rule applies to is the BouncyCastle artifact `org.bouncycastle:bcprov-jdk18on`, planned for the Argon2id backup cipher implementation per [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md) and tracked as D1. The rule is general; it covers every future dependency change too.
+The first dependency addition this rule applies to is the BouncyCastle artifact `org.bouncycastle:bcprov-jdk18on`, shipped for the Argon2id backup cipher implementation per [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md). The rule is general; it covers every future dependency change too.
 
 The CI workflow itself uses a fresh dependency resolution on every run (no cache key tied to `libs.versions.toml` exists today), so this addendum is a per-contributor local hygiene step. The wire-up of a CI-side dependency-resolution cache and the matching `--refresh-dependencies` gate is a separate, deferred concern outside this addendum's scope.
 

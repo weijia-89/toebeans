@@ -3,7 +3,7 @@
 > Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
 
 **Date:** 2026-05-14
-**Status:** DRAFT, pending user approval
+**Status:** SUPERSEDED, 2026-11-22. The live threat model is in SECURITY.md; shipped behavior is recorded in ARCHITECTURE.md and the ADRs.
 **Author:** Cascade (working session w/ Wei Jia)
 **Skill provenance:** `brainstorming` → this doc → `code-helper plan-new-app` → scaffold
 **Companion:** internal market and competitive evidence is kept out of the public repository.

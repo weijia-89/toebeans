@@ -28,7 +28,7 @@ import kotlin.test.BeforeTest
  *      will live on this base. Pet's contract does not gain that hook. Naming the
  *      base `MedicalRepositoryContract` rather than `EncryptedRepositoryContract`
  *      follows the naming iron law at
- *      `/Users/wjia/Projects/.windsurf/rules/naming-iron-law.md`: the name describes
+ *      `docs/architecture/naming-convention.md`: the name describes
  *      the artifact's current scope (medical data), not a speculative future
  *      property (encryption). The encryption setup slot will land when the
  *      encryption work begins, not preemptively.

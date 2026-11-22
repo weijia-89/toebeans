@@ -20,7 +20,7 @@ Please report security vulnerabilities **privately**. Do not open a public issue
 
 ## Threat model (slice 1, v0.1)
 
-See the threat model table in [`docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md`](docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md#12-threat-model-stride-code-helper-613) §12. Highlights:
+The threat model lives in this section. Highlights:
 
 - **No PII collected.** No user accounts. No analytics. No network calls.
 - **Backup encryption.** Manual backup export ships plain JSON in v1 per [ADR-0016](docs/adr/0016-plain-json-backup-encryption-deferred.md), which records the threat-model rationale for deferring encryption and names the four trigger conditions that reactivate the encrypted posture. The cipher design that activates on trigger is recorded in [ADR-0018](docs/adr/0018-argon2id-backup-cipher-design.md). The design uses AES-256-GCM with a 128-bit authentication tag plus a passphrase-derived key via Argon2id, a memory-hard key derivation function (KDF) standardized in RFC 9106. The passphrase is **never** persisted.
@@ -69,7 +69,7 @@ Security update pull requests are already enabled on the GitHub repository. The 
 
 Dependabot does not merge its own pull requests. A Gradle version change still needs human review per the local agent contract.
 
-This config file does not close alerts. An `ignore` rule would only stop version-update pull requests. The 2026-05-18 triage recorded that limit, and it still holds. The open-alert work list is [`docs/superpowers/plans/2026-11-08-dependabot-alerts.md`](docs/superpowers/plans/2026-11-08-dependabot-alerts.md).
+This config file does not close alerts. An `ignore` rule would only stop version-update pull requests. The 2026-05-18 triage recorded that limit, and it still holds. Open alerts are triaged from the GitHub Security tab. No dated work list is published.
 
 ## Disclosure
 

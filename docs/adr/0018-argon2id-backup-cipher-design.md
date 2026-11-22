@@ -28,7 +28,7 @@ ADR-0016's deferral was a design-deferral with a clear off-ramp; the encryption 
 
 ### Threat model carried forward
 
-The v1 threat model (per SECURITY.md and the underlying spec at `docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md`) names a bulk-scraper of cloud storage as the adversary against backup files. The Wei-global privacy guardrail upgrades the bar: any system that stores user data must be designed so it cannot be used by mass surveillance or intelligence analysts to track and identify people, even given full server-side compromise or legal compulsion. The encrypted backup is an at-rest defense; the parameter selection in this ADR is calibrated to that upgraded bar. The bulk-scraper bar of v1 sits below what this ADR targets.
+The v1 threat model in SECURITY.md names a bulk-scraper of cloud storage as the adversary against backup files. The Wei-global privacy guardrail upgrades the bar: any system that stores user data must be designed so it cannot be used by mass surveillance or intelligence analysts to track and identify people, even given full server-side compromise or legal compulsion. The encrypted backup is an at-rest defense; the parameter selection in this ADR is calibrated to that upgraded bar. The bulk-scraper bar of v1 sits below what this ADR targets.
 
 Concretely, the adversary model for the encrypted backup is:
 

@@ -19,8 +19,8 @@ This directory preserves the cross-check script so the verification is **reprodu
 
 Derives both pinned vectors:
 
-1. **Argon2id KAT vector** (pinned in `@/Users/wjia/Projects/toebeans/shared/src/commonTest/kotlin/app/toebeans/core/backup/Argon2idKdfTest.kt:107-152`). 32-byte derived key from a fixed passphrase and salt under the ADR-0018 parameters.
-2. **AAD-order AES-256-GCM vector** (pinned in `@/Users/wjia/Projects/toebeans/shared/src/jvmTest/kotlin/app/toebeans/core/backup/BackupCipherV2Test.kt:233-296`). 42-byte ciphertext+tag from a fixed passphrase, salt, IV, and plaintext, with AAD constructed as `magic || salt || iv`. Catches any AAD-construction-order regression in the cipher impl.
+1. **Argon2id KAT vector** (pinned in `shared/src/commonTest/kotlin/app/toebeans/core/backup/Argon2idKdfTest.kt:107-152`). 32-byte derived key from a fixed passphrase and salt under the ADR-0018 parameters.
+2. **AAD-order AES-256-GCM vector** (pinned in `shared/src/jvmTest/kotlin/app/toebeans/core/backup/BackupCipherV2Test.kt:233-296`). 42-byte ciphertext+tag from a fixed passphrase, salt, IV, and plaintext, with AAD constructed as `magic || salt || iv`. Catches any AAD-construction-order regression in the cipher impl.
 
 Exit code 0 = both vectors match the pinned expected outputs. Exit code 1 = divergence; the printed diff names which vector and which byte index diverged.
 
@@ -75,8 +75,8 @@ If the Kotlin tests fail but this script passes, BouncyCastle has regressed; the
 
 ## Provenance
 
-- D1 session log records the original cross-check at `@/Users/wjia/Projects/toebeans/localonly/session-logs/2026-05-19-final-review-d1-batch.md`.
-- ADR-0018 § Decision § Cross-check protocol (the section that specifies the two-reference requirement) is at `@/Users/wjia/Projects/toebeans/docs/adr/0018-argon2id-backup-cipher-design.md`.
+- D1 session log records the original cross-check at `localonly/session-logs/2026-05-19-final-review-d1-batch.md` (local archive, not published).
+- ADR-0018 § Decision § Cross-check protocol (the section that specifies the two-reference requirement) is at `docs/adr/0018-argon2id-backup-cipher-design.md`.
 - The cross-check was originally a `/tmp` script in the D1 dispatch session; it was preserved here in 2026-05-19 as a W1 follow-on per the D1 final-review report.
 
 ## Maintenance
