@@ -33,12 +33,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.R
 import app.toebeans.android.ui.components.DatePickerField
+import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
+import app.toebeans.core.data.ScheduleRepository
+import app.toebeans.core.data.ScheduleWithPhases
+import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Species
+import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.scheduler.HomeTimezoneRepair
+import app.toebeans.core.scheduler.ScheduleCalculator
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 /**
  * Add or edit a Pet. If [petId] is null, this is a new-pet form. Otherwise the VM loads the
@@ -46,6 +62,7 @@ import org.koin.androidx.compose.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("CyclomaticComplexMethod")
 public fun PetEditScreen(
     petId: String?,
     onBack: () -> Unit,
@@ -54,11 +71,33 @@ public fun PetEditScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var zoneText by remember { mutableStateOf("") }
+    var repairMessage by remember { mutableStateOf<String?>(null) }
+    val petRepository: PetRepository = koinInject()
+    val medicationRepository: MedicationRepository = koinInject()
+    val scheduleRepository: ScheduleRepository = koinInject()
+    val doseEventRepository: DoseEventRepository = koinInject()
+    val notificationActuator: NotificationActuator = koinInject()
+    val scheduleCalculator: ScheduleCalculator = koinInject()
 
     LaunchedEffect(petId) {
-        if (petId != null) viewModel.load(petId)
+        if (petId != null) {
+            viewModel.load(petId)
+            zoneText = petRepository.getById(petId)?.homeTimezone.orEmpty()
+        }
     }
+
+    val trimmedZone = zoneText.trim()
+    val zoneValid = trimmedZone.isEmpty() || HomeTimezone.isValid(trimmedZone)
+
+    suspend fun bundlesForPet(petId: String): List<ScheduleWithPhases> =
+        medicationRepository.observeForPet(petId).first().flatMap { med ->
+            scheduleRepository.observeForMedication(med.id).first().map { schedule ->
+                ScheduleWithPhases(schedule, scheduleRepository.observePhases(schedule.id).first())
+            }
+        }
 
     if (showDeleteDialog) {
         DeleteConfirmDialog(
@@ -111,10 +150,20 @@ public fun PetEditScreen(
                 tonalElevation = 3.dp,
             ) {
                 Button(
-                    enabled = state.name.isNotBlank(),
+                    enabled = state.name.isNotBlank() && zoneValid,
                     onClick = {
                         scope.launch {
-                            if (viewModel.save()) onSaved()
+                            if (viewModel.save()) {
+                                // PetEditViewModel (out of this slice's scope) does not carry the
+                                // zone field. Re-apply it after its save so an edit never clears it.
+                                if (petId != null) {
+                                    val saved = petRepository.getById(petId)
+                                    if (saved != null) {
+                                        petRepository.upsert(saved.copy(homeTimezone = trimmedZone.ifEmpty { null }))
+                                    }
+                                }
+                                onSaved()
+                            }
                         }
                     },
                     colors =
@@ -181,6 +230,49 @@ public fun PetEditScreen(
                 label = { Text("Notes (optional)") },
                 minLines = 3,
             )
+
+            OutlinedTextField(
+                value = zoneText,
+                onValueChange = {
+                    zoneText = it
+                    repairMessage = null
+                },
+                label = { Text(stringResource(R.string.pet_edit_home_timezone_label)) },
+                singleLine = true,
+                isError = !zoneValid,
+            )
+            if (!zoneValid) {
+                Text(
+                    text = stringResource(R.string.pet_edit_home_timezone_invalid),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (petId != null && trimmedZone.isNotEmpty() && zoneValid) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val pet = petRepository.getById(petId) ?: return@launch
+                            HomeTimezoneRepair.repair(
+                                pet = pet,
+                                zoneId = trimmedZone,
+                                schedulesWithPhases = bundlesForPet(petId),
+                                petRepository = petRepository,
+                                doseEventRepository = doseEventRepository,
+                                notificationActuator = notificationActuator,
+                                scheduleCalculator = scheduleCalculator,
+                                deviceTimeZone = TimeZone.currentSystemDefault(),
+                                now = Clock.System.now(),
+                            )
+                            repairMessage = context.getString(R.string.pet_edit_recalculate_done)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.pet_edit_recalculate))
+                }
+            }
+            repairMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }

@@ -1,11 +1,13 @@
 package app.toebeans.android.ui.medications
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import app.toebeans.android.ui.schedule.MidnightStraddleDetection
 import app.toebeans.android.ui.schedule.PhaseDraft
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationNameIndexRepository
 import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.DoseUnit
@@ -17,6 +19,7 @@ import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.MalformedScheduleException
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
+import app.toebeans.core.scheduler.TimeZonePolicy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +30,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.days
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -64,7 +69,14 @@ public class UnifiedMedicationViewModel(
     private val notificationActuator: NotificationActuator,
     public val medicationNameIndex: MedicationNameIndexRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
-) : ViewModel() {
+    private val petRepository: PetRepository? = null,
+) : ViewModel(),
+    KoinComponent {
+    // See ScheduleCreateViewModel: AppModule does not inject the pet repository in this slice.
+    private val injectedPetRepository: PetRepository by inject()
+
+    private fun pets(): PetRepository? = petRepository ?: runCatching { injectedPetRepository }.getOrNull()
+
     public companion object {
         /**
          * Maximum number of phases in a single schedule. Ten is generous for any realistic
@@ -207,8 +219,7 @@ public class UnifiedMedicationViewModel(
 
         try {
             val s = _state.value
-            if (!validateMedicationFields(s)) return null
-            if (!validatePhases(s.phases)) return null
+            if (!validateMedicationFields(s) || !validatePhases(s.phases)) return null
 
             val medication = buildMedication(s, petId)
             val (schedule, phases) = newSchedulePayload(s, medication.id)
@@ -217,6 +228,25 @@ public class UnifiedMedicationViewModel(
             if (preflightError != null) {
                 _state.update { it.copy(formError = preflightError) }
                 return null
+            }
+
+            val pet = pets()?.getById(petId)
+            val resolved =
+                if (pet == null) {
+                    TimeZonePolicy.Resolution.Use(timeZone)
+                } else {
+                    TimeZonePolicy.resolve(schedule, pet, timeZone)
+                }
+            if (resolved == TimeZonePolicy.Resolution.Quarantined) {
+                Log.w("ToebeansHomeTimezone", "TZ_QUARANTINE_001")
+                _state.update {
+                    it.copy(
+                        formError =
+                            "New dose times for this pet are paused until its home timezone is repaired. " +
+                                "Existing alarms are unchanged.",
+                    )
+                }
+                return schedule.id
             }
 
             // TODO(transaction): medication + schedule upserts should be atomic.
@@ -233,7 +263,7 @@ public class UnifiedMedicationViewModel(
                     medicationId = medication.id,
                     doseEventRepository = doseEventRepository,
                     scheduleCalculator = scheduleCalculator,
-                    timeZone = timeZone,
+                    timeZone = (resolved as TimeZonePolicy.Resolution.Use).timeZone,
                     now = Clock.System.now(),
                 )
             for (reminder in reminders) {

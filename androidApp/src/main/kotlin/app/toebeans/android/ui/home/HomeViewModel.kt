@@ -13,10 +13,12 @@ import app.toebeans.core.data.ScheduleWithPhases
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Pet
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
+import app.toebeans.core.scheduler.TimeZonePolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -135,6 +137,7 @@ public class HomeViewModel(
         }
     }
 
+    @Suppress("LongMethod")
     private fun buildUiState(
         petRepository: PetRepository,
         medicationRepository: MedicationRepository,
@@ -184,7 +187,11 @@ public class HomeViewModel(
                 }
             val base =
                 joinToUiState(petList, medList, doses)
-                    .copy(dueDoses = dueToday, addAction = addAction)
+                    .copy(
+                        dueDoses = dueToday,
+                        addAction = addAction,
+                        quarantinedPetIds = petList.filter(HomeTimezone::isQuarantined).mapTo(mutableSetOf()) { it.id },
+                    )
             applyPetFilter(base, activePetFilter)
         }.stateIn(
             scope = viewModelScope,
@@ -310,7 +317,7 @@ public class HomeViewModel(
          * naturally carry their inputs explicitly. Wrapping seven domain inputs in
          * a context object would obscure the data flow rather than clarify it.
          */
-        @Suppress("LongParameterList")
+        @Suppress("LongParameterList", "LongMethod")
         internal fun computeDueToday(
             schedulesWithPhases: List<ScheduleWithPhases>,
             medications: List<Medication>,
@@ -358,11 +365,17 @@ public class HomeViewModel(
                 }
             val rows =
                 viable.flatMap { (swp, med, pet) ->
+                    val resolved = TimeZonePolicy.resolve(swp.schedule, pet, timeZone)
+                    val doseZone =
+                        when (resolved) {
+                            is TimeZonePolicy.Resolution.Use -> resolved.timeZone
+                            TimeZonePolicy.Resolution.Quarantined -> return@flatMap emptyList()
+                        }
                     calculator
                         .computeScheduledDoses(
                             schedule = swp.schedule,
                             phases = swp.phases,
-                            timeZone = timeZone,
+                            timeZone = doseZone,
                             fromInclusive = todayStart,
                             toExclusive = todayEnd,
                         ).map { dose ->
@@ -454,5 +467,7 @@ public data class HomeUiState(
     public val filterPetId: String? = null,
     /** Next add step for the Today tab FAB (same chain as Reminders). */
     public val addAction: ReminderAddAction? = null,
+    /** Pets whose stored home timezone is invalid; Today pauses their new dose times. */
+    public val quarantinedPetIds: Set<String> = emptySet(),
     public val loading: Boolean = false,
 )

@@ -1,0 +1,8 @@
+-- Migration 6 → 7: ADR-0007 per-pet home timezone.
+--
+-- Bare ADD COLUMN: nullable TEXT, no CHECK, no DEFAULT, no REFERENCES. SQLite edits
+-- only the stored schema text for this shape, so no table rebuild and no FK work.
+-- Existing rows read NULL ("use the device zone"). IANA validity is checked in Kotlin:
+-- a bad id from a backup import is kept verbatim and quarantined, never replaced
+-- with a device-zone fallback.
+ALTER TABLE Pet ADD COLUMN home_timezone TEXT;

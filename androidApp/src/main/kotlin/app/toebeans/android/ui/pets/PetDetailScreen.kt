@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,14 +34,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.R
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeHero
+import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
 import app.toebeans.core.model.formatDose
@@ -96,6 +100,28 @@ public fun PetDetailScreen(
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
                     PetIdentityCard(pet, Modifier.padding(16.dp))
+                    if (HomeTimezone.isQuarantined(pet)) {
+                        Card(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = stringResource(R.string.home_timezone_quarantine_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.home_timezone_quarantine_body),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                TextButton(onClick = onEditPet) {
+                                    Text(stringResource(R.string.home_timezone_quarantine_action))
+                                }
+                            }
+                        }
+                    }
                     Text(
                         text = "Medications",
                         style = MaterialTheme.typography.titleMedium,

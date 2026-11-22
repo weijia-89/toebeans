@@ -21,4 +21,13 @@
     <string name="emergency_settings_button">Emergency resources</string>
     <string name="emergency_dialog_title">Emergency resources</string>
     <string name="emergency_dialog_dismiss">Close</string>
+
+    <!-- ADR-0007 home-timezone quarantine. A persisted invalid id pauses new dose times; existing alarms are never rewritten. -->
+    <string name="home_timezone_quarantine_title">Home timezone needs repair</string>
+    <string name="home_timezone_quarantine_body">New dose times for this pet are paused. Existing alarms are unchanged.</string>
+    <string name="home_timezone_quarantine_action">Fix home timezone</string>
+    <string name="pet_edit_home_timezone_label">Home timezone (IANA id, optional)</string>
+    <string name="pet_edit_home_timezone_invalid">Enter a valid zone id, for example America/New_York</string>
+    <string name="pet_edit_recalculate">Recalculate dose times</string>
+    <string name="pet_edit_recalculate_done">Dose times recalculated</string>
 </resources>

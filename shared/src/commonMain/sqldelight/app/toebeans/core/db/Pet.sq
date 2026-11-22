@@ -17,7 +17,8 @@ CREATE TABLE Pet (
     weight_kg     REAL,                                      -- nullable
     notes         TEXT,
     created_at    INTEGER NOT NULL,                          -- epoch ms UTC
-    archived_at   INTEGER                                    -- soft delete; nullable
+    archived_at   INTEGER,                                   -- soft delete; nullable
+    home_timezone TEXT                                       -- ADR-0007 IANA id; NULL = device zone
 );
 
 CREATE INDEX Pet_archived_at_idx ON Pet(archived_at);
@@ -58,6 +59,12 @@ SET name = ?,
     created_at = ?,
     archived_at = ?
 WHERE id = ?;
+
+-- Write the ADR-0007 home-zone id. Kept separate from insertPet/updatePet so existing
+-- call sites (including backup import) stay source-compatible; the repository validates
+-- at the UI write boundary and preserves raw imported ids for quarantine.
+setPetHomeTimezone:
+UPDATE Pet SET home_timezone = ? WHERE id = ?;
 
 -- Soft-archive a pet (sets archived_at; row remains in the table). Preserved from
 -- the consolidated schema for any future archive surface. No fake method calls this

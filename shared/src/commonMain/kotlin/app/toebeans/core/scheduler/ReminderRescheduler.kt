@@ -37,6 +37,7 @@ public object ReminderRescheduler {
         scheduleCalculator: ScheduleCalculator,
         timeZone: TimeZone,
         now: Instant,
+        skipExistingIds: Set<String> = emptySet(),
     ): List<ScheduledReminder> {
         val horizonEnd = now + HORIZON_HOURS.hours
         val doses =
@@ -47,7 +48,7 @@ public object ReminderRescheduler {
                 fromInclusive = now,
                 toExclusive = horizonEnd,
             )
-        return doses.map { dose ->
+        return doses.filterNot { doseEventIdForSlot(schedule.id, it.scheduledAt) in skipExistingIds }.map { dose ->
             val eventId = doseEventIdForSlot(schedule.id, dose.scheduledAt)
             doseEventRepository.upsert(
                 DoseEvent(

@@ -108,6 +108,10 @@ public class SqlDelightPetRepository(
                         id = pet.id,
                     )
                 }
+                // Thread the ADR-0007 zone through the same transaction. Raw ids (including
+                // invalid ids from a backup import) are stored verbatim; validity is decided
+                // by HomeTimezone at read time so quarantine never falls back to the device.
+                queries.setPetHomeTimezone(pet.homeTimezone, pet.id)
             }
         }
 
@@ -136,4 +140,5 @@ internal fun PetRow.toDomain(): Pet =
         notes = notes,
         createdAt = Instant.fromEpochMilliseconds(created_at),
         archivedAt = archived_at?.let(Instant::fromEpochMilliseconds),
+        homeTimezone = home_timezone,
     )

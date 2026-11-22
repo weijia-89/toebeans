@@ -26,6 +26,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -45,6 +47,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.R
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
@@ -97,6 +100,7 @@ public fun HomeScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: HomeViewModel = koinViewModel(),
+    onEditPet: (petId: String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
@@ -130,9 +134,33 @@ public fun HomeScreen(
         onClearPetFilter = viewModel::clearPetFilter,
         onEditDose = onEditDose,
         onMarkGiven = viewModel::markGiven,
+        onEditPet = onEditPet,
         modifier = modifier,
         contentPadding = contentPadding,
     )
+}
+
+/** ADR-0007 quarantine: persistent, visible, and tappable through to pet edit. */
+@Composable
+private fun HomeTimezoneQuarantineBanner(
+    onFix: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.home_timezone_quarantine_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.home_timezone_quarantine_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(onClick = onFix) {
+                Text(stringResource(R.string.home_timezone_quarantine_action))
+            }
+        }
+    }
 }
 
 @Composable
@@ -159,6 +187,7 @@ internal fun HomeScreenContent(
     onClearPetFilter: () -> Unit,
     onEditDose: (petId: String, medicationId: String, scheduleId: String?) -> Unit,
     onMarkGiven: (scheduleId: String, medicationId: String, scheduledAt: Instant) -> Unit,
+    onEditPet: (petId: String) -> Unit = {},
     exactAlarmDenied: Boolean = false,
     onOpenAlarmSettings: () -> Unit = {},
     notificationDenial: Boolean = false,
@@ -246,6 +275,11 @@ internal fun HomeScreenContent(
                         firstRunNotificationOff = firstRunNotificationOff,
                         onOpenNotificationSettings = onOpenNotificationSettings,
                     )
+                }
+            }
+            state.quarantinedPetIds.firstOrNull()?.let { quarantinedPetId ->
+                item(key = "home_timezone_quarantine") {
+                    HomeTimezoneQuarantineBanner(onFix = { onEditPet(quarantinedPetId) })
                 }
             }
             val filterActive = state.filterPetId != null

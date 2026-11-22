@@ -1,13 +1,16 @@
 package app.toebeans.android.ui.schedule
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
+import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.notifications.NotificationActuator
@@ -15,6 +18,7 @@ import app.toebeans.core.scheduler.DefaultScheduleCalculator
 import app.toebeans.core.scheduler.MalformedScheduleException
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
+import app.toebeans.core.scheduler.TimeZonePolicy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +31,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.days
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -42,6 +48,7 @@ import kotlin.uuid.Uuid
  * only on submit, where validation messages are surfaced to the user.
  */
 @OptIn(ExperimentalUuidApi::class)
+@Suppress("LongParameterList")
 public class ScheduleCreateViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
@@ -49,7 +56,16 @@ public class ScheduleCreateViewModel(
     private val scheduleCalculator: ScheduleCalculator,
     private val notificationActuator: NotificationActuator,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
-) : ViewModel() {
+    private val petRepository: PetRepository? = null,
+) : ViewModel(),
+    KoinComponent {
+    // AppModule (out of this slice's scope) does not pass a pet repository yet. The lazy
+    // Koin fallback resolves only at materialization time, so direct unit-test construction
+    // keeps working without a running Koin container.
+    private val injectedPetRepository: PetRepository by inject()
+
+    private fun pets(): PetRepository? = petRepository ?: runCatching { injectedPetRepository }.getOrNull()
+
     private val _state =
         MutableStateFlow(
             ScheduleCreateUiState(
@@ -373,6 +389,25 @@ public class ScheduleCreateViewModel(
         medicationId: String,
     ) {
         scheduleRepository.upsert(schedule, phases)
+        val medication: Medication? = medicationRepository.getById(medicationId)
+        val pet: Pet? = medication?.petId?.let { pets()?.getById(it) }
+        val resolved =
+            if (pet == null) {
+                TimeZonePolicy.Resolution.Use(timeZone)
+            } else {
+                TimeZonePolicy.resolve(schedule, pet, timeZone)
+            }
+        if (resolved == TimeZonePolicy.Resolution.Quarantined) {
+            Log.w("ToebeansHomeTimezone", "TZ_QUARANTINE_001")
+            _state.update {
+                it.copy(
+                    formError =
+                        "New dose times for this pet are paused until its home timezone is repaired. " +
+                            "Existing alarms are unchanged.",
+                )
+            }
+            return
+        }
         val reminders =
             ReminderRescheduler.materializeHorizonForSchedule(
                 schedule = schedule,
@@ -380,7 +415,7 @@ public class ScheduleCreateViewModel(
                 medicationId = medicationId,
                 doseEventRepository = doseEventRepository,
                 scheduleCalculator = scheduleCalculator,
-                timeZone = timeZone,
+                timeZone = (resolved as TimeZonePolicy.Resolution.Use).timeZone,
                 now = Clock.System.now(),
             )
         for (reminder in reminders) {

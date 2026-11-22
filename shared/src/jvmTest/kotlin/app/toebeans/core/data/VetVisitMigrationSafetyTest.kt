@@ -186,7 +186,7 @@ class VetVisitMigrationSafetyTest {
         // The repo's hand-rolled migration harness calls Schema.migrate directly, which
         // bypasses the driver callback that writes user_version in production. The
         // generated Schema.version is the chain proof available in this harness.
-        assertEquals(6L, ToebeansDatabase.Schema.version)
+        assertEquals(7L, ToebeansDatabase.Schema.version)
         assertEquals(
             "Migration Pet",
             db.petQueries
@@ -310,7 +310,7 @@ class VetVisitMigrationSafetyTest {
 
         ToebeansDatabase.Schema.migrate(driver, 6, 6)
 
-        assertEquals(6L, ToebeansDatabase.Schema.version)
+        assertEquals(7L, ToebeansDatabase.Schema.version)
         assertEquals(
             before,
             listOf(
