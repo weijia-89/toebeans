@@ -1,0 +1,23 @@
+-- VetVisit.sq — vet event schema (ADR-0020 §A, F5a).
+--
+-- VIBE-DANGEROUS per AGENTS.md. Column shape is fixed at creation: Android 8 (minSdk 26)
+-- cannot alter constraints in place, so a later correction needs a 12-step rebuild that
+-- cannot be written safely inside a .sqm (see vet-schema-migration-options.md).
+--
+-- `kind` is TEXT NOT NULL without a CHECK: permitted values ('vaccination', 'wellness',
+-- 'acute', 'followup') are enforced in Kotlin. A CHECK would turn the planned widening of
+-- adjacent enums into a FK-off rebuild. Timestamps are INTEGER epoch ms UTC.
+
+CREATE TABLE VetVisit (
+    id            TEXT NOT NULL PRIMARY KEY,                  -- UUID v4, same pattern as Medication.id
+    pet_id        TEXT NOT NULL,                              -- FK to Pet(id); ON DELETE CASCADE per ADR-0010
+    kind          TEXT NOT NULL,                              -- 'vaccination' | 'wellness' | 'acute' | 'followup'
+    scheduled_at  INTEGER,                                    -- nullable: null for past visits recorded later
+    occurred_at   INTEGER,                                    -- nullable: null for future visits
+    provider      TEXT,                                       -- free text practice name
+    notes         TEXT,                                       -- owner-entered text (ADR-0019 source pathway 1)
+    created_at    INTEGER NOT NULL,                           -- epoch ms UTC
+    FOREIGN KEY (pet_id) REFERENCES Pet(id) ON DELETE CASCADE
+);
+
+CREATE INDEX VetVisit_pet_id_idx ON VetVisit(pet_id);
