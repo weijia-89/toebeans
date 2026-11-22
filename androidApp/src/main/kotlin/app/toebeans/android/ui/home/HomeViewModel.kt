@@ -323,7 +323,7 @@ public class HomeViewModel(
         ): List<DueDoseUi> {
             val petById = pets.associateBy { it.id }
             val medById = medications.associateBy { it.id }
-            val givenBySlot: Map<Pair<String, Instant>, DoseEvent> =
+            val givenBySlot: Map<Pair<String?, Instant>, DoseEvent> =
                 recentDoses
                     .filter { it.status == DoseStatus.GIVEN }
                     .associateBy { it.scheduleId to it.scheduledAt }

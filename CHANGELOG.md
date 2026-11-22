@@ -5,6 +5,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
+## [0.4.16] - Dose history survives schedule delete (2026-11-22)
+
+### Changed
+
+- Operator decision: deleting a schedule keeps the dose log. Migration 4 changes `DoseEvent.schedule_id` from NOT NULL with ON DELETE CASCADE to nullable with ON DELETE SET NULL. Given and pending dose rows survive; the enriched receiver lookup and boot rehydration INNER JOIN Schedule, so an orphaned row cannot fire an alarm for a deleted plan. Medication deletion still cascades, so Remove demo data keeps its clear-all behavior. Dose event edit on an orphaned row opens the medication form, which is where the shell already routed all dose edits. Verified locally: `scripts/verify_before_push.sh` all green, `:shared:jvmTest` 213 passed, `:androidApp:testDebugUnitTest` green, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
 ## [0.4.13] - Vet-visit schema red test (2026-11-16)
 
 ### Added

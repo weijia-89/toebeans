@@ -74,6 +74,7 @@ Cases already written in git history, pull request test plans, commit messages, 
 - [Midnight-straddle save returns](manual-qa/cases/midnight-straddle-save-returns.md)
 - [Edit a schedule without losing dose history](manual-qa/cases/schedule-edit-keeps-history.md)
 - [Discontinue stops future fires](manual-qa/cases/discontinue-stops-future-fires.md)
+- [Dose history survives schedule delete](manual-qa/cases/dose-history-survives-schedule-delete.md)
 - [Existing installs keep FOLLOW_PHONE](manual-qa/cases/anchor-mode-default-follow-phone.md)
 - [DST spring-forward badge](manual-qa/cases/dst-spring-forward-badge.md)
 - [Time-sensitive anchor mode saves](manual-qa/cases/anchor-mode-elapsed-interval.md)

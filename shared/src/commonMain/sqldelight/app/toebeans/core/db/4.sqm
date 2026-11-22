@@ -1,0 +1,48 @@
+-- Migration 4 → 5: dose history survives schedule delete.
+--
+-- Before this migration, DoseEvent.schedule_id was NOT NULL with ON DELETE CASCADE,
+-- so deleting a schedule physically erased every dose row for it. The schema header
+-- already named SET NULL as the intended policy. This migration makes the column
+-- nullable and sets it to NULL when the parent schedule is deleted.
+--
+-- The fire path is unaffected: selectEnrichedReminderById and
+-- selectPendingDoseEventsInRangeActive both INNER JOIN Schedule, so an orphaned dose
+-- row is invisible to the receiver and to boot rehydration. Alarm cancel follows from
+-- row invisibility, not from row deletion.
+--
+-- Medication deletion still cascades to dose rows. "Remove demo data" deletes the
+-- demo medications, so it keeps its existing clear-all behavior.
+
+CREATE TABLE DoseEvent_new (
+    id            TEXT NOT NULL PRIMARY KEY,
+    schedule_id   TEXT,
+    medication_id TEXT NOT NULL,
+    scheduled_at  INTEGER NOT NULL,
+    fired_at      INTEGER,
+    resolved_at   INTEGER,
+    status        TEXT NOT NULL CHECK (status IN ('pending', 'given', 'skipped', 'missed')),
+    note          TEXT,
+    FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE SET NULL,
+    FOREIGN KEY (medication_id) REFERENCES Medication(id) ON DELETE CASCADE
+);
+
+-- NotificationAudit references DoseEvent(id) ON DELETE CASCADE. Rebuild the table
+-- below must not erase delivery records, so they are carried across explicitly.
+CREATE TEMP TABLE NotificationAudit_backup AS SELECT * FROM NotificationAudit;
+
+INSERT INTO DoseEvent_new (id, schedule_id, medication_id, scheduled_at, fired_at, resolved_at, status, note)
+SELECT id, schedule_id, medication_id, scheduled_at, fired_at, resolved_at, status, note
+FROM DoseEvent;
+
+DROP TABLE DoseEvent;
+ALTER TABLE DoseEvent_new RENAME TO DoseEvent;
+
+DELETE FROM NotificationAudit;
+INSERT INTO NotificationAudit (dose_event_id, delivered_at)
+SELECT dose_event_id, delivered_at FROM NotificationAudit_backup;
+DROP TABLE NotificationAudit_backup;
+
+CREATE INDEX DoseEvent_schedule_id_idx ON DoseEvent(schedule_id);
+CREATE INDEX DoseEvent_medication_id_idx ON DoseEvent(medication_id);
+CREATE INDEX DoseEvent_scheduled_at_idx ON DoseEvent(scheduled_at);
+CREATE INDEX DoseEvent_status_idx ON DoseEvent(status);

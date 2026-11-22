@@ -18,29 +18,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * RED TEST (test-as-spec; do NOT make green in this PR): dose history must survive
+ * Test-as-spec for the operator decision of 2026-11-22: dose history must survive
  * [ScheduleRepository.delete].
  *
- * Desired behavior pinned here: after `scheduleRepository.delete(scheduleId)`, the dose
- * events recorded for that schedule (GIVEN and PENDING alike) still exist in
- * [DoseEventRepository.observeAll]. The History tab is the record of what actually
- * happened; deleting a wrong schedule must not erase it.
+ * After `scheduleRepository.delete(scheduleId)`, the dose events recorded for that schedule
+ * (GIVEN and PENDING alike) still exist in [DoseEventRepository.observeAll]. The History
+ * tab is the record of what actually happened; deleting a wrong schedule must not erase it.
  *
- * Current behavior (pinned green elsewhere, intentionally contradicted here):
- * `DoseEvent.sq` declares `FOREIGN KEY (schedule_id) REFERENCES Schedule(id) ON DELETE
- * CASCADE`, and with ADR-0010's `PRAGMA foreign_keys=ON` that cascade physically removes
- * every dose row for the schedule. That cascade is what makes this test fail today:
- * [SqliteForeignKeysCallbackTest] (androidApp) pins deleteSchedule -> dose rows gone, and
- * `ScheduleRepositoryContract` case 11 pins the medication-delete cascade.
- *
- * The contradiction the human test reviewer should see in one read: `DoseEvent.sq`'s own
- * header says `medication_id` is denormalized so retrospective surfaces survive "even if
- * the parent Schedule is deleted" and names SET NULL as the intended ON DELETE policy
- * ("M1 work"), yet the declared schema does the opposite on `schedule_id` (CASCADE, NOT
- * NULL). Whichever way the product decision lands, it belongs to the operator; this test
- * is decision-ready evidence, not the fix. If the decision is "history survives", the fix
- * is a vibe-dangerous schema migration (SET NULL + nullable `schedule_id`) under the
- * test-as-spec protocol in AGENTS.md.
+ * The original schema used ON DELETE CASCADE on `schedule_id`, so this test failed on
+ * purpose as decision-ready evidence. Migration 4 changed the column to nullable with
+ * ON DELETE SET NULL and made this test green. Orphaned rows are invisible to the receiver
+ * because the enriched lookup INNER JOINs Schedule, so keeping a pending row does not keep
+ * an alarm for a deleted plan. Medication deletion still cascades, which preserves the
+ * Remove demo data behavior.
  *
  * Lives in `:shared:jvmTest` like [SqlDelightScheduleRepositoryContractTest]: the JDBC
  * SQLite driver is not available in `commonTest`. FK enforcement follows ADR-0010:

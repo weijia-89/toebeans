@@ -33,7 +33,8 @@ public class SqlDelightReminderLookup(
 
         return ScheduledReminder(
             id = row.id,
-            scheduleId = row.schedule_id,
+            // The query INNER JOINs Schedule, so a returned row always has a schedule id.
+            scheduleId = checkNotNull(row.schedule_id) { "enriched reminder without schedule" },
             scheduledAt = Instant.fromEpochMilliseconds(row.scheduled_at),
             medicationName = row.medication_name,
             petName = row.pet_name,

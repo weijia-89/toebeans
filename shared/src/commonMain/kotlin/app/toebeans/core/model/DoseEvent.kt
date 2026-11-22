@@ -27,6 +27,10 @@ import kotlinx.serialization.Serializable
  *      the retrospective view because the new schedule and medication had unrelated UUIDs.
  *      Carrying [medicationId] on the event row is the structural fix.
  *
+ * [scheduleId] is null once the parent schedule is deleted (migration 4). The row stays as
+ * history, and the fire path ignores orphaned rows because it joins through Schedule. The
+ * UI edits the medication and dose, not the deleted schedule, for those rows.
+ *
  * @property scheduledAt the instant the dose was supposed to be administered.
  * @property firedAt the instant the notification actually surfaced (may differ from
  *           [scheduledAt] by OS scheduling jitter).
@@ -36,7 +40,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 public data class DoseEvent(
     val id: String,
-    val scheduleId: String,
+    val scheduleId: String?,
     val medicationId: String,
     val scheduledAt: Instant,
     val firedAt: Instant?,
