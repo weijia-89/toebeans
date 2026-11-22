@@ -94,6 +94,7 @@ Cases already written in git history, pull request test plans, commit messages, 
 - [Today Edit reaches medication and schedule](manual-qa/cases/today-edit-reaches-medication-and-schedule.md)
 - [Demo data rows, FAB, and dose edit](manual-qa/cases/demo-data-rows-fab-and-edit.md)
 - [Demo load arms the 72-hour alarms](manual-qa/cases/demo-load-arms-alarms.md)
+- [Remove demo data from Settings](manual-qa/cases/settings-remove-demo-data.md)
 - [Today FAB opens a blank add-medication form](manual-qa/cases/today-fab-blank-add-medication.md)
 - [Reminders save then add schedule](manual-qa/cases/reminders-save-then-add-schedule.md)
 - [Add medication hides the Reminders FAB](manual-qa/cases/add-medication-hides-reminders-fab.md)
