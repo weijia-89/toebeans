@@ -64,50 +64,10 @@ jobs:
         run: bash scripts/test_manual_qa_catalog.sh .
       - name: Manual QA catalog fitness-function self-test
         run: bash scripts/test_test_manual_qa_catalog.sh .
-      - name: Trainer PR review gate self-test
-        run: bash scripts/test_ci_trainer_pr_review_gate.sh .
-      - name: Trainer gate rerun self-test
-        run: bash scripts/test_trainer_pr_review_gate_rerun.sh .
-      - name: Trainer patch head self-test
-        run: bash scripts/test_trainer_pr_review_patch_head.sh
+      - name: Removed review gate absence guard
+        run: bash scripts/test_no_trainer_gate.sh .
       - name: Sprint scheduler kit tests
         run: bash scripts/scheduler/tests/test-scheduler.sh
-
-  trainer-pr-review-gate:
-    # PR-only. Fails until a canonical trainer/sdk codereview comment exists on the
-    # PR with head= matching HEAD and ### Trainer notes (forbids ### Pedagogy).
-    name: Trainer PR review comment gate
-    runs-on: ubuntu-24.04
-    if: ${{ github.event_name == 'pull_request' }}
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Sync trainer review head= to PR HEAD
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ ! -f scripts/trainer_pr_review_patch_head.sh ]]; then
-            echo "trainer_pr_review_patch_head.sh not in PR checkout; skip head sync"
-            exit 0
-          fi
-          bash scripts/trainer_pr_review_patch_head.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.repository }}"
-      - name: Require trainer code-review comment on PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF_NAME: ${{ github.event.pull_request.head.ref }}
-        run: |
-          bash scripts/ci-trainer-pr-review-gate.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.event.pull_request.head.sha }}" \
-            "${{ github.event.pull_request.head.ref }}" \
-            "${{ github.repository }}"
 
   vibe-dangerous-gate:
     # Survives `git commit --no-verify`. Enforces the same rule as
@@ -168,9 +128,8 @@ jobs:
           comment-summary-in-pr: on-failure
 
   build-and-test:
-    # Runs in parallel with trainer-pr-review-gate (buds pattern). Gate still
-    # fails the workflow until the canonical PR comment exists; it must not
-    # block Gradle signal on first push or while the agent posts/PATCHes review.
+    # Builds in parallel with the fitness checks so Gradle signal is not
+    # delayed by lint-only failures.
     name: Gradle build + shared tests
     runs-on: ubuntu-24.04
     needs: [fitness-functions]

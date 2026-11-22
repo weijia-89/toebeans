@@ -8,7 +8,7 @@
 #   scripts/gh_pr_create.sh --title "feat: foo" --body-file /tmp/pr-body.md
 #   scripts/gh_pr_create.sh --title "feat: foo"   # writes body from stdin → temp file
 #
-# After create, post trainer review before expecting CI green (see AGENTS.md).
+# After create, run the local gauntlet before expecting CI green.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
