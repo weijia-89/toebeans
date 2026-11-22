@@ -1,5 +1,7 @@
 # ADR-0007: Timezone handling and travel mode
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-15
 Status: **Accepted** (with three downgrade gates G1–G3, see § Acceptance gates)
 Deciders: Wei Jia (with Cascade); product owner sign-off on G1–G3 before milestone 1.5 ships

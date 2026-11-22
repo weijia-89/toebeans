@@ -1,5 +1,7 @@
 # ADR-0006: Defer pitest mutation testing; use Kover coverage at v0.1
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-15
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

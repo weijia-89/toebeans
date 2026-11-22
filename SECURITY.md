@@ -1,5 +1,7 @@
 # Security policy: toebeans
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 ## Reporting
 
 Please report security vulnerabilities **privately**. Do not open a public issue.

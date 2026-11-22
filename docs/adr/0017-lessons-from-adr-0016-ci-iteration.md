@@ -1,5 +1,7 @@
 # ADR-0017: Lessons from the ADR-0016 CI iteration. Reorder the local gauntlet and detect duplicate test-private class names.
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-18
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

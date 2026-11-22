@@ -1,5 +1,7 @@
 # ADR-0013: Adopt `androidx.compose.ui.test` for rendered-UI contract verification
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-17
 Status: **Accepted** (2026-10-24)
 Deciders: Wei Jia; human reviewer must approve the dependency additions before this moves to Accepted.

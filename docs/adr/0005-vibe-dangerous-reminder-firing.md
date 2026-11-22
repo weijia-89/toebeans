@@ -1,5 +1,7 @@
 # ADR-0005: Reminder-firing path classified as vibe-dangerous
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-14
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

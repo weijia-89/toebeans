@@ -1,5 +1,7 @@
 # On-device veterinary model feasibility: training a small local model on veterinary sources
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-11-15
 Author: research subagent, sprint/research-2026-11-15 (off origin/main 20ce2b2)
 Input to: ADR-0021 draft (`docs/adr/0021-on-device-vet-assist-posture.md`, Proposed)

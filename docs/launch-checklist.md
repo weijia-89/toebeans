@@ -1,5 +1,7 @@
 # toebeans full-launch checklist
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Point first: this doc separates what machines can still do from what only the operator can unblock, and it defines what an honest claim of "full feature launch" requires.
 
 Basis: ROADMAP.md (Milestone 1.2, updated 2026-11-11), ADR-0020 (vet visit, Accepted), ADR-0019 (vet content framework), ADR-0007 (timezone and travel), docs/issues/v0.1-followups.md, and the open pull requests on 2026-11-15 at main 20ce2b2. The decisions live in those files; this doc only triages them.

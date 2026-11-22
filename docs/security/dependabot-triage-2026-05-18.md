@@ -1,5 +1,7 @@
 # Dependabot triage, 2026-05-18
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Branch: `chore/dependabot-triage`
 Worktree: `.worktrees/dependabot-triage/`
 Baseline HEAD: `dd15680`

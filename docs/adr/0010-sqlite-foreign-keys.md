@@ -1,5 +1,7 @@
 # 0010. SQLite foreign-key constraints are enabled per connection
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 - Status: accepted
 - Date: 2026-05-17
 - Deciders: Wei

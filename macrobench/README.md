@@ -1,5 +1,7 @@
 # :macrobench
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 ADR-0008 performance-budget enforcement. Today this module ships:
 
 - **`StartupBenchmark.startupCompilationNone`**: cold-start of `MainActivity` with no
