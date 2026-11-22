@@ -101,7 +101,7 @@ NEW_ENTRIES=$(git diff --no-color "$BASE_SHA" "$HEAD_SHA" -- .codeit/calibration
 
 if [[ "$NEW_ENTRIES" -lt 1 ]]; then
     echo "BLOCKED: vibe-dangerous paths touched but .codeit/calibration.jsonl gained no new entries."
-    echo "Per AGENTS.md § Confidence-score rule, every change to a vibe-dangerous surface"
+    echo "Per the local agent-host contract Confidence-score rule, every change to a vibe-dangerous surface"
     echo "must be scored and logged. This gate survives \`git commit --no-verify\`."
     echo ""
     echo "If you intentionally bypassed the local hook, retroactively add the missing"

@@ -64,7 +64,10 @@ run_check "Fitness: drug-reference-approval self-test" \
     bash scripts/test_test_drug_reference_approval.sh .
 run_check "Fitness: no-duplicate-private-test-class-names" \
     bash scripts/test_no_duplicate_private_test_class_names.sh .
+# The contract files are local-only working copies; parity skips when absent.
 run_check "Fitness: AGENTS/CLAUDE parity"  bash scripts/agents_claude_parity.sh .
+run_check "Fitness: AGENTS/CLAUDE parity self-test" \
+    bash scripts/test_test_agents_claude_parity.sh .
 run_check "Fitness: AGP-9 built-in-Kotlin migration" \
     bash scripts/test_agp9_builtin_kotlin_migration.sh .
 run_check "Fitness: AGP-9 built-in-Kotlin migration self-test" \

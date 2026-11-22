@@ -65,3 +65,8 @@ localonly/
 
 # Agent scratchpads / local session state
 .agent/
+
+# Agent host contract: local working copies only, excluded from the public repo.
+# Both files stay on disk for local tooling; parity is enforced when both exist.
+AGENTS.md
+CLAUDE.md
