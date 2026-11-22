@@ -10,6 +10,12 @@ large chunk of merged work.
 ### Changed
 
 - Operator decision: deleting a schedule keeps the dose log. Migration 4 changes `DoseEvent.schedule_id` from NOT NULL with ON DELETE CASCADE to nullable with ON DELETE SET NULL. Given and pending dose rows survive; the enriched receiver lookup and boot rehydration INNER JOIN Schedule, so an orphaned row cannot fire an alarm for a deleted plan. Medication deletion still cascades, so Remove demo data keeps its clear-all behavior. Dose event edit on an orphaned row opens the medication form, which is where the shell already routed all dose edits. Verified locally: `scripts/verify_before_push.sh` all green, `:shared:jvmTest` 213 passed, `:androidApp:testDebugUnitTest` green, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
+## [0.4.13] - Vet-visit schema red test (2026-11-16)
+
+### Added
+
+- The test-as-spec red gate for the accepted ADR-0020 F5a slice: `VetVisitSchemaContractTest` (jvmTest) pins the desired end state where a pet's vet visits (kind, date, vet clinic, notes) and vaccine records (name, date administered, next-due date) persist and round-trip, and a vaccine rule-pack entry is looked up by (species, age range, regulatory region). It compiles and fails today on exactly the missing `VetVisit`, `Vaccine`, and `VaccinationGiven` tables (211 tests, 1 designed failure; baseline 210 passing). No schema, repository, model, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous SQLDelight surface.
+
 ## [0.4.15] - Emergency resources card (2026-11-16)
 
 ### Added
