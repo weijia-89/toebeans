@@ -48,7 +48,7 @@ The CI workflow itself uses a fresh dependency resolution on every run (no cache
 
 - **Conventional Commits prefix.** Every commit message starts with `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, or `ci:`. The vibe-safety tier of the change appears in trailing brackets when relevant, for example `[vibe-dangerous]` or `[vibe-careful]`.
 - **Calibration-entry pairing for vibe-dangerous paths.** Any commit that touches a vibe-dangerous surface listed in [AGENTS.md § Vibe-safety tiers](AGENTS.md#vibe-safety-tiers-per-code-helper-5) must also stage a new entry in `.codeit/calibration.jsonl` recording the change's confidence score. The pre-commit hook at `scripts/git-hooks/pre-commit` enforces this mechanically. Install it once per clone with `bash scripts/install-git-hooks.sh`.
-- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in [AGENTS.md § Refusal list](AGENTS.md#refusal-list-will-not-produce-without-justification) applies to commit messages too. No em-dashes, no theatrical phrasing.
+- **Prose discipline in commit messages.** The same voice rules as the rest of the codebase. Plain English. The banned-vocabulary list in [AGENTS.md § Refusal list](AGENTS.md#refusal-list-will-not-produce-without-justification) applies to commit messages too. No theatrical phrasing.
 
 ## Tests as specs
 

@@ -55,7 +55,6 @@ run_check "Fitness: no-analytics"          bash scripts/test_no_analytics.sh .
 run_check "Fitness: scheduler-purity"      bash scripts/test_scheduler_purity.sh .
 run_check "Fitness: permission-allowlist"  bash scripts/test_permission_allowlist.sh .
 run_check "Fitness: no-PII-in-crash-log"   bash scripts/test_no_pii_in_crash_log.sh .
-run_check "Fitness: no-em-dash-in-docs"    bash scripts/test_no_em_dash_in_docs.sh .
 run_check "Fitness: manual-qa-catalog"     bash scripts/test_manual_qa_catalog.sh .
 run_check "Fitness: manual-qa-catalog self-test" \
     bash scripts/test_test_manual_qa_catalog.sh .
