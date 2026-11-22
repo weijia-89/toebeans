@@ -5,11 +5,17 @@ Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). One section per
 large chunk of merged work.
 
-## [0.4.12] - Emergency resources card (2026-11-16)
+## [0.4.15] - Emergency resources card (2026-11-16)
 
 ### Added
 
 - The Today screen gains a collapsible Emergency card, rendered in both the zero-pets and populated branches, with a Settings "Emergency resources" row in the About card that opens the same content as a dialog. The card is static curated public contact info: ASPCA Animal Poison Control (888) 426-4435 and Pet Poison Helpline (855) 764-7661, both 24/7 with a fee note, verified against aspca.org and petpoisonhelpline.com on 2026-11-16; a first line directing the user to their veterinarian or the nearest emergency animal hospital; find-an-emergency-vet guidance text (no URL shipped: the VECCS certified-facility directory is sunsetting and lists only certified facilities, so the row says to search "emergency veterinarian near me" instead); and the ADR-0019 §3 framing line "toebeans does not provide medical advice. In an emergency, call a veterinary professional." Hotline taps fire user-initiated `ACTION_DIAL` intents (no permission, no network, no new dependency). No AI, no model, no dynamic content. Verified locally: `scripts/verify_before_push.sh` all green, `:androidApp:testDebugUnitTest` 284 passed, `:shared:testDebugUnitTest` 120 passed, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0, `scripts/test_manual_qa_catalog.sh` exit 0.
+
+## [0.4.12] - Dose-history red test (2026-11-12)
+
+### Added
+
+- Red test `DoseHistorySurvivesScheduleDeleteTest` (`:shared:jvmTest`) pins the desired behavior: dose events recorded for a schedule survive `scheduleRepository.delete`. It fails on the current schema for the right reason, because the `DoseEvent.schedule_id` foreign key is `ON DELETE CASCADE` (a behavior pinned green by `SqliteForeignKeysCallbackTest`), while the `DoseEvent.sq` header itself names SET NULL as the intended policy. No implementation ships here: the fix is a schema migration, the product call belongs to the operator, and the pull request is labelled `needs-human-test-review`. `:shared:jvmTest` is red by design (211 tests, exactly the one intended failure); the full suite is not claimed green.
 
 ## [0.4.11] - Remove demo data from Settings (2026-11-11)
 
