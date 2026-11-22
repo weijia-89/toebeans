@@ -1,6 +1,7 @@
 package app.toebeans.core.backup
 
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -312,14 +313,14 @@ private class InMemoryScheduleRepo : ScheduleRepository {
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
         phasesById.asStateFlow().map { snap ->
-            (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
+            snap[scheduleId].orEmpty().sortedBy(SchedulePhase::phaseOrder)
         }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         schedules.asStateFlow().map { snap ->
             snap.values
-                .filter { it.endDate == null || it.endDate!! >= onOrAfter }
-                .map { sched -> ScheduleWithPhases(sched, phasesById.value[sched.id] ?: emptyList()) }
+                .filter { it.endDate == null || it.endDate >= onOrAfter }
+                .map { sched -> ScheduleWithPhases(sched, phasesById.value[sched.id].orEmpty()) }
         }
 
     override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
@@ -403,14 +404,13 @@ private class InMemoryDoseEventRepo : DoseEventRepository {
         return event
     }
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent {
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent {
+        val doseEventId = request.doseEventId
+        val scheduleId = request.scheduleId
+        val medicationId = request.medicationId
+        val scheduledAt = request.scheduledAt
+        val resolvedAt = request.resolvedAt
+        val note = request.note
         val event =
             DoseEvent(
                 id = doseEventId,

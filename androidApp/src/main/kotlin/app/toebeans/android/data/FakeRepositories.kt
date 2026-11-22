@@ -12,6 +12,7 @@ import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.model.Species
 import app.toebeans.core.notifications.NotificationActuator
+import app.toebeans.core.scheduler.MaterializeHorizonRequest
 import app.toebeans.core.scheduler.ReminderRescheduler
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.Flow
@@ -390,13 +391,15 @@ private suspend fun upsertDemoSchedule(
     scheduleRepository.upsert(schedule, phases)
     val reminders =
         ReminderRescheduler.materializeHorizonForSchedule(
-            schedule = schedule,
-            phases = phases,
-            medicationId = medicationId,
-            doseEventRepository = doseEventRepository,
-            scheduleCalculator = scheduleCalculator,
-            timeZone = timeZone,
-            now = now,
+            MaterializeHorizonRequest(
+                schedule = schedule,
+                phases = phases,
+                medicationId = medicationId,
+                doseEventRepository = doseEventRepository,
+                scheduleCalculator = scheduleCalculator,
+                timeZone = timeZone,
+                now = now,
+            ),
         )
     for (reminder in reminders) {
         notificationActuator.schedule(reminder)

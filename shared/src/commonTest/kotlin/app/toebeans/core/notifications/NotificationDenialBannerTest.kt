@@ -13,7 +13,8 @@ class NotificationDenialBannerTest {
     @Test
     fun `banner copy is the ADR sentence`() {
         assertEquals(
-            "Your last dose alarm did not show as a notification because notifications are disabled for toebeans. Tap to fix in Settings, or open the History tab to see what fired.",
+            "Your last dose alarm did not show as a notification because notifications are disabled " +
+                "for toebeans. Tap to fix in Settings, or open the History tab to see what fired.",
             NOTIFICATION_DENIAL_BANNER_COPY,
         )
     }

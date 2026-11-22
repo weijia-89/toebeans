@@ -10,6 +10,18 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlin.time.Duration.Companion.hours
 
+/** Inputs to [ReminderRescheduler.materializeHorizonForSchedule], grouped to keep the call signature small. */
+public data class MaterializeHorizonRequest(
+    val schedule: Schedule,
+    val phases: List<SchedulePhase>,
+    val medicationId: String,
+    val doseEventRepository: DoseEventRepository,
+    val scheduleCalculator: ScheduleCalculator,
+    val timeZone: TimeZone,
+    val now: Instant,
+    val skipExistingIds: Set<String> = emptySet(),
+)
+
 /**
  * Projects pending [DoseEvent] rows for the next [HORIZON_HOURS] and returns
  * [ScheduledReminder] handles for [app.toebeans.core.notifications.NotificationActuator].
@@ -29,16 +41,15 @@ public object ReminderRescheduler {
      * will overwrite an existing row with the same id; callers editing an existing schedule
      * must rematerialize in a dedicated slice that preserves GIVEN/SKIPPED/MISSED rows.
      */
-    public suspend fun materializeHorizonForSchedule(
-        schedule: Schedule,
-        phases: List<SchedulePhase>,
-        medicationId: String,
-        doseEventRepository: DoseEventRepository,
-        scheduleCalculator: ScheduleCalculator,
-        timeZone: TimeZone,
-        now: Instant,
-        skipExistingIds: Set<String> = emptySet(),
-    ): List<ScheduledReminder> {
+    public suspend fun materializeHorizonForSchedule(request: MaterializeHorizonRequest): List<ScheduledReminder> {
+        val schedule = request.schedule
+        val phases = request.phases
+        val medicationId = request.medicationId
+        val doseEventRepository = request.doseEventRepository
+        val scheduleCalculator = request.scheduleCalculator
+        val timeZone = request.timeZone
+        val now = request.now
+        val skipExistingIds = request.skipExistingIds
         val horizonEnd = now + HORIZON_HOURS.hours
         val doses =
             scheduleCalculator.computeScheduledDoses(

@@ -1,6 +1,7 @@
 package app.toebeans.core.scheduler
 
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Schedule
@@ -50,13 +51,15 @@ class ReminderReschedulerTest {
                 )
             val reminders =
                 ReminderRescheduler.materializeHorizonForSchedule(
-                    schedule = schedule,
-                    phases = phases,
-                    medicationId = MED_ID,
-                    doseEventRepository = doseRepo,
-                    scheduleCalculator = DefaultScheduleCalculator(),
-                    timeZone = tz,
-                    now = now,
+                    MaterializeHorizonRequest(
+                        schedule = schedule,
+                        phases = phases,
+                        medicationId = MED_ID,
+                        doseEventRepository = doseRepo,
+                        scheduleCalculator = DefaultScheduleCalculator(),
+                        timeZone = tz,
+                        now = now,
+                    ),
                 )
             assertTrue(reminders.isNotEmpty(), "BID-once-daily for 7 days inside 72h should materialize doses")
             assertEquals(reminders.size, doseRepo.upserted.size)
@@ -99,14 +102,7 @@ private class RecordingDoseRepo : DoseEventRepository {
         note: String?,
     ): DoseEvent = error("unused")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent = error("unused")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent = error("unused")
 
     override suspend fun delete(doseEventId: String) = Unit
 

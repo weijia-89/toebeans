@@ -15,7 +15,7 @@ import app.toebeans.core.model.SchedulePhase
 import app.toebeans.core.model.Species
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.notifications.ScheduledReminder
-import kotlinx.coroutines.Dispatchers
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -71,13 +71,17 @@ class HomeTimezoneRepairTest {
     private lateinit var petRepo: FixedPetRepo
     private lateinit var actuator: RecordingActuator
 
-    private fun seed(now: Instant) {
+    private fun seedDatabase() {
         driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         ToebeansDatabase.Schema.create(driver)
         driver.execute(null, "PRAGMA foreign_keys=ON", 0)
         db = ToebeansDatabase(driver)
-        doseRepo = SqlDelightDoseEventRepository(database = db, dispatcher = Dispatchers.Unconfined)
+        doseRepo = SqlDelightDoseEventRepository(database = db, dispatcher = unconfinedTestDispatcher())
         actuator = RecordingActuator()
+    }
+
+    private fun seed(now: Instant) {
+        seedDatabase()
         val pet =
             Pet(
                 id = "p-repair",
@@ -190,15 +194,17 @@ class HomeTimezoneRepairTest {
 
             val repaired =
                 HomeTimezoneRepair.repair(
-                    pet = petRepo.getById("p-repair")!!,
-                    zoneId = "America/New_York",
-                    schedulesWithPhases = bundle(),
-                    petRepository = petRepo,
-                    doseEventRepository = doseRepo,
-                    notificationActuator = actuator,
-                    scheduleCalculator = DefaultScheduleCalculator(),
-                    deviceTimeZone = TimeZone.of("Asia/Tokyo"),
-                    now = now,
+                    HomeTimezoneRepairRequest(
+                        pet = petRepo.getById("p-repair")!!,
+                        zoneId = "America/New_York",
+                        schedulesWithPhases = bundle(),
+                        petRepository = petRepo,
+                        doseEventRepository = doseRepo,
+                        notificationActuator = actuator,
+                        scheduleCalculator = DefaultScheduleCalculator(),
+                        deviceTimeZone = TimeZone.of("Asia/Tokyo"),
+                        now = now,
+                    ),
                 )
 
             assertEquals("America/New_York", petRepo.getById("p-repair")?.homeTimezone)
@@ -231,15 +237,17 @@ class HomeTimezoneRepairTest {
 
             assertFailsWith<IllegalArgumentException> {
                 HomeTimezoneRepair.repair(
-                    pet = petRepo.getById("p-repair")!!,
-                    zoneId = "Mars/Olympus_Mons",
-                    schedulesWithPhases = bundle(),
-                    petRepository = petRepo,
-                    doseEventRepository = doseRepo,
-                    notificationActuator = actuator,
-                    scheduleCalculator = DefaultScheduleCalculator(),
-                    deviceTimeZone = TimeZone.of("Asia/Tokyo"),
-                    now = now,
+                    HomeTimezoneRepairRequest(
+                        pet = petRepo.getById("p-repair")!!,
+                        zoneId = "Mars/Olympus_Mons",
+                        schedulesWithPhases = bundle(),
+                        petRepository = petRepo,
+                        doseEventRepository = doseRepo,
+                        notificationActuator = actuator,
+                        scheduleCalculator = DefaultScheduleCalculator(),
+                        deviceTimeZone = TimeZone.of("Asia/Tokyo"),
+                        now = now,
+                    ),
                 )
             }
 

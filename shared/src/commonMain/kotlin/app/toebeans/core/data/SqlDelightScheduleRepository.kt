@@ -93,7 +93,8 @@ public class SqlDelightScheduleRepository(
                 ScheduleWithPhases(
                     schedule = scheduleRow.toDomain(),
                     phases =
-                        (phasesByScheduleId[scheduleRow.id] ?: emptyList())
+                        phasesByScheduleId[scheduleRow.id]
+                            .orEmpty()
                             .sortedBy { it.phase_order }
                             .map(SchedulePhaseRow::toDomain),
                 )
@@ -168,13 +169,11 @@ private fun validatePhases(
     phases: List<SchedulePhase>,
 ) {
     val orders = phases.map { it.phaseOrder }.sorted()
-    if (orders != orders.indices.toList()) {
-        throw IllegalArgumentException(
-            "phases must have dense phaseOrder 0..N-1; got $orders",
-        )
+    require(orders == orders.indices.toList()) {
+        "phases must have dense phaseOrder 0..N-1; got $orders"
     }
-    if (phases.any { it.scheduleId != schedule.id }) {
-        throw IllegalArgumentException("every phase.scheduleId must match schedule.id")
+    require(phases.none { it.scheduleId != schedule.id }) {
+        "every phase.scheduleId must match schedule.id"
     }
 }
 

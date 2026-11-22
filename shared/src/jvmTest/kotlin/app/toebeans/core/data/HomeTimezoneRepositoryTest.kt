@@ -6,6 +6,7 @@ import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -23,7 +24,10 @@ class HomeTimezoneRepositoryTest {
         return driver to ToebeansDatabase(driver)
     }
 
-    private fun repo(db: ToebeansDatabase) = SqlDelightPetRepository(database = db, dispatcher = Dispatchers.Unconfined)
+    private fun repo(
+        db: ToebeansDatabase,
+        dispatcher: CoroutineDispatcher = Dispatchers.Unconfined,
+    ) = SqlDelightPetRepository(database = db, dispatcher = dispatcher)
 
     private fun pet(zoneId: String?) =
         Pet(

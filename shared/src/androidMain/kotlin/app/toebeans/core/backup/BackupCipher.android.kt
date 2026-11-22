@@ -1,4 +1,5 @@
-// FITNESS-ALLOW-PBKDF2-FILE: TBN1 legacy cipher per ADR-0018 § Implementation footprint. V2 (Argon2id) actual lives in BackupCipherV2.android.kt.
+// FITNESS-ALLOW-PBKDF2-FILE: TBN1 legacy cipher per ADR-0018 § Implementation footprint.
+// V2 (Argon2id) actual lives in BackupCipherV2.android.kt.
 package app.toebeans.core.backup
 
 import java.security.SecureRandom
@@ -61,12 +62,12 @@ internal class AndroidBackupCipher(
                 BackupCipher.IV_BYTES_LENGTH +
                 (BackupCipher.GCM_TAG_BITS / 8)
         if (envelope.size < minimumEnvelopeSize) {
-            throw BackupDecryptException("Envelope too short (${envelope.size} bytes).")
+            decryptFailure("Envelope too short (${envelope.size} bytes).")
         }
 
         val magic = envelope.copyOfRange(0, BackupCipher.MAGIC_BYTES_LENGTH)
         if (!magic.contentEquals(BackupCipher.MAGIC.toByteArray(Charsets.US_ASCII))) {
-            throw BackupDecryptException("Not a toebeans backup envelope (magic mismatch).")
+            decryptFailure("Not a toebeans backup envelope (magic mismatch).")
         }
 
         val saltStart = BackupCipher.MAGIC_BYTES_LENGTH
@@ -78,16 +79,21 @@ internal class AndroidBackupCipher(
         val ciphertext = envelope.copyOfRange(ciphertextStart, envelope.size)
 
         val key = deriveKey(passphrase, salt)
-        return try {
+        // runCatching catches Throwable, preserving the uniform-failure contract: wrong
+        // passphrase, tampering and truncation must all surface the same exception.
+        return runCatching {
             val cipher =
                 Cipher.getInstance("AES/GCM/NoPadding").apply {
                     init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(BackupCipher.GCM_TAG_BITS, iv))
                 }
             cipher.doFinal(ciphertext)
-        } catch (t: Throwable) {
-            throw BackupDecryptException("Backup could not be decrypted.", t)
-        }
+        }.getOrElse { decryptFailure("Backup could not be decrypted.", it) }
     }
+
+    private fun decryptFailure(
+        message: String,
+        cause: Throwable? = null,
+    ): Nothing = throw BackupDecryptException(message, cause)
 
     private fun deriveKey(
         passphrase: CharArray,

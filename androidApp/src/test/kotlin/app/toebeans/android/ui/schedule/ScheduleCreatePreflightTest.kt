@@ -1,6 +1,7 @@
 package app.toebeans.android.ui.schedule
 
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.data.ScheduleWithPhases
@@ -516,14 +517,8 @@ private class InMemDoseRepo : DoseEventRepository {
         note: String?,
     ): DoseEvent = error("unused in ScheduleCreate tests")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent = error("unused in ScheduleCreate tests")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
+        error("unused in ScheduleCreate tests")
 
     override suspend fun delete(doseEventId: String) {
         store.removeAll { it.id == doseEventId }

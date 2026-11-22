@@ -121,44 +121,7 @@ class HomeTimezoneMigrationSafetyTest {
         assertEquals(7L, ToebeansDatabase.Schema.version)
         val db = ToebeansDatabase(driver)
         val now = Instant.parse("2026-11-22T08:00:00Z").toEpochMilliseconds()
-        db.petQueries.insertPet(
-            id = "pet-mig",
-            name = "Migration Pet",
-            species = "dog",
-            birthdate_iso = null,
-            weight_kg = 5.0,
-            notes = null,
-            created_at = now,
-            archived_at = null,
-        )
-        db.medicationQueries.insertMedication(
-            id = "med-mig",
-            pet_id = "pet-mig",
-            name = "Migration Med",
-            dose_amount = "1",
-            dose_unit = "MG",
-            notes = null,
-            created_at = now,
-            discontinued_at = null,
-        )
-        db.scheduleQueries.insertSchedule(
-            id = "sched-mig",
-            medication_id = "med-mig",
-            start_date_iso = "2026-11-22",
-            end_date_iso = null,
-            created_at = now,
-            anchor_mode = "STAY_HOME_TZ",
-        )
-        db.doseEventQueries.insertDoseEvent(
-            id = "dose-mig",
-            schedule_id = "sched-mig",
-            medication_id = "med-mig",
-            scheduled_at = now,
-            fired_at = null,
-            resolved_at = null,
-            status = DoseStatus.PENDING.wireName,
-            note = null,
-        )
+        seedLegacyRows(db, now)
 
         ToebeansDatabase.Schema.migrate(driver, 6, 7)
 
@@ -219,5 +182,49 @@ class HomeTimezoneMigrationSafetyTest {
             "Schema.create and migration 6 must produce the same Pet column shape and order",
         )
         assertEquals("ok", scalarText(migrated, "PRAGMA integrity_check"))
+    }
+
+    private fun seedLegacyRows(
+        db: ToebeansDatabase,
+        now: Long,
+    ) {
+        db.petQueries.insertPet(
+            id = "pet-mig",
+            name = "Migration Pet",
+            species = "dog",
+            birthdate_iso = null,
+            weight_kg = 5.0,
+            notes = null,
+            created_at = now,
+            archived_at = null,
+        )
+        db.medicationQueries.insertMedication(
+            id = "med-mig",
+            pet_id = "pet-mig",
+            name = "Migration Med",
+            dose_amount = "1",
+            dose_unit = "MG",
+            notes = null,
+            created_at = now,
+            discontinued_at = null,
+        )
+        db.scheduleQueries.insertSchedule(
+            id = "sched-mig",
+            medication_id = "med-mig",
+            start_date_iso = "2026-11-22",
+            end_date_iso = null,
+            created_at = now,
+            anchor_mode = "STAY_HOME_TZ",
+        )
+        db.doseEventQueries.insertDoseEvent(
+            id = "dose-mig",
+            schedule_id = "sched-mig",
+            medication_id = "med-mig",
+            scheduled_at = now,
+            fired_at = null,
+            resolved_at = null,
+            status = DoseStatus.PENDING.wireName,
+            note = null,
+        )
     }
 }

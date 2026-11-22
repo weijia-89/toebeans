@@ -6,6 +6,7 @@ import app.toebeans.android.ui.reminders.ReminderAddAction
 import app.toebeans.android.ui.reminders.ReminderListViewModel
 import app.toebeans.android.util.StaleEventGuard
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -126,13 +127,15 @@ public class HomeViewModel(
     ) {
         viewModelScope.launch {
             doseEventRepository.recordGivenForSlot(
-                // Stable per-slot id matches ReminderRescheduler materialization so Log dose
-                // upgrades the pending row instead of inserting a duplicate the UI cannot match.
-                doseEventId = ReminderRescheduler.doseEventIdForSlot(scheduleId, scheduledAt),
-                scheduleId = scheduleId,
-                medicationId = medicationId,
-                scheduledAt = scheduledAt,
-                resolvedAt = Clock.System.now(),
+                GivenSlotRequest(
+                    // Stable per-slot id matches ReminderRescheduler materialization so Log dose
+                    // upgrades the pending row instead of inserting a duplicate the UI cannot match.
+                    doseEventId = ReminderRescheduler.doseEventIdForSlot(scheduleId, scheduledAt),
+                    scheduleId = scheduleId,
+                    medicationId = medicationId,
+                    scheduledAt = scheduledAt,
+                    resolvedAt = Clock.System.now(),
+                ),
             )
         }
     }

@@ -37,12 +37,7 @@ public class BackupSerializer(
      *         or a required field is missing.
      */
     public fun decodeFromString(text: String): BackupExport {
-        val parsed =
-            try {
-                json.decodeFromString(BackupExport.serializer(), text)
-            } catch (e: SerializationException) {
-                throw BackupFormatException("Backup JSON is malformed or fields are missing.", e)
-            }
+        val parsed = decode(text)
         if (parsed.schemaVersion > BackupExport.CURRENT_SCHEMA_VERSION) {
             throw BackupFormatException(
                 "Backup schema version ${parsed.schemaVersion} is newer than this app supports " +
@@ -51,6 +46,13 @@ public class BackupSerializer(
         }
         return parsed
     }
+
+    private fun decode(text: String): BackupExport =
+        try {
+            json.decodeFromString(BackupExport.serializer(), text)
+        } catch (e: SerializationException) {
+            throw BackupFormatException("Backup JSON is malformed or fields are missing.", e)
+        }
 
     public companion object {
         public val DefaultJson: Json =

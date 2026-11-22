@@ -4,6 +4,16 @@ import app.toebeans.core.model.DoseEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Instant
 
+/** Inputs to [DoseEventRepository.recordGivenForSlot], grouped to keep the call signature small. */
+public data class GivenSlotRequest(
+    val doseEventId: String,
+    val scheduleId: String,
+    val medicationId: String,
+    val scheduledAt: Instant,
+    val resolvedAt: Instant,
+    val note: String? = null,
+)
+
 /**
  * Repository contract for [DoseEvent] CRUD and observation.
  *
@@ -139,14 +149,7 @@ public interface DoseEventRepository {
      * shouldn't crash, and there's no reason to support multiple GIVEN events for the
      * same slot.
      */
-    public suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String? = null,
-    ): DoseEvent
+    public suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent
 
     /** Delete a recorded dose event. Used to support an Undo affordance. */
     public suspend fun delete(doseEventId: String)

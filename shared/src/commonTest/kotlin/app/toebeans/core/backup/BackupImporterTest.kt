@@ -1,6 +1,7 @@
 package app.toebeans.core.backup
 
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -331,7 +332,7 @@ class BackupImporterTest {
                 ).import(backup)
                 error("Expected BackupFormatException for schemaVersion > current")
             } catch (e: BackupFormatException) {
-                // OK
+                assertNotNull(e)
             }
             // Nothing should have been written.
             assertNull(petRepo.getById("pet-1"))
@@ -449,12 +450,12 @@ private class ImporterScheduleRepo : ScheduleRepository {
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
         phasesById.asStateFlow().map { snap ->
-            (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
+            snap[scheduleId].orEmpty().sortedBy(SchedulePhase::phaseOrder)
         }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         schedules.asStateFlow().map { snap ->
-            snap.values.map { sched -> ScheduleWithPhases(sched, phasesById.value[sched.id] ?: emptyList()) }
+            snap.values.map { sched -> ScheduleWithPhases(sched, phasesById.value[sched.id].orEmpty()) }
         }
 
     override fun observeAll(): Flow<List<Schedule>> = schedules.asStateFlow().map { it.values.toList() }
@@ -523,14 +524,8 @@ private class ImporterDoseEventRepo : DoseEventRepository {
         note: String?,
     ): DoseEvent = error("unused in BackupImporterTest")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent = error("unused in BackupImporterTest")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
+        error("unused in BackupImporterTest")
 
     override suspend fun delete(doseEventId: String) {
         state.update { it - doseEventId }

@@ -48,16 +48,16 @@ private class InMemoryContractScheduleRepository : ScheduleRepository {
 
     override fun observePhases(scheduleId: String): Flow<List<SchedulePhase>> =
         phasesByScheduleId.map { snap ->
-            (snap[scheduleId] ?: emptyList()).sortedBy(SchedulePhase::phaseOrder)
+            snap[scheduleId].orEmpty().sortedBy(SchedulePhase::phaseOrder)
         }
 
     override fun observeActiveWithPhases(onOrAfter: LocalDate): Flow<List<ScheduleWithPhases>> =
         // sdk-review F5: combine both flows like SqlDelightScheduleRepository so phase-only updates re-emit.
         combine(schedules, phasesByScheduleId) { scheduleSnap, phaseSnap ->
             scheduleSnap.values
-                .filter { it.endDate == null || it.endDate!! >= onOrAfter }
+                .filter { it.endDate == null || it.endDate >= onOrAfter }
                 .map { sched ->
-                    ScheduleWithPhases(sched, phaseSnap[sched.id] ?: emptyList())
+                    ScheduleWithPhases(sched, phaseSnap[sched.id].orEmpty())
                 }
         }
 
@@ -94,12 +94,10 @@ private fun validatePhasesForContract(
     phases: List<SchedulePhase>,
 ) {
     val orders = phases.map { it.phaseOrder }.sorted()
-    if (orders != orders.indices.toList()) {
-        throw IllegalArgumentException(
-            "phases must have dense phaseOrder 0..N-1; got $orders",
-        )
+    require(orders == orders.indices.toList()) {
+        "phases must have dense phaseOrder 0..N-1; got $orders"
     }
-    if (phases.any { it.scheduleId != schedule.id }) {
-        throw IllegalArgumentException("every phase.scheduleId must match schedule.id")
+    require(phases.none { it.scheduleId != schedule.id }) {
+        "every phase.scheduleId must match schedule.id"
     }
 }

@@ -120,15 +120,14 @@ public class SqlDelightDoseEventRepository(
             event
         }
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent =
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
         withContext(dispatcher) {
+            val doseEventId = request.doseEventId
+            val scheduleId = request.scheduleId
+            val medicationId = request.medicationId
+            val scheduledAt = request.scheduledAt
+            val resolvedAt = request.resolvedAt
+            val note = request.note
             val slotMs = scheduledAt.toEpochMilliseconds()
             // Prefer the materialized PENDING row (stable id from ReminderRescheduler) so
             // Today "Log dose" upgrades the same row the alarm receiver looks up.

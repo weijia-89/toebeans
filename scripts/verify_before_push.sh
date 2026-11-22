@@ -87,9 +87,11 @@ fi
 #    detekt 2.0.0-alpha.6 is not configuration-cache safe; the repository keeps
 #    configuration-cache=true/problems=fail for other tasks and opts detekt out
 #    explicitly here (operator override, logged). CI does the same.
+#    :shared:detektShared is required because the detekt 2 umbrella :shared:detekt
+#    is NO-SOURCE; the aggregate runs the nine tasks that really lint shared code.
 # ---------------------------------------------------------------------------
 run_check "Gradle lint (ktlint + detekt)" \
-    ./gradlew ktlintCheck detekt --no-configuration-cache --console=plain
+    ./gradlew ktlintCheck detekt :shared:detektShared --no-configuration-cache --console=plain
 
 # ---------------------------------------------------------------------------
 # 4. Gradle tests

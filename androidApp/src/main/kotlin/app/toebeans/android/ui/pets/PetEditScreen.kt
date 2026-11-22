@@ -48,6 +48,7 @@ import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Species
 import app.toebeans.core.notifications.NotificationActuator
 import app.toebeans.core.scheduler.HomeTimezoneRepair
+import app.toebeans.core.scheduler.HomeTimezoneRepairRequest
 import app.toebeans.core.scheduler.ScheduleCalculator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -254,15 +255,17 @@ public fun PetEditScreen(
                         scope.launch {
                             val pet = petRepository.getById(petId) ?: return@launch
                             HomeTimezoneRepair.repair(
-                                pet = pet,
-                                zoneId = trimmedZone,
-                                schedulesWithPhases = bundlesForPet(petId),
-                                petRepository = petRepository,
-                                doseEventRepository = doseEventRepository,
-                                notificationActuator = notificationActuator,
-                                scheduleCalculator = scheduleCalculator,
-                                deviceTimeZone = TimeZone.currentSystemDefault(),
-                                now = Clock.System.now(),
+                                HomeTimezoneRepairRequest(
+                                    pet = pet,
+                                    zoneId = trimmedZone,
+                                    schedulesWithPhases = bundlesForPet(petId),
+                                    petRepository = petRepository,
+                                    doseEventRepository = doseEventRepository,
+                                    notificationActuator = notificationActuator,
+                                    scheduleCalculator = scheduleCalculator,
+                                    deviceTimeZone = TimeZone.currentSystemDefault(),
+                                    now = Clock.System.now(),
+                                ),
                             )
                             repairMessage = context.getString(R.string.pet_edit_recalculate_done)
                         }

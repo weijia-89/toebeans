@@ -185,8 +185,9 @@ jobs:
       - name: Lint (ktlint + detekt)
         # detekt 2.0.0-alpha.6 is not configuration-cache safe. The repository keeps
         # configuration-cache=true/problems=fail for all other tasks; detekt opts out
-        # explicitly here (operator override, logged).
-        run: ./gradlew ktlintCheck detekt --no-configuration-cache --stacktrace
+        # explicitly here (operator override, logged). :shared:detektShared is required
+        # because the detekt 2 umbrella :shared:detekt is NO-SOURCE.
+        run: ./gradlew ktlintCheck detekt :shared:detektShared --no-configuration-cache --stacktrace
       - name: Shared JVM + Android host tests (scheduler, backup, model)
         run: ./gradlew :shared:jvmTest :shared:testAndroidHostTest --stacktrace
       - name: Assert both shared suites ran more than zero tests

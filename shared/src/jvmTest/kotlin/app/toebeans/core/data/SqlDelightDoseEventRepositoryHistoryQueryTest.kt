@@ -5,7 +5,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.toebeans.core.db.ToebeansDatabase
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
-import kotlinx.coroutines.Dispatchers
+import app.toebeans.core.unconfinedTestDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -44,7 +44,7 @@ class SqlDelightDoseEventRepositoryHistoryQueryTest {
         repo =
             SqlDelightDoseEventRepository(
                 database = database,
-                dispatcher = Dispatchers.Unconfined,
+                dispatcher = unconfinedTestDispatcher(),
             )
     }
 

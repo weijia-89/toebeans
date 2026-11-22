@@ -11,6 +11,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 
+/** Inputs to [HomeTimezoneRepair.repair], grouped to keep the call signature small. */
+public data class HomeTimezoneRepairRequest(
+    val pet: Pet,
+    val zoneId: String,
+    val schedulesWithPhases: List<ScheduleWithPhases>,
+    val petRepository: PetRepository,
+    val doseEventRepository: DoseEventRepository,
+    val notificationActuator: NotificationActuator,
+    val scheduleCalculator: ScheduleCalculator,
+    val deviceTimeZone: TimeZone,
+    val now: Instant,
+)
+
 /**
  * Repair path for a quarantined [Pet.homeTimezone]. Called only after the owner picks a
  * valid zone in pet edit and explicitly taps Recalculate.
@@ -20,17 +33,16 @@ import kotlinx.datetime.TimeZone
  * otherwise never re-materialized (see [TimeZonePolicy.Resolution.Quarantined]).
  */
 public object HomeTimezoneRepair {
-    public suspend fun repair(
-        pet: Pet,
-        zoneId: String,
-        schedulesWithPhases: List<ScheduleWithPhases>,
-        petRepository: PetRepository,
-        doseEventRepository: DoseEventRepository,
-        notificationActuator: NotificationActuator,
-        scheduleCalculator: ScheduleCalculator,
-        deviceTimeZone: TimeZone,
-        now: Instant,
-    ): Int {
+    public suspend fun repair(request: HomeTimezoneRepairRequest): Int {
+        val pet = request.pet
+        val zoneId = request.zoneId
+        val schedulesWithPhases = request.schedulesWithPhases
+        val petRepository = request.petRepository
+        val doseEventRepository = request.doseEventRepository
+        val notificationActuator = request.notificationActuator
+        val scheduleCalculator = request.scheduleCalculator
+        val deviceTimeZone = request.deviceTimeZone
+        val now = request.now
         require(HomeTimezone.isValid(zoneId)) { "Refusing to persist an invalid home timezone id" }
 
         val allEvents = doseEventRepository.observeAll().first()
@@ -55,14 +67,16 @@ public object HomeTimezoneRepair {
                 }
             val reminders =
                 ReminderRescheduler.materializeHorizonForSchedule(
-                    schedule = bundle.schedule,
-                    phases = bundle.phases,
-                    medicationId = bundle.schedule.medicationId,
-                    doseEventRepository = doseEventRepository,
-                    scheduleCalculator = scheduleCalculator,
-                    timeZone = zone,
-                    now = now,
-                    skipExistingIds = preservedIds,
+                    MaterializeHorizonRequest(
+                        schedule = bundle.schedule,
+                        phases = bundle.phases,
+                        medicationId = bundle.schedule.medicationId,
+                        doseEventRepository = doseEventRepository,
+                        scheduleCalculator = scheduleCalculator,
+                        timeZone = zone,
+                        now = now,
+                        skipExistingIds = preservedIds,
+                    ),
                 )
             for (reminder in reminders) notificationActuator.schedule(reminder)
             armed += reminders.size

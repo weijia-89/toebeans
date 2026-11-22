@@ -240,7 +240,7 @@ class BackupCipherV2Test {
         assertEquals(BackupCipherV2.SALT_BYTES_LENGTH, salt.size, "vector salt must be exactly 16 bytes")
         assertEquals(BackupCipherV2.IV_BYTES_LENGTH, iv.size, "vector iv must be exactly 12 bytes")
 
-        // EXPECTED_CIPHERTEXT_AND_TAG cross-checked against pyca/cryptography
+        // expectedCiphertextAndTag cross-checked against pyca/cryptography
         // (which binds to OpenSSL's EVP_aes_256_gcm) with the key derived from
         // argon2-cffi (which binds to the official phc-winner-argon2 C reference).
         // Both reference impls are independent of BouncyCastle. The Python
@@ -250,58 +250,13 @@ class BackupCipherV2Test {
         // Length = plaintext(26) + GCM tag(16) = 42 bytes.
         // If the impl constructs AAD in any order other than magic || salt || iv,
         // the GCM tag check fails and decrypt() throws BackupDecryptException.
-        @Suppress("ktlint:standard:property-naming")
-        val EXPECTED_CIPHERTEXT_AND_TAG: ByteArray =
-            byteArrayOf(
-                0x8e.toByte(),
-                0x84.toByte(),
-                0xf9.toByte(),
-                0xb7.toByte(),
-                0xc0.toByte(),
-                0xc4.toByte(),
-                0xc1.toByte(),
-                0xe9.toByte(),
-                0x2c.toByte(),
-                0xe9.toByte(),
-                0x11.toByte(),
-                0x87.toByte(),
-                0x6a.toByte(),
-                0xed.toByte(),
-                0xd7.toByte(),
-                0x89.toByte(),
-                0xb4.toByte(),
-                0xda.toByte(),
-                0x61.toByte(),
-                0x14.toByte(),
-                0x79.toByte(),
-                0x8d.toByte(),
-                0x16.toByte(),
-                0x1c.toByte(),
-                0xe1.toByte(),
-                0xb4.toByte(),
-                0x93.toByte(),
-                0xe2.toByte(),
-                0xe7.toByte(),
-                0x24.toByte(),
-                0x3f.toByte(),
-                0xcc.toByte(),
-                0xc6.toByte(),
-                0x97.toByte(),
-                0x98.toByte(),
-                0x42.toByte(),
-                0x3f.toByte(),
-                0x83.toByte(),
-                0x6f.toByte(),
-                0x17.toByte(),
-                0xff.toByte(),
-                0x30.toByte(),
-            )
+        val expectedCiphertextAndTag = expectedCiphertextAndTag()
 
         val envelope =
             BackupCipherV2.MAGIC.toByteArray(Charsets.US_ASCII) +
                 salt +
                 iv +
-                EXPECTED_CIPHERTEXT_AND_TAG
+                expectedCiphertextAndTag
 
         // Pre-impl: cipher.decrypt() throws NotImplementedError below.
         // Post-impl, TODO unfilled: decrypt() throws BackupDecryptException because
@@ -312,7 +267,7 @@ class BackupCipherV2Test {
         //   on GCM tag mismatch.
         val recovered = cipher.decrypt(envelope, passphrase)
         assertFalse(
-            EXPECTED_CIPHERTEXT_AND_TAG.isEmpty(),
+            expectedCiphertextAndTag.isEmpty(),
             "AAD-order vector ciphertext is the D1 TODO; D1 must compute and fill in the bytes",
         )
         assertContentEquals(
@@ -368,4 +323,50 @@ class BackupCipherV2Test {
                 "tampered-ciphertext='${tamperedCiphertextEx.message}'",
         )
     }
+
+    private fun expectedCiphertextAndTag(): ByteArray =
+        byteArrayOf(
+            0x8e.toByte(),
+            0x84.toByte(),
+            0xf9.toByte(),
+            0xb7.toByte(),
+            0xc0.toByte(),
+            0xc4.toByte(),
+            0xc1.toByte(),
+            0xe9.toByte(),
+            0x2c.toByte(),
+            0xe9.toByte(),
+            0x11.toByte(),
+            0x87.toByte(),
+            0x6a.toByte(),
+            0xed.toByte(),
+            0xd7.toByte(),
+            0x89.toByte(),
+            0xb4.toByte(),
+            0xda.toByte(),
+            0x61.toByte(),
+            0x14.toByte(),
+            0x79.toByte(),
+            0x8d.toByte(),
+            0x16.toByte(),
+            0x1c.toByte(),
+            0xe1.toByte(),
+            0xb4.toByte(),
+            0x93.toByte(),
+            0xe2.toByte(),
+            0xe7.toByte(),
+            0x24.toByte(),
+            0x3f.toByte(),
+            0xcc.toByte(),
+            0xc6.toByte(),
+            0x97.toByte(),
+            0x98.toByte(),
+            0x42.toByte(),
+            0x3f.toByte(),
+            0x83.toByte(),
+            0x6f.toByte(),
+            0x17.toByte(),
+            0xff.toByte(),
+            0x30.toByte(),
+        )
 }

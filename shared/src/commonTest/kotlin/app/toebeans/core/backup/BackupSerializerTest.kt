@@ -204,17 +204,7 @@ class BackupSerializerTest {
                 doseAmount = "10",
                 doseUnit = DoseUnit.MG,
             )
-        val event =
-            DoseEvent(
-                id = "evt-1",
-                scheduleId = schedule.id,
-                medicationId = med.id,
-                scheduledAt = now,
-                firedAt = now,
-                resolvedAt = now,
-                status = DoseStatus.GIVEN,
-                note = "ate it from a treat",
-            )
+        val event = sampleEvent(now, schedule.id, med.id)
         return BackupExport(
             schemaVersion = BackupExport.CURRENT_SCHEMA_VERSION,
             exportedAt = now,
@@ -226,4 +216,19 @@ class BackupSerializerTest {
             doseEvents = listOf(event),
         )
     }
+
+    private fun sampleEvent(
+        now: Instant,
+        scheduleId: String,
+        medicationId: String,
+    ) = DoseEvent(
+        id = "evt-1",
+        scheduleId = scheduleId,
+        medicationId = medicationId,
+        scheduledAt = now,
+        firedAt = now,
+        resolvedAt = now,
+        status = DoseStatus.GIVEN,
+        note = "ate it from a treat",
+    )
 }

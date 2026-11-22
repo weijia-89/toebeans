@@ -96,68 +96,10 @@ class VetVisitSchemaContractTest {
 
             // Round-trip pin (runs green only after F5a): record a past vaccination visit,
             // its vaccine reference row, and the join row from the discharge paperwork.
-            driver.execute(
-                null,
-                """
-                INSERT INTO VetVisit (id, pet_id, kind, scheduled_at, occurred_at, provider, notes, created_at)
-                VALUES ('vv-1', 'p-vet', 'vaccination', NULL, 1779148800000, 'Lakeside Veterinary Clinic', 'Rabies booster given', 1779148800000)
-                """.trimIndent(),
-                0,
-            )
-            driver.execute(
-                null,
-                """
-                INSERT INTO Vaccine (id, name, species, core_or_non_core, default_interval_months, regulatory_region)
-                VALUES ('rabies-us', 'Rabies (US-regulated)', 'dog', 'core', 36, '["US-rabies"]')
-                """.trimIndent(),
-                0,
-            )
-            driver.execute(
-                null,
-                """
-                INSERT INTO VaccinationGiven (vet_visit_id, vaccine_id, lot_number, expiration_date, dose_route)
-                VALUES ('vv-1', 'rabies-us', 'LOT-4471', '2029-05-01', 'IM')
-                """.trimIndent(),
-                0,
-            )
-            val row =
-                driver
-                    .executeQuery(
-                        identifier = null,
-                        sql =
-                            """
-                            SELECT v.kind, v.occurred_at, v.provider, v.notes,
-                                   vac.name, vac.default_interval_months, vg.lot_number
-                            FROM VetVisit v
-                            JOIN VaccinationGiven vg ON vg.vet_visit_id = v.id
-                            JOIN Vaccine vac ON vac.id = vg.vaccine_id
-                            WHERE v.id = 'vv-1'
-                            """.trimIndent(),
-                        mapper = { cursor ->
-                            QueryResult.Value(
-                                if (cursor.next().value) {
-                                    Triple(
-                                        listOf(
-                                            cursor.getString(0),
-                                            cursor.getLong(1),
-                                            cursor.getString(2),
-                                            cursor.getString(3),
-                                        ),
-                                        listOf(
-                                            cursor.getString(4),
-                                            cursor.getLong(5),
-                                        ),
-                                        cursor.getString(6),
-                                    )
-                                } else {
-                                    null
-                                },
-                            )
-                        },
-                        parameters = 0,
-                    ).value
-            val visitFields = row?.first ?: emptyList()
-            val vaccineFields = row?.second ?: emptyList()
+            seedVetRows(driver)
+            val row = queryVetJoin(driver)
+            val visitFields = row?.first.orEmpty()
+            val vaccineFields = row?.second.orEmpty()
             assertEquals(
                 listOf("vaccination", 1779148800000L, "Lakeside Veterinary Clinic", "Rabies booster given"),
                 visitFields,
@@ -185,4 +127,68 @@ class VetVisitSchemaContractTest {
                 "round-trip sanity: occurred_at epoch-ms maps back to the visit date",
             )
         }
+
+    private fun seedVetRows(driver: SqlDriver) {
+        driver.execute(
+            null,
+            """
+            INSERT INTO VetVisit (id, pet_id, kind, scheduled_at, occurred_at, provider, notes, created_at)
+            VALUES ('vv-1', 'p-vet', 'vaccination', NULL, 1779148800000, 'Lakeside Veterinary Clinic', 'Rabies booster given', 1779148800000)
+            """.trimIndent(),
+            0,
+        )
+        driver.execute(
+            null,
+            """
+            INSERT INTO Vaccine (id, name, species, core_or_non_core, default_interval_months, regulatory_region)
+            VALUES ('rabies-us', 'Rabies (US-regulated)', 'dog', 'core', 36, '["US-rabies"]')
+            """.trimIndent(),
+            0,
+        )
+        driver.execute(
+            null,
+            """
+            INSERT INTO VaccinationGiven (vet_visit_id, vaccine_id, lot_number, expiration_date, dose_route)
+            VALUES ('vv-1', 'rabies-us', 'LOT-4471', '2029-05-01', 'IM')
+            """.trimIndent(),
+            0,
+        )
+    }
+
+    private fun queryVetJoin(driver: SqlDriver) =
+        driver
+            .executeQuery(
+                identifier = null,
+                sql =
+                    """
+                    SELECT v.kind, v.occurred_at, v.provider, v.notes,
+                           vac.name, vac.default_interval_months, vg.lot_number
+                    FROM VetVisit v
+                    JOIN VaccinationGiven vg ON vg.vet_visit_id = v.id
+                    JOIN Vaccine vac ON vac.id = vg.vaccine_id
+                    WHERE v.id = 'vv-1'
+                    """.trimIndent(),
+                mapper = { cursor ->
+                    QueryResult.Value(
+                        if (cursor.next().value) {
+                            Triple(
+                                listOf(
+                                    cursor.getString(0),
+                                    cursor.getLong(1),
+                                    cursor.getString(2),
+                                    cursor.getString(3),
+                                ),
+                                listOf(
+                                    cursor.getString(4),
+                                    cursor.getLong(5),
+                                ),
+                                cursor.getString(6),
+                            )
+                        } else {
+                            null
+                        },
+                    )
+                },
+                parameters = 0,
+            ).value
 }

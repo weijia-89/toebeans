@@ -4,6 +4,7 @@ import app.toebeans.core.backup.BackupExport
 import app.toebeans.core.backup.BackupImporter
 import app.toebeans.core.backup.BackupSerializer
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
@@ -347,14 +348,8 @@ private class ImporterDoseEventRepo : DoseEventRepository {
         note: String?,
     ): DoseEvent = error("unused in ImportBackupViewModelTest")
 
-    override suspend fun recordGivenForSlot(
-        doseEventId: String,
-        scheduleId: String,
-        medicationId: String,
-        scheduledAt: Instant,
-        resolvedAt: Instant,
-        note: String?,
-    ): DoseEvent = error("unused in ImportBackupViewModelTest")
+    override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
+        error("unused in ImportBackupViewModelTest")
 
     override suspend fun delete(doseEventId: String) {
         state.update { it - doseEventId }

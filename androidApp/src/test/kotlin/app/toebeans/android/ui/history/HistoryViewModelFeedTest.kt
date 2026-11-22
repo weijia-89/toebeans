@@ -3,6 +3,7 @@ package app.toebeans.android.ui.history
 import app.toebeans.android.data.FakeMedicationRepository
 import app.toebeans.android.data.FakePetRepository
 import app.toebeans.core.data.DoseEventRepository
+import app.toebeans.core.data.GivenSlotRequest
 import app.toebeans.core.model.DoseEvent
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.DoseUnit
@@ -293,14 +294,8 @@ class HistoryViewModelFeedTest {
             note: String?,
         ): DoseEvent = writeBlocked("recordGivenNow")
 
-        override suspend fun recordGivenForSlot(
-            doseEventId: String,
-            scheduleId: String,
-            medicationId: String,
-            scheduledAt: Instant,
-            resolvedAt: Instant,
-            note: String?,
-        ): DoseEvent = writeBlocked("recordGivenForSlot")
+        override suspend fun recordGivenForSlot(request: GivenSlotRequest): DoseEvent =
+            writeBlocked("recordGivenForSlot")
 
         override suspend fun delete(doseEventId: String) {
             writeBlocked("delete")
