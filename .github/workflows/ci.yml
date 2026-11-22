@@ -44,6 +44,10 @@ jobs:
         run: bash scripts/test_no_duplicate_private_test_class_names.sh .
       - name: AGENTS / CLAUDE parity
         run: bash scripts/agents_claude_parity.sh .
+      - name: AGP-9 built-in-Kotlin migration gate
+        run: bash scripts/test_agp9_builtin_kotlin_migration.sh .
+      - name: AGP-9 built-in-Kotlin migration self-test
+        run: bash scripts/test_test_agp9_builtin_kotlin_migration.sh .
       - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)
         run: bash scripts/test_pre_commit_hook.sh .
       - name: Duplicate-private fitness-function self-test
@@ -179,9 +183,24 @@ jobs:
       - name: Validate wrapper
         uses: gradle/actions/wrapper-validation@v5
       - name: Lint (ktlint + detekt)
-        run: ./gradlew ktlintCheck detekt --stacktrace
-      - name: Shared JVM tests (scheduler, backup, model)
-        run: ./gradlew :shared:jvmTest :shared:testDebugUnitTest --stacktrace
+        # detekt 2.0.0-alpha.6 is not configuration-cache safe. The repository keeps
+        # configuration-cache=true/problems=fail for all other tasks; detekt opts out
+        # explicitly here (operator override, logged).
+        run: ./gradlew ktlintCheck detekt --no-configuration-cache --stacktrace
+      - name: Shared JVM + Android host tests (scheduler, backup, model)
+        run: ./gradlew :shared:jvmTest :shared:testAndroidHostTest --stacktrace
+      - name: Assert both shared suites ran more than zero tests
+        run: |
+          for task in jvmTest testAndroidHostTest; do
+            count=$((grep -h -o '<testcase ' shared/build/test-results/$task/*.xml 2>/dev/null || true) | wc -l | tr -d ' ')
+            if [ "$count" -le 0 ]; then
+              echo "::error::$task ran $count test cases; refusing a green build with no tests"
+              exit 1
+            fi
+            echo "$task ran $count test cases"
+          done
+      - name: SQLDelight golden-schema drift gate (verify migrations from 1.db)
+        run: ./gradlew :shared:verifySqlDelightMigration --stacktrace
       - name: Coverage verification (Kover, line coverage ≥ 85% per ADR-0006)
         run: ./gradlew :shared:koverVerify --stacktrace
       - name: Android app assembleDebug

@@ -65,6 +65,10 @@ run_check "Fitness: drug-reference-approval self-test" \
 run_check "Fitness: no-duplicate-private-test-class-names" \
     bash scripts/test_no_duplicate_private_test_class_names.sh .
 run_check "Fitness: AGENTS/CLAUDE parity"  bash scripts/agents_claude_parity.sh .
+run_check "Fitness: AGP-9 built-in-Kotlin migration" \
+    bash scripts/test_agp9_builtin_kotlin_migration.sh .
+run_check "Fitness: AGP-9 built-in-Kotlin migration self-test" \
+    bash scripts/test_test_agp9_builtin_kotlin_migration.sh .
 
 # ---------------------------------------------------------------------------
 # 2. Vibe-dangerous check (local mirror of CI gate)
@@ -80,17 +84,39 @@ fi
 
 # ---------------------------------------------------------------------------
 # 3. Gradle lint — must match CI exactly
-#    CI runs: ./gradlew ktlintCheck detekt
+#    detekt 2.0.0-alpha.6 is not configuration-cache safe; the repository keeps
+#    configuration-cache=true/problems=fail for other tasks and opts detekt out
+#    explicitly here (operator override, logged). CI does the same.
 # ---------------------------------------------------------------------------
-run_check "Gradle lint (ktlint + detekt)" ./gradlew ktlintCheck detekt --console=plain
+run_check "Gradle lint (ktlint + detekt)" \
+    ./gradlew ktlintCheck detekt --no-configuration-cache --console=plain
 
 # ---------------------------------------------------------------------------
 # 4. Gradle tests
-#    CI runs: ./gradlew :shared:jvmTest :shared:testDebugUnitTest
+#    CI runs: ./gradlew :shared:jvmTest :shared:testAndroidHostTest
 # ---------------------------------------------------------------------------
+# A green build that ran zero tests is not a pass. Both suites must emit
+# JUnit XML with at least one <testcase> element.
+assert_test_count_gt_zero() {
+    local task="$1"
+    local count
+    count=$((grep -h -o '<testcase ' shared/build/test-results/$task/*.xml 2>/dev/null || true) | wc -l | tr -d ' ')
+    if [[ "$count" -le 0 ]]; then
+        echo -e "  ${RED}FAIL${NC} — $task ran $count test cases"
+        FAILED=$((FAILED + 1))
+    else
+        echo -e "  ${GRN}PASS${NC} — $task ran $count test cases"
+    fi
+}
+
 if [[ "$FAST" -eq 0 ]]; then
     run_check "Shared JVM tests"          ./gradlew :shared:jvmTest --console=plain
+    assert_test_count_gt_zero "jvmTest"
+    run_check "Shared Android host tests" ./gradlew :shared:testAndroidHostTest --console=plain
+    assert_test_count_gt_zero "testAndroidHostTest"
     run_check "Android app unit tests"    ./gradlew :androidApp:testDebugUnitTest --console=plain
+    run_check "SQLDelight golden-schema drift gate" \
+        ./gradlew :shared:verifySqlDelightMigration --console=plain
 else
     echo ""
     echo "==> Gradle tests (skipped --fast)"

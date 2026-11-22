@@ -23,7 +23,8 @@
 // (adding benchmarks, tuning iterations) are scaffolding work and remain vibe-careful.
 plugins {
     alias(libs.plugins.android.test)
-    alias(libs.plugins.kotlin.android)
+    // AGP 9 built-in Kotlin provides Kotlin support for com.android.test; applying
+    // org.jetbrains.kotlin.android here fails configuration (duplicate plugin version).
     // Intentionally NOT applying `androidx.benchmark`: that plugin is for microbenchmark
     // *library* modules (com.android.library + benchmark-junit4), not for macrobenchmark
     // *test* modules. The plugin's own error message says so verbatim:

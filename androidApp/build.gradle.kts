@@ -6,7 +6,6 @@
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ktlint)
@@ -168,7 +167,8 @@ tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.KtLintFormatTask>().configure
     exclude { fte -> fte.file.invariantSeparatorsPath.contains("/build/generated/") }
 }
 
+// detekt 2 extension uses lazy Property setters (see shared/build.gradle.kts).
 detekt {
     config.setFrom(files("$rootDir/.detekt.yml"))
-    buildUponDefaultConfig = true
+    buildUponDefaultConfig.set(true)
 }

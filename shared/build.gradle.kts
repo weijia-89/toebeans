@@ -12,7 +12,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
@@ -24,7 +24,26 @@ val enableIosTargets: String by project
 kotlin {
     explicitApi()
 
-    androidTarget {
+    // AGP 9 Android-KMP library plugin: all Android config lives inside
+    // kotlin { android { } }. No top-level android extension exists. Android
+    // resources are not enabled: :shared has no src/androidMain/res directory,
+    // and the new plugin leaves resource processing off by default.
+    android {
+        namespace = "app.toebeans.core"
+        compileSdk =
+            libs.versions.android.compile.sdk
+                .get()
+                .toInt()
+        minSdk =
+            libs.versions.android.min.sdk
+                .get()
+                .toInt()
+
+        // Host (Robolectric) tests are off by default under the new plugin.
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
@@ -75,7 +94,7 @@ kotlin {
             }
         }
 
-        val androidUnitTest by getting {
+        val androidHostTest by getting {
             dependencies {
                 implementation(libs.junit)
                 implementation(libs.robolectric)
@@ -110,35 +129,17 @@ kotlin {
     }
 }
 
-android {
-    namespace = "app.toebeans.core"
-    compileSdk =
-        libs.versions.android.compile.sdk
-            .get()
-            .toInt()
-
-    defaultConfig {
-        minSdk =
-            libs.versions.android.min.sdk
-                .get()
-                .toInt()
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    testOptions {
-        unitTests.isIncludeAndroidResources = true
-    }
-}
-
 sqldelight {
     databases {
         create("ToebeansDatabase") {
             packageName.set("app.toebeans.core.db")
             srcDirs.setFrom("src/commonMain/sqldelight")
+            // Build-time schema drift gate: committed 1.db is migrated through
+            // 1.sqm..4.sqm and compared to the current .sq schema by
+            // verifySqlDelightMigration (wired into check). SQLDelight issue #4759
+            // can hang verification with foreign keys — see daily log for timing.
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            verifyMigrations.set(true)
         }
     }
 }
@@ -159,10 +160,13 @@ tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.KtLintFormatTask>().configure
     exclude { fte -> fte.file.invariantSeparatorsPath.contains("/build/generated/") }
 }
 
+// detekt 2: the extension is lazy (Property setters) and maxIssues was replaced
+// by failOnSeverity. The repo's configuration-cache.problems=fail setting stays;
+// detekt itself is invoked with --no-configuration-cache (see CI + verify script).
 detekt {
     config.setFrom(files("$rootDir/.detekt.yml"))
-    buildUponDefaultConfig = true
-    allRules = false
+    buildUponDefaultConfig.set(true)
+    allRules.set(false)
 }
 
 // Test failures are now fatal. The v0.1 `ignoreFailures = true` block has been removed
