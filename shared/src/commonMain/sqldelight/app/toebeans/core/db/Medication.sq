@@ -7,16 +7,20 @@
 -- time. FK cascade is enforced at runtime per ADR-0010 (PRAGMA foreign_keys=ON).
 --
 -- Split from the original consolidated toebeans.sq on 2026-05-18.
+--
+-- Column order is load-bearing: 1.sqm adds dose_unit with ALTER TABLE ADD COLUMN,
+-- and SQLite always appends that column after discontinued_at with DEFAULT 'MG'.
+-- The golden-schema gate compares ordinal positions, so keep dose_unit last here.
 
 CREATE TABLE Medication (
     id              TEXT NOT NULL PRIMARY KEY,
     pet_id          TEXT NOT NULL,
     name            TEXT NOT NULL,                           -- 'Prednisone'
     dose_amount     TEXT NOT NULL,                           -- '10' — free text amount (unit lives in dose_unit)
-    dose_unit       TEXT NOT NULL,                           -- 'MG', 'TABLET', etc.
     notes           TEXT,
     created_at      INTEGER NOT NULL,
     discontinued_at INTEGER,                                 -- soft retire
+    dose_unit       TEXT NOT NULL DEFAULT 'MG',              -- 'MG', 'TABLET', etc.
     FOREIGN KEY (pet_id) REFERENCES Pet(id) ON DELETE CASCADE
 );
 
