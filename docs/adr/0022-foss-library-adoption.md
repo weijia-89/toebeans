@@ -1,5 +1,7 @@
 # ADR-0022: FOSS library adoption, inventory and costed options
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-11-22
 Status: Proposed (operator decision pending)
 Deciders: Wei Jia (pending)

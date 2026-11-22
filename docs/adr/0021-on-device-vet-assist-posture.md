@@ -1,5 +1,7 @@
 # ADR-0021: On-device veterinary assist posture. DRAFT for operator decision: keep the ADR-0019 ban (Option A) or amend it under strict gates (Option B). Nothing changes until Wei Jia selects.
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-11-15
 Status: Proposed
 Deciders: Wei Jia (pending)

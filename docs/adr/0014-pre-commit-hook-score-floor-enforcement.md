@@ -1,5 +1,7 @@
 # ADR-0014: Should the pre-commit hook enforce calibration score floor?
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-17
 Status: **Proposed, decision deferred to Wei after M1.2**
 Deciders: Wei Jia

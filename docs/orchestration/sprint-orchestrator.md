@@ -1,5 +1,7 @@
 # Weekend sprint orchestrator (toebeans)
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Committed contract for the scheduled Saturday/Sunday 07:00 sprint run. The automation prompt is a
 thin pointer to this file so the orchestration is versioned, reviewable, and cheap to send.
 

@@ -1,5 +1,7 @@
 # ADR-0004: Tapering schedule model (Schedule + ordered SchedulePhase rows)
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-14
 Status: Accepted (with 2026-05-15 test-as-spec review amendment; see § Test-as-spec review)
 Deciders: Wei Jia (with Cascade)

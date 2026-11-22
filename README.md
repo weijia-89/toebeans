@@ -165,8 +165,8 @@ toebeans/
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the pre-push gauntlet and
-[AGENTS.md](AGENTS.md) for the load-bearing contract.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the pre-push gauntlet and the
+local agent contract in your working copy for the load-bearing rules.
 
 ## Security and privacy
 

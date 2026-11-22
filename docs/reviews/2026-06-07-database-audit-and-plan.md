@@ -1,5 +1,7 @@
 # Database audit + remediation plan (2026-06-07)
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 **Tier:** vibe-dangerous-adjacent (SQLDelight + medication-critical fire path)  
 **Reviewer posture:** trainer → form-check + review-rigor  
 **Scope:** SQLDelight schema (`*.sq`), repositories, `SqlDelightReminderLookup`, boot rehydrate

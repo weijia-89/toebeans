@@ -1,5 +1,7 @@
 # ADR-0020: Vet visit and vaccine domain model. VetVisit, Vaccine reference list, and species, age, and region-aware reminder rule packs.
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-19
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

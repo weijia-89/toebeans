@@ -11,8 +11,9 @@
 #    a NEW `uses-permission` line, that line's value MUST already be on the AGENTS.md
 #    allowlist (the hook does NOT enforce this — that is the human reviewer's job — but
 #    it WARNS prominently).
-# 3. If a staged file modifies `AGENTS.md` or `CLAUDE.md`, BOTH must be staged and the
-#    fitness-function `scripts/agents_claude_parity.sh` must pass.
+# 3. If a staged file re-adds `AGENTS.md` or `CLAUDE.md` (local-only working copies,
+#    gitignored on main), BOTH must be staged and the fitness-function
+#    `scripts/agents_claude_parity.sh` must pass.
 #
 # BYPASS
 # ------

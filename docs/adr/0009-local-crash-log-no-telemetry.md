@@ -1,5 +1,7 @@
 # ADR-0009: Capture uncaught exceptions to a local crash log; no telemetry
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-16
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

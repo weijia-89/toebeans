@@ -1,5 +1,7 @@
 # ADR-0018: Argon2id backup cipher design. The cipher that activates when an ADR-0016 v2 trigger fires.
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-18
 Status: Accepted
 Deciders: Wei Jia (with Cascade)

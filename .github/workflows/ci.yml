@@ -43,7 +43,10 @@ jobs:
       - name: No-duplicate-private-test-class-names gate (ADR-0017 Lesson 2)
         run: bash scripts/test_no_duplicate_private_test_class_names.sh .
       - name: AGENTS / CLAUDE parity
+        # Contract files are local-only working copies; this step skips when absent.
         run: bash scripts/agents_claude_parity.sh .
+      - name: AGENTS / CLAUDE parity self-test
+        run: bash scripts/test_test_agents_claude_parity.sh .
       - name: AGP-9 built-in-Kotlin migration gate
         run: bash scripts/test_agp9_builtin_kotlin_migration.sh .
       - name: AGP-9 built-in-Kotlin migration self-test
@@ -151,8 +154,8 @@ jobs:
 
   dependency-review:
     # PR-only. Blocks dependency additions that introduce high-severity CVEs or
-    # are missing licenses. Slopsquatting defense aligns with AGENTS.md §
-    # Hallucination vigilance.
+    # are missing licenses. Slopsquatting defense aligns with the local
+    # agent-host contract Hallucination vigilance rule.
     name: Dependency review
     runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'pull_request' }}

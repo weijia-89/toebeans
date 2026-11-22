@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Fitness function #6 (parity) — AGENTS.md and CLAUDE.md must hold the same contract.
-# We compare the canonicalized contract block (after the divider that follows the file's preamble).
+# Fitness function #6 (parity): when both local contract copies exist, AGENTS.md
+# and CLAUDE.md must hold the same contract. We compare the canonicalized contract
+# block (after the divider that follows the file's preamble). The files are
+# local-only working copies and are absent from a clean public checkout, so this
+# check skips unless both are present.
 
 set -euo pipefail
 
@@ -9,8 +12,8 @@ AGENTS="$ROOT/AGENTS.md"
 CLAUDE="$ROOT/CLAUDE.md"
 
 if [ ! -f "$AGENTS" ] || [ ! -f "$CLAUDE" ]; then
-    echo "::error::AGENTS.md or CLAUDE.md missing."
-    exit 1
+    echo "SKIP - AGENTS.md / CLAUDE.md are local-only working copies; both must be present for parity."
+    exit 0
 fi
 
 # Extract everything AFTER the first "## Posture" heading in each file, then compare hashes.

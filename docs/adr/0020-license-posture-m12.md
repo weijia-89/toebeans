@@ -1,5 +1,7 @@
 # ADR-0020 (M1.2): License posture: AGPL-3.0 for the core repository
 
+> Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
+
 Date: 2026-05-26
 Status: **Accepted** (M1.2 decision gate closed)
 Deciders: Wei Jia (operator sign-off)
