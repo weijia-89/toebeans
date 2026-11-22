@@ -1,0 +1,21 @@
+-- VaccinationGiven.sq — vaccine administered at a vet visit (ADR-0020 §B, F5a).
+--
+-- VIBE-DANGEROUS per AGENTS.md. Composite primary key, no surrogate id: a vet visit can
+-- carry several vaccines, and the same vaccine must not be recorded twice on one visit.
+--
+-- ON DELETE CASCADE from the visit removes the record with its parent. ON DELETE RESTRICT
+-- from Vaccine makes deleting a reference vaccine that has administered records fail
+-- loudly instead of erasing history (ADR-0010 FK enforcement applies per connection).
+
+CREATE TABLE VaccinationGiven (
+    vet_visit_id    TEXT NOT NULL,                            -- FK to VetVisit(id), part of PK
+    vaccine_id      TEXT NOT NULL,                            -- FK to Vaccine(id), part of PK
+    lot_number      TEXT,                                     -- owner-typed from discharge paperwork
+    expiration_date TEXT,                                     -- ISO yyyy-MM-dd
+    dose_route      TEXT,                                     -- free text from paperwork
+    PRIMARY KEY (vet_visit_id, vaccine_id),
+    FOREIGN KEY (vet_visit_id) REFERENCES VetVisit(id) ON DELETE CASCADE,
+    FOREIGN KEY (vaccine_id) REFERENCES Vaccine(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX VaccinationGiven_vaccine_id_idx ON VaccinationGiven(vaccine_id);

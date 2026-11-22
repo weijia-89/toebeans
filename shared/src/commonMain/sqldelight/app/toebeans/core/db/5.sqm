@@ -1,0 +1,49 @@
+-- Migration 5 → 6: ADR-0020 F5a vet-visit and vaccination schema.
+--
+-- Adds three finished tables and their indexes. No table rebuild, no BEGIN/END, and no
+-- PRAGMA foreign_keys change: SQLDelight wraps this file in the driver's migration
+-- transaction, where PRAGMA foreign_keys is a no-op (SQLite docs; see the research dossier).
+-- All existing tables and rows are untouched.
+--
+-- Column shape, nullability, keys, indexes and delete actions are final at creation time:
+-- minSdk 26 framework SQLite cannot alter these in place. `kind`, `species` and
+-- `core_or_non_core` are TEXT NOT NULL without CHECK; permitted values are enforced in
+-- Kotlin so a future enum widening stays an additive change.
+
+CREATE TABLE VetVisit (
+    id            TEXT NOT NULL PRIMARY KEY,
+    pet_id        TEXT NOT NULL,
+    kind          TEXT NOT NULL,
+    scheduled_at  INTEGER,
+    occurred_at   INTEGER,
+    provider      TEXT,
+    notes         TEXT,
+    created_at    INTEGER NOT NULL,
+    FOREIGN KEY (pet_id) REFERENCES Pet(id) ON DELETE CASCADE
+);
+
+CREATE INDEX VetVisit_pet_id_idx ON VetVisit(pet_id);
+
+CREATE TABLE Vaccine (
+    id                      TEXT NOT NULL PRIMARY KEY,
+    name                    TEXT NOT NULL,
+    species                 TEXT NOT NULL,
+    core_or_non_core        TEXT NOT NULL,
+    default_interval_months INTEGER,
+    regulatory_region       TEXT NOT NULL DEFAULT '[]'
+);
+
+CREATE INDEX Vaccine_species_idx ON Vaccine(species);
+
+CREATE TABLE VaccinationGiven (
+    vet_visit_id    TEXT NOT NULL,
+    vaccine_id      TEXT NOT NULL,
+    lot_number      TEXT,
+    expiration_date TEXT,
+    dose_route      TEXT,
+    PRIMARY KEY (vet_visit_id, vaccine_id),
+    FOREIGN KEY (vet_visit_id) REFERENCES VetVisit(id) ON DELETE CASCADE,
+    FOREIGN KEY (vaccine_id) REFERENCES Vaccine(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX VaccinationGiven_vaccine_id_idx ON VaccinationGiven(vaccine_id);

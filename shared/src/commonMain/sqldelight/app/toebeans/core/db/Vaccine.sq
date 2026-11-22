@@ -1,0 +1,19 @@
+-- Vaccine.sq — in-app vaccine reference row (ADR-0020 §B, F5a).
+--
+-- VIBE-DANGEROUS per AGENTS.md. `id` is a stable short code, not a UUID: these rows ship
+-- as reference data and VaccinationGiven.vaccine_id must survive rule-pack updates.
+--
+-- `species` ('dog' | 'cat' at v1) and `core_or_non_core` ('core' | 'non-core') are
+-- TEXT NOT NULL without CHECK constraints; values are enforced in Kotlin. `species`
+-- widens with Pet.species in a later migration, which a CHECK would turn into a rebuild.
+
+CREATE TABLE Vaccine (
+    id                      TEXT NOT NULL PRIMARY KEY,        -- stable code, e.g. 'rabies-us'
+    name                    TEXT NOT NULL,
+    species                 TEXT NOT NULL,                    -- 'dog' | 'cat' at v1
+    core_or_non_core        TEXT NOT NULL,                    -- 'core' | 'non-core'
+    default_interval_months INTEGER,                          -- nullable: one-time vaccines
+    regulatory_region       TEXT NOT NULL DEFAULT '[]'        -- JSON array of region codes
+);
+
+CREATE INDEX Vaccine_species_idx ON Vaccine(species);
