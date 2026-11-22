@@ -44,7 +44,7 @@ class HomeScreenPetChipNavigationTest {
             )
         }
 
-        rule.onNodeWithContentDescription("Luna, cat").performClick()
+        rule.onNodeWithContentDescription("Luna, Cat").performClick()
 
         assertEquals("p1", navigatedPetId)
         assertNull(filteredPetId)
@@ -72,7 +72,7 @@ class HomeScreenPetChipNavigationTest {
             )
         }
 
-        rule.onNodeWithContentDescription("Luna, cat, 1 med").performClick()
+        rule.onNodeWithContentDescription("Luna, Cat, 1 med").performClick()
         assertEquals("p1", filteredPetId)
         assertNull(navigatedPetId)
 
