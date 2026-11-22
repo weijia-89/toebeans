@@ -131,7 +131,7 @@ Catalog rule.
 ## Test plan
 
 - [x] `./gradlew :shared:jvmTest`
-- [x] `bash scripts/test_no_em_dash_in_docs.sh .`
+- [x] `git diff --check`
 MD
 expect_pass "test 2 gradle checklist"
 
