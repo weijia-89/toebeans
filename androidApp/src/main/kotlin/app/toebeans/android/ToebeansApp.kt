@@ -184,7 +184,8 @@ class ToebeansApp : Application() {
                 .map { row ->
                     ScheduledReminder(
                         id = row.id,
-                        scheduleId = row.schedule_id,
+                        // INNER JOIN Schedule guarantees a schedule id in this query.
+                        scheduleId = checkNotNull(row.schedule_id) { "pending dose without schedule" },
                         scheduledAt = Instant.fromEpochMilliseconds(row.scheduled_at),
                         // Names populated at fire time via SqlDelightReminderLookup
                         medicationName = "",
