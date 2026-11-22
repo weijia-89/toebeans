@@ -11,6 +11,11 @@ large chunk of merged work.
 
 - The test-as-spec red gate for the ADR-0007 travel-mode remainder (launch-checklist timezone row, `Pet.homeTimezone` plus the `STAY_HOME_TZ` caller policy): `TravelModeHomeTimezoneContractTest` (jvmTest, package `app.toebeans.core.scheduler` beside the DST rules test) pins the desired end state where a pet with a persisted `home_timezone` and a schedule in `STAY_HOME_TZ` mode computes its doses in the pet's home timezone even when the device timezone changes, simulated through the domain layer (horizon recomputed across a Los Angeles to Tokyo device move, no OS broadcast), with a `FOLLOW_PHONE` divergence pin on the same pet. It compiles and fails today on exactly the missing `Pet.home_timezone` column (212 tests, 2 designed failures: this test plus PR #160's `VetVisitSchemaContractTest`; baseline 211 with 1). No `.sq`, model, scheduler, notification, manifest, or Gradle change; implementation proceeds only after the human test review of this PR, per the test-as-spec protocol for the vibe-dangerous schema surface. ADR-0007 gates G1 and G3 stay out of scope.
 
+## [0.4.16] - Dose history survives schedule delete (2026-11-22)
+
+### Changed
+
+- Operator decision: deleting a schedule keeps the dose log. Migration 4 changes `DoseEvent.schedule_id` from NOT NULL with ON DELETE CASCADE to nullable with ON DELETE SET NULL. Given and pending dose rows survive; the enriched receiver lookup and boot rehydration INNER JOIN Schedule, so an orphaned row cannot fire an alarm for a deleted plan. Medication deletion still cascades, so Remove demo data keeps its clear-all behavior. Dose event edit on an orphaned row opens the medication form, which is where the shell already routed all dose edits. Verified locally: `scripts/verify_before_push.sh` all green, `:shared:jvmTest` 213 passed, `:androidApp:testDebugUnitTest` green, `:shared:koverVerify` and `:androidApp:assembleDebug` exit 0.
 ## [0.4.13] - Vet-visit schema red test (2026-11-16)
 
 ### Added
