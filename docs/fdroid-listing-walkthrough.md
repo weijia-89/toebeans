@@ -20,7 +20,7 @@ Gradle emits versionName 0.1.0 and versionCode 1.
 CHANGELOG section 0.4.5 is ahead of those Gradle values.
 Do not edit Gradle to close that gap.
 The application id is `app.toebeans.android`.
-The license is AGPL-3.0.
+The license is AGPL-3.0-or-later.
 The public git URL is https://github.com/weijia-89/toebeans.
 
 ## Tester channel
@@ -60,13 +60,13 @@ Do not file the fdroiddata merge request in this run.
 
 The metadata draft is docs/fdroid/app.toebeans.android.yml.
 The draft copies the public git URL.
-The draft copies license AGPL-3.0.
+The draft copies license AGPL-3.0-or-later.
 The draft copies application id `app.toebeans.android`.
 The draft copies versionName 0.1.0 and versionCode 1 from Gradle.
 The draft contains no password and no token.
 The Gradle root is the repository root.
 Do not set subdir to androidApp.
-Replace commit REPLACE_WITH_RELEASE_TAG with the release tag.
+The commit field is an operator TODO. Replace it with the real signed release tag before filing.
 This run does not cut that tag.
 
 ## Play file
