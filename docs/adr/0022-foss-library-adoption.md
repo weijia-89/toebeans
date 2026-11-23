@@ -3,8 +3,8 @@
 > Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
 
 Date: 2026-11-22
-Status: Proposed (operator decision pending)
-Deciders: Wei Jia (pending)
+Status: Accepted
+Deciders: Wei Jia
 Tier: vibe-careful (ADR). Any dependency addition this ADR would authorise is vibe-dangerous and needs one ≥95 human-reviewed change per AGENTS.md.
 
 ## Scope and method
@@ -169,6 +169,76 @@ These are gates, not a checklist to skim. Each one needs a recorded artifact.
 | D6 | Name the human reviewer for a dependency addition and for its first failing test commit. | Vibe-dangerous gate cannot be satisfied. |
 
 No decision in this ADR changes AGENTS.md, CLAUDE.md, the version catalog, or any build file. ADR-0021 on the on-device veterinary model is rejected and not planned, so it adds no gate to this ADR.
+
+## Operator decisions, 2026-11-23
+
+The operator resolved the open decisions in §7 on 2026-11-23.
+This section is the controlling record.
+Where it differs from the research recommendation in §5, this section wins.
+The research sections above stay in place as the evidence record.
+
+This is an operator override of the ADR's own ranked recommendation.
+The research ranked "do nothing" first.
+That recommendation did not survive the product facts in D2 and D3 below.
+Those facts are product decisions, not research findings.
+
+D1. Build target and API level.
+The operator first picked API level 37.
+The operator then superseded that with:
+"we're doing decompose, go with whatever api level is appropriate".
+Recorded decision: the build-target choice is delegated to the implementation slice.
+Choose the lowest compileSdk that the chosen library actually needs.
+Do not raise targetSdk without a separate decision.
+Notification permission behavior sits on the medication-critical reminder path,
+so a targetSdk change needs its own review.
+
+D2. Adaptive layouts.
+Tablet, foldable, and navigation-rail support is a product requirement now.
+
+D3. iOS sharing.
+Navigation logic will be shared with iOS at milestone 5.
+
+D4. Library choice: Decompose.
+The library decision is Decompose.
+It is not the Material 3 adaptive navigation suite.
+This reverses the ADR's ranked recommendation of "do nothing"
+and the operator's earlier selection of the adaptive suite.
+Decompose was chosen specifically because it satisfies the iOS-sharing goal in D3.
+The Material 3 adaptive navigation suite is not adopted.
+The separate operator choice to use version 1.5.0 with a 30-day-rule override
+is therefore not exercised.
+That override applies only if the adaptive suite is adopted later.
+
+D5. Toolchain risk.
+Accept AGP 9.5.1 above the KGP-tested 9.3.1 ceiling as inherited risk.
+There is no toolchain reconciliation slice.
+
+D6. Named reviewer.
+Wei Jia is the named human reviewer for the dependency addition
+and for its first failing test commit.
+
+### Forcing-constraint gate still owed
+
+Decompose adds a component and lifecycle layer
+over the existing ViewModel, repository, and SQLDelight stack.
+That tests the repo's refusal item on more than three abstraction layers.
+A separate forcing-constraint ADR is required before code ships.
+This decision does not satisfy that gate.
+Do not claim it is satisfied.
+
+### Dependency-vetting gates still owed by the implementation slice
+
+- Verify the exact Maven Central coordinate and publisher. Check spelling against typosquats.
+- First-seen date is 2021-03-28 per the ADR evidence in §8. Re-run the 30-day check at adoption time.
+- Verify the license text, not just the badge. Record notice and attribution duties.
+- Check the resolved graph against the no-network, no-analytics, and no-AI gates. Re-run the relevant scripts.
+- Write the failing test first. Get Wei Jia's review before implementation.
+- Log the calibration entry at confidence 95 or higher.
+
+### Open items
+
+- Exact Decompose version to pin. The ADR evidence names 3.6.2 as the latest at research time (2026-11-22). This decision pins no version.
+- Exact compileSdk value. Delegated by D1 to the implementation slice based on the chosen library's real need.
 
 ## 8. Primary sources
 
