@@ -1,6 +1,5 @@
 package app.toebeans.android.util
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,22 +45,35 @@ class StaleEventGuardTest {
     }
 
     @Test
-    fun `buildMessage produces a stable diagnostic format`() {
-        // Pure builder; useful for the release-mode log path which we can't easily
-        // intercept in a unit test. The message format is part of the contract because
-        // future log-aggregation work may grep for it.
-        val msg =
+    fun `buildMessage keeps the site, event id, and missing field traceable for a missed-dose join`() {
+        // Behavior contract for the release-mode log path. The surrounding prose may be
+        // reworded; a developer tracing a missed-dose join must still be able to find the
+        // join site, the offending row, and the unresolved reference in the log line.
+        val first =
             StaleEventGuard.buildMessage(
-                site = "S",
-                eventId = "E",
-                missingFieldName = "F",
-                missingValue = "V",
+                site = "HomeViewModel.joinToUiState",
+                eventId = "evt-42",
+                missingFieldName = "medicationId",
+                missingValue = "med-deleted",
             )
-        assertEquals(
-            "stale row at S: event=E references F=V which no longer exists. Likely an " +
-                "inter-Flow race during deletion; the render will skip this row in release " +
-                "builds and crash in debug to surface any real join bug.",
-            msg,
-        )
+        assertTrue("diagnostic must name the join site", first.contains("HomeViewModel.joinToUiState"))
+        assertTrue("diagnostic must name the offending event id", first.contains("evt-42"))
+        assertTrue("diagnostic must name the unresolved field", first.contains("medicationId"))
+        assertTrue("diagnostic must include the unresolved value", first.contains("med-deleted"))
+
+        // A second call with different inputs proves the line is built from the failing
+        // row, not a fixed sentence that happens to contain the first call's values.
+        val second =
+            StaleEventGuard.buildMessage(
+                site = "Reminder.render",
+                eventId = "evt-99",
+                missingFieldName = "scheduleId",
+                missingValue = "sched-gone",
+            )
+        assertTrue("diagnostic must follow the new site", second.contains("Reminder.render"))
+        assertTrue("diagnostic must follow the new event id", second.contains("evt-99"))
+        assertTrue("diagnostic must follow the new field", second.contains("scheduleId"))
+        assertTrue("diagnostic must follow the new value", second.contains("sched-gone"))
+        assertTrue("different rows must produce different diagnostics", first != second)
     }
 }

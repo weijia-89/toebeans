@@ -568,6 +568,74 @@ class SchedulePhaseRulesTest {
         }
     }
 
+    // Falsifier for the validation claim: invalid phase data must be rejected by the real
+    // constructor, and a legal phase at the cap must still compute. If the init checks were
+    // only documented and not enforced, both rejection assertions below would fail.
+    @Test
+    fun `invalid phase data is rejected while a full six-dose phase still computes`() {
+        fun phaseWith(
+            times: List<LocalTime>,
+            dosesPerDay: Int,
+        ): SchedulePhase =
+            SchedulePhase(
+                id = "phase-falsifier",
+                scheduleId = "sched-falsifier",
+                phaseOrder = 0,
+                durationDays = 1,
+                dosesPerDay = dosesPerDay,
+                doseTimesLocal = times,
+                doseAmount = null,
+                doseUnit = null,
+            )
+
+        val descending =
+            assertFailsWith<IllegalArgumentException> {
+                phaseWith(listOf(LocalTime(20, 0), LocalTime(8, 0)), 2)
+            }
+        assertTrue(
+            descending.message?.contains("strictly ascending") == true,
+            "rejection must name the dose-time ordering invariant, got: ${descending.message}",
+        )
+
+        val overCap =
+            assertFailsWith<IllegalArgumentException> {
+                phaseWith(
+                    (0..SchedulePhase.MAX_DOSES_PER_DAY).map { LocalTime(it * 3, 0) },
+                    SchedulePhase.MAX_DOSES_PER_DAY + 1,
+                )
+            }
+        assertTrue(
+            overCap.message?.contains("dosesPerDay must be in 1..${SchedulePhase.MAX_DOSES_PER_DAY}") == true,
+            "rejection must name the dose-count cap, got: ${overCap.message}",
+        )
+
+        // Control at the boundary: six distinct ascending times are legal and all six
+        // doses reach the calculator with the intended local times.
+        val schedule =
+            Schedule(
+                id = "sched-falsifier",
+                medicationId = "med-falsifier",
+                startDate = baseDate,
+                endDate = null,
+                createdAt = Instant.parse("2026-05-31T12:00:00Z"),
+            )
+        val legalTimes = (0..<SchedulePhase.MAX_DOSES_PER_DAY).map { LocalTime(it * 3, 0) }
+        val result =
+            calculator.computeScheduledDoses(
+                schedule = schedule,
+                phases = listOf(phaseWith(legalTimes, SchedulePhase.MAX_DOSES_PER_DAY)),
+                timeZone = utc,
+                fromInclusive = baseDate.atTime(0, 0).toInstant(utc),
+                toExclusive = baseDate.plusDays(1).atTime(0, 0).toInstant(utc),
+            )
+        assertEquals(SchedulePhase.MAX_DOSES_PER_DAY, result.size, "the cap itself must be usable")
+        assertEquals(
+            legalTimes.map { LocalDateTime(2026, 6, 1, it.hour, it.minute).toInstant(utc) },
+            result.map { it.scheduledAt },
+            "every legal dose at the cap must keep its own ordered time",
+        )
+    }
+
     // ADR-0008 mechanical bound: window > 30 days throws WindowTooLarge with the
     // requested-vs-max days in the typed payload.
     private fun taperPhases(): Pair<SchedulePhase, SchedulePhase> {
