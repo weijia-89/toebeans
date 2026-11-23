@@ -16,8 +16,10 @@ Optional offline HTML under `docs/framer/` for reference; not cloud-connected sh
 |------|---------|
 | `docs/style-lab/` | Visual sign-off (terracotta-warm, sage-calm, …) |
 | `docs/design-handoff/manifest.yaml` | Screen → style-lab pointers |
-| `.cursor/rules/ui-design-handoff.mdc` | Agent policy |
-| `.cursor/hooks.json` | **Blocks** `magic-patterns` MCP; style-lab nudges |
+| `scripts/agent-hooks/ui-design-handoff.md` | Agent policy (editor-independent) |
+| `scripts/agent-hooks/` | Executable hooks: deny `magic-patterns` MCP, session context, style-lab nudge |
+| `.cursor/hooks.json` | Thin Cursor registration pointing at `scripts/agent-hooks/` |
+| `.cursor/rules/ui-design-handoff.mdc` | Thin Cursor rule wrapper pointing at the policy above |
 
 ## Typical workflow (Today tab)
 
