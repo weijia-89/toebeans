@@ -49,7 +49,7 @@ large chunk of merged work.
 
 ### Added
 
-- Roadmap row for a Gradle 9 wrapper that configures. AGP 9 waits until that wrapper passes tests. The Monday 2026-11-09 08:00 job reads `scripts/scheduler/prompts/toebeans-gradle9.txt`.
+- Roadmap row for a Gradle 9 wrapper that configures. AGP 9 waits until that wrapper passes tests. The Gradle 9 work now sits on the roadmap; the weekend scheduler kit that drove it has been removed.
 
 ## [0.4.7] - Gradle 9.9.0 wrapper (2026-11-09)
 
