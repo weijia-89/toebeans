@@ -154,7 +154,7 @@ large chunk of merged work.
 - **Medicine name search** (`27426dc`, 2026-07): local typeahead against an on-device medicine-name index in the medication form; no cloud.
 - **ADR-0007 anchor mode** ([#98](https://github.com/weijia-89/toebeans/pull/98), 2026-07-21): `ELAPSED_INTERVAL` scheduling alongside `FOLLOW_PHONE`, with the SQLDelight v3 migration.
 - **ADR-0007 G2 DST warnings** ([#99](https://github.com/weijia-89/toebeans/pull/99), 2026-07-23): DST-related scheduler warning surfaces, pinning kotlinx-datetime snap behavior.
-- **Style-lab design handoff** (`8531bb8`): `docs/design-handoff/manifest.yaml` with per-screen `androidApp/` Compose paths; `scripts/style_lab_handoff_check.sh` compares Kotlin mtimes to `docs/style-lab/index.html`; Cursor session and pre-write hooks; operator doc `docs/design-handoff.md`. Magic Patterns MCP is denied in-repo (local-only policy).
+- **Style-lab design handoff** (`8531bb8`): `docs/design-handoff/manifest.yaml` with per-screen `androidApp/` Compose paths; `scripts/style_lab_handoff_check.sh` compares Kotlin mtimes to `docs/style-lab/index.html`; editor-agnostic agent hooks under `scripts/agent-hooks/` (registered by `.cursor/hooks.json`); operator doc `docs/design-handoff.md`. Magic Patterns MCP is denied in-repo (local-only policy).
 
 ### Changed
 

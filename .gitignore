@@ -71,5 +71,6 @@ localonly/
 AGENTS.md
 CLAUDE.md
 
-# Cursor runtime state (recreated by the editor)
+# Agent/editor runtime state (recreated by tooling)
 .cursor/hooks/state/continual-learning.json
+scripts/agent-hooks/state/continual-learning.json
