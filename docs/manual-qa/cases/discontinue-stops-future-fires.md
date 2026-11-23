@@ -5,7 +5,7 @@
 ## Steps
 
 1. Add pet Luna, medication Methimazole, and a schedule with a dose in the next few hours.
-2. Discontinue the medication from Medication edit.
+2. Open Medication edit, tap End in the bottom bar, then tap Discontinue.
 3. Wait through the fire time, or note whether an already scheduled alarm is cancelled.
 4. Reboot the emulator (`adb reboot`) and wait for boot.
 

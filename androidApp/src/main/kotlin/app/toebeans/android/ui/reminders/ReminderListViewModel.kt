@@ -135,6 +135,7 @@ public class ReminderListViewModel(
                 )
             return ReminderListUiState(
                 rows = sorted,
+                groups = groupRows(sorted),
                 loading = false,
                 addAction = resolveAddAction(pets, meds, schedules),
             )
@@ -181,6 +182,9 @@ public class ReminderListViewModel(
                     medicationId = med.id,
                     medicationName = med.name,
                     phaseSummary = summarizePhases(swp.phases),
+                    // D4: project the real clock times so an expanded pet section can show
+                    // "when" alongside the dose count / duration summary.
+                    doseTimesLocal = swp.phases.sortedBy { it.phaseOrder }.flatMap { it.doseTimesLocal },
                     endsLabel = endsLabel(swp.schedule.endDate, today),
                     dstWarning = dstWarning,
                 )
@@ -286,6 +290,33 @@ public class ReminderListViewModel(
         }
 
         /**
+         * D4 grouping key: case- and whitespace-folded medication name. Two pets that
+         * happen to have "Prednisone" and "  prednisone " land in the same display group.
+         * This is a view-level grouping only — no medication row is merged and no brand /
+         * generic mapping is applied.
+         */
+        internal fun foldMedicationName(name: String): String = name.trim().lowercase().replace(Regex("\\s+"), " ")
+
+        /** Pure expand/collapse toggle for a group key; kept here so it is unit-testable. */
+        internal fun toggleGroup(
+            expanded: Set<String>,
+            key: String,
+        ): Set<String> = if (key in expanded) expanded - key else expanded + key
+
+        /** Group the flat rows by folded medication name, preserving the sorted row order. */
+        internal fun groupRows(rows: List<ReminderRowUi>): List<ReminderGroupUi> =
+            rows
+                .groupBy { foldMedicationName(it.medicationName) }
+                .toSortedMap()
+                .map { (key, rowsForKey) ->
+                    ReminderGroupUi(
+                        key = key,
+                        displayName = rowsForKey.first().medicationName.trim(),
+                        rows = rowsForKey,
+                    )
+                }
+
+        /**
          * Compact one-line description of a schedule's phases. Examples:
          *   - "Once daily" (single phase, 1 dose/day)
          *   - "Twice daily" (single phase, 2 doses/day)
@@ -357,9 +388,24 @@ public data class ReminderRowUi(
     public val dstWarning: DstWarning? = null,
     /** True for medications saved without an active schedule row. */
     public val needsSchedule: Boolean = false,
+    /** Clock times from every phase, in schedule/phase order. Empty for unscheduled meds. */
+    public val doseTimesLocal: List<LocalTime> = emptyList(),
 ) {
     /** Stable LazyColumn key for scheduled and unscheduled rows. */
     public val rowKey: String get() = scheduleId ?: "needs-schedule-$medicationId"
+}
+
+/**
+ * D4 display group: one folded medication name with one row per pet. The screen expands
+ * a group into those per-pet sections, each of which keeps its own schedule tap target.
+ */
+public data class ReminderGroupUi(
+    /** Folded medication name; stable expand/collapse key. */
+    public val key: String,
+    public val displayName: String,
+    public val rows: List<ReminderRowUi>,
+) {
+    public val groupKey: String get() = "group-$key"
 }
 
 /** Next add step for the Reminders tab primary CTA (FAB / empty state). */
@@ -388,4 +434,6 @@ public data class ReminderListUiState(
     public val rows: List<ReminderRowUi>,
     public val loading: Boolean,
     public val addAction: ReminderAddAction? = null,
+    /** D4: rows grouped by folded medication name for the expandable list. */
+    public val groups: List<ReminderGroupUi> = emptyList(),
 )
