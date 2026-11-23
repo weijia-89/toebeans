@@ -10,7 +10,7 @@
 # Kotlin + KMP
 kotlin = "2.4.21"
 # Android
-agp = "9.5.1"
+agp = "9.5.2"
 android-compile-sdk = "35"
 android-min-sdk = "26"          # Android 8.0 Oreo — wide coverage, drops the exotic battery edge cases
 android-target-sdk = "34"
@@ -26,7 +26,7 @@ androidx-work = "2.12.0"
 # Coroutines + datetime
 kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.12.0"
 # SQLDelight
 sqldelight = "2.4.1"
 # DI
