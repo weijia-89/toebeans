@@ -168,7 +168,7 @@ These are gates, not a checklist to skim. Each one needs a recorded artifact.
 | D5 | Accept AGP 9.5.1 above the KGP-tested 9.3.1 ceiling as inherited risk, or schedule a toolchain reconciliation? | Every adoption estimate keeps a toolchain uncertainty band. |
 | D6 | Name the human reviewer for a dependency addition and for its first failing test commit. | Vibe-dangerous gate cannot be satisfied. |
 
-No decision in this ADR changes AGENTS.md, CLAUDE.md, the version catalog, or any build file. ADR-0021 on the on-device veterinary model remains a separate, unselected gate and is unaffected.
+No decision in this ADR changes AGENTS.md, CLAUDE.md, the version catalog, or any build file. ADR-0021 on the on-device veterinary model is rejected and not planned, so it adds no gate to this ADR.
 
 ## 8. Primary sources
 
