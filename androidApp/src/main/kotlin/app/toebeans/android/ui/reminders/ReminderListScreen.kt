@@ -17,16 +17,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.core.scheduler.DstWarning
+import kotlinx.datetime.LocalTime
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -83,6 +90,9 @@ internal fun ReminderListContent(
     onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
 ) {
+    // D4: expand/collapse state lives in the screen; the toggle itself is a pure helper
+    // on the ViewModel companion so the expansion contract is unit-testable.
+    var expandedGroups by remember { mutableStateOf(setOf<String>()) }
     Box(
         modifier =
             Modifier
@@ -100,19 +110,33 @@ internal fun ReminderListContent(
                 ) {
                     item { Spacer(Modifier.height(8.dp)) }
                     items(
-                        items = state.rows,
-                        key = { row -> row.rowKey },
-                    ) { row ->
-                        ReminderRow(
-                            row = row,
-                            onClick = {
-                                if (row.needsSchedule) {
-                                    onNeedsScheduleClick(row.petId, row.medicationId)
-                                } else {
-                                    onScheduleClick(row.scheduleId!!)
+                        items = state.groups,
+                        key = { group -> group.groupKey },
+                    ) { group ->
+                        val expanded = group.key in expandedGroups
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            GroupHeader(
+                                group = group,
+                                expanded = expanded,
+                                onToggle = {
+                                    expandedGroups = ReminderListViewModel.toggleGroup(expandedGroups, group.key)
+                                },
+                            )
+                            if (expanded) {
+                                group.rows.forEach { row ->
+                                    ReminderRow(
+                                        row = row,
+                                        onClick = {
+                                            if (row.needsSchedule) {
+                                                onNeedsScheduleClick(row.petId, row.medicationId)
+                                            } else {
+                                                onScheduleClick(row.scheduleId!!)
+                                            }
+                                        },
+                                    )
                                 }
-                            },
-                        )
+                            }
+                        }
                     }
                     item { Spacer(Modifier.height(8.dp)) }
                 }
@@ -159,6 +183,63 @@ private fun RemindersEmptyState(
         primaryActionLabel = label,
         onPrimaryAction = addAction?.let { { onAddReminder(it) } },
     )
+}
+
+/**
+ * D4 group header. The name sits on the start, the expand/collapse chevron is a trailing
+ * IconButton in thumb reach; nothing interactive is centered. Tapping a chevron reveals
+ * one section per pet, and each section keeps its own schedule tap target.
+ */
+@Composable
+private fun GroupHeader(
+    group: ReminderGroupUi,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .semantics {
+                    contentDescription =
+                        "${group.displayName}, ${group.rows.size} pet(s), " +
+                        if (expanded) "expanded" else "collapsed"
+                },
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${group.rows.size} pet${if (group.rows.size == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onToggle) {
+                Icon(
+                    imageVector =
+                        if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription =
+                        if (expanded) "Collapse ${group.displayName}" else "Expand ${group.displayName}",
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -213,6 +294,14 @@ private fun ReminderRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (row.doseTimesLocal.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = row.doseTimesLocal.joinToString(", ") { formatDoseTime(it) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             row.endsLabel?.let { label ->
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -240,6 +329,14 @@ private fun ReminderRow(
             }
         }
     }
+}
+
+/** 12-hour clock label for the D4 expanded-section dose times. */
+private fun formatDoseTime(time: LocalTime): String {
+    val hour24 = time.hour
+    val hour12 = ((hour24 + 11) % 12) + 1
+    val minute = time.minute.toString().padStart(2, '0')
+    return "$hour12:$minute ${if (hour24 < 12) "AM" else "PM"}"
 }
 
 private fun DstWarning.warningText(): String =

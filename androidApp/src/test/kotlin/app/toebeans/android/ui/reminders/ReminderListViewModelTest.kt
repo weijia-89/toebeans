@@ -11,6 +11,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -387,6 +388,99 @@ class ReminderListViewModelTest {
         assertNull(
             "ELAPSED_INTERVAL must not produce DST warnings",
             row.dstWarning,
+        )
+    }
+
+    @Test
+    fun `grouping folds case and whitespace so two pets share one medication group`() {
+        val luna = pet("p-luna", "Luna")
+        val bella = pet("p-bella", "Bella")
+        val medLuna = med("m-luna", "p-luna", name = "Prednisone")
+        val medBella = med("m-bella", "p-bella", name = "  prednisone  ")
+        val swps =
+            listOf(
+                ScheduleWithPhases(schedule("s-1", "m-luna"), listOf(phase("s-1", dosesPerDay = 1))),
+                ScheduleWithPhases(schedule("s-2", "m-bella"), listOf(phase("s-2", dosesPerDay = 2))),
+            )
+
+        val state = ReminderListViewModel.joinToUiState(listOf(luna, bella), listOf(medLuna, medBella), swps, today)
+
+        assertEquals(1, state.groups.size)
+        val group = state.groups.single()
+        assertEquals("prednisone", group.key)
+        assertEquals(2, group.rows.size)
+        assertEquals(setOf("p-luna", "p-bella"), group.rows.map { it.petId }.toSet())
+    }
+
+    @Test
+    fun `foldMedicationName folds case and internal whitespace`() {
+        assertEquals("prednisone", ReminderListViewModel.foldMedicationName("  Prednisone  "))
+        assertEquals("predni sone", ReminderListViewModel.foldMedicationName(" Predni  SONE "))
+    }
+
+    @Test
+    fun `toggleGroup expands and collapses a group key`() {
+        assertEquals(
+            setOf("prednisone"),
+            ReminderListViewModel.toggleGroup(emptySet(), "prednisone"),
+        )
+        val expanded = setOf("prednisone", "carprofen")
+        assertEquals(setOf("carprofen"), ReminderListViewModel.toggleGroup(expanded, "prednisone"))
+        assertEquals(
+            setOf("prednisone", "carprofen", "gabapentin"),
+            ReminderListViewModel.toggleGroup(expanded, "gabapentin"),
+        )
+    }
+
+    @Test
+    fun `grouped rows keep pet and schedule tap targets with distinct row keys`() {
+        val luna = pet("p-luna", "Luna")
+        val bella = pet("p-bella", "Bella")
+        val medLuna = med("m-luna", "p-luna", name = "Prednisone")
+        val medBella = med("m-bella", "p-bella", name = "Prednisone")
+        val swps =
+            listOf(
+                ScheduleWithPhases(schedule("s-1", "m-luna"), listOf(phase("s-1"))),
+                ScheduleWithPhases(schedule("s-2", "m-bella"), listOf(phase("s-2"))),
+            )
+
+        val state = ReminderListViewModel.joinToUiState(listOf(luna, bella), listOf(medLuna, medBella), swps, today)
+        val rows = state.groups.flatMap { it.rows }
+
+        assertEquals(2, rows.size)
+        rows.forEach { row ->
+            assertNotNull("every grouped row must carry a schedule tap target", row.scheduleId)
+            assertTrue(row.petId.isNotBlank())
+            assertTrue(row.medicationId.isNotBlank())
+        }
+        assertEquals(2, rows.map { it.rowKey }.toSet().size)
+    }
+
+    @Test
+    fun `clock times from every phase are projected into the row`() {
+        val luna = pet("p-luna", "Luna")
+        val m = med("m-1", "p-luna", "Methimazole")
+        val phases =
+            listOf(
+                phase("s-1", phaseOrder = 0, dosesPerDay = 1),
+                SchedulePhase(
+                    id = "phase-s-1-1",
+                    scheduleId = "s-1",
+                    phaseOrder = 1,
+                    durationDays = 7,
+                    dosesPerDay = 2,
+                    doseTimesLocal = listOf(LocalTime(9, 15), LocalTime(21, 0)),
+                    doseAmount = null,
+                    doseUnit = DoseUnit.MG,
+                ),
+            )
+        val swp = ScheduleWithPhases(schedule("s-1", "m-1"), phases)
+
+        val state = ReminderListViewModel.joinToUiState(listOf(luna), listOf(m), listOf(swp), today)
+
+        assertEquals(
+            listOf(LocalTime(8, 0), LocalTime(9, 15), LocalTime(21, 0)),
+            state.rows.single().doseTimesLocal,
         )
     }
 }

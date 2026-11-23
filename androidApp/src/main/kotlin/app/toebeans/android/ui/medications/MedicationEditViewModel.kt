@@ -8,6 +8,8 @@ import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.Medication
+import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -66,6 +69,10 @@ public class MedicationEditViewModel(
                     discontinuedAt = null,
                     petName = null,
                     scheduleHint = null,
+                    doseTimes = emptyList(),
+                    doseTimeText = "",
+                    doseTimeError = null,
+                    scheduleId = null,
                 )
             }
             refreshReferenceContext()
@@ -92,6 +99,10 @@ public class MedicationEditViewModel(
                     discontinuedAt = null,
                     petName = null,
                     scheduleHint = null,
+                    doseTimes = emptyList(),
+                    doseTimeText = "",
+                    doseTimeError = null,
+                    scheduleId = null,
                 )
             }
             val med = medicationRepository.getById(medicationId) ?: return@launch
@@ -164,21 +175,36 @@ public class MedicationEditViewModel(
             val snapshot = _state.value
             val petId = snapshot.petId ?: return@launch
             val petName = petRepository.getById(petId)?.name
+            val medicationId = snapshot.medicationId
+            val schedules =
+                medicationId?.let { scheduleRepository.observeForMedication(it).first() }.orEmpty()
+            val phasesBySchedule =
+                schedules.associate { schedule -> schedule.id to scheduleRepository.observePhases(schedule.id).first() }
+            val earliest = schedules.minByOrNull { it.startDate }
             val scheduleHint =
-                snapshot.medicationId?.let { medicationId ->
-                    val schedules = scheduleRepository.observeForMedication(medicationId).first()
-                    val phases =
-                        schedules
-                            .minByOrNull { it.startDate }
-                            ?.let { schedule ->
-                                scheduleRepository.observePhases(schedule.id).first()
-                            }.orEmpty()
-                    buildMedicationEditScheduleHint(schedules, phases)
+                medicationId?.let {
+                    buildMedicationEditScheduleHint(schedules, earliest?.let { phasesBySchedule[it.id] }.orEmpty())
                 }
+            // D2: expose the phase clock times so the screen can offer an editable field for
+            // the single-phase common case and a read-only list for complex tapers. This is a
+            // read-only projection; writes still go through ScheduleRepository.upsert below.
+            val doseTimes =
+                schedules
+                    .sortedBy { it.startDate }
+                    .flatMap { schedule ->
+                        phasesBySchedule[schedule.id]
+                            .orEmpty()
+                            .sortedBy { it.phaseOrder }
+                            .flatMap { it.doseTimesLocal }
+                    }
             _state.update {
                 it.copy(
                     petName = petName,
                     scheduleHint = scheduleHint,
+                    doseTimes = doseTimes,
+                    scheduleId = earliest?.id,
+                    doseTimeText = doseTimes.singleOrNull()?.let(::formatLocalTimeInput) ?: "",
+                    doseTimeError = null,
                 )
             }
         }
@@ -198,6 +224,55 @@ public class MedicationEditViewModel(
 
     public fun onNotesChange(value: String) {
         _state.update { it.copy(notes = value) }
+    }
+
+    public fun onDoseTimeChange(value: String) {
+        _state.update { it.copy(doseTimeText = value, doseTimeError = null) }
+    }
+
+    /**
+     * D2 guarded write: change the clock time of the single phase held by the single
+     * schedule for this medication. Returns false (no write) in add mode, for a
+     * multi-schedule / multi-phase / multi-time taper, on a malformed time, or if the
+     * schedule or phases changed underneath the loaded snapshot. The screen shows a
+     * read-only list plus an "Edit schedule" link for every case this refuses.
+     *
+     * Validation stays where it already lives: copying the phase re-runs
+     * [SchedulePhase.init], so a bad time or dose count fails before the upsert.
+     */
+    public suspend fun updateDoseTime(): Boolean {
+        val s = _state.value
+        if (s.isNew || !s.isSinglePhaseTimeEditable) return false
+        val time =
+            parseLocalTimeInput(s.doseTimeText)
+                ?: run {
+                    _state.update { it.copy(doseTimeError = "Use 24-hour HH:MM") }
+                    return false
+                }
+        val medicationId = s.medicationId ?: return false
+        val (schedule, phase) = resolveSinglePhase(medicationId) ?: return false
+        scheduleRepository.upsert(schedule, listOf(phase.copy(doseTimesLocal = listOf(time))))
+        _state.update {
+            it.copy(
+                doseTimes = listOf(time),
+                doseTimeText = formatLocalTimeInput(time),
+                doseTimeError = null,
+            )
+        }
+        refreshReferenceContext()
+        return true
+    }
+
+    /** Re-read the repository and return the sole schedule/phase only for the D2 safe shape. */
+    private suspend fun resolveSinglePhase(medicationId: String): Pair<Schedule, SchedulePhase>? {
+        val schedules = scheduleRepository.observeForMedication(medicationId).first()
+        if (schedules.size != 1) return null
+        val schedule = schedules.single()
+        val phases = scheduleRepository.observePhases(schedule.id).first()
+        if (phases.size != 1) return null
+        val phase = phases.single()
+        if (phase.doseTimesLocal.size != 1) return null
+        return schedule to phase
     }
 
     /**
@@ -274,6 +349,16 @@ public data class MedicationEditUiState(
      * until the user saves and creates a schedule.
      */
     public val scheduleHint: String? = null,
+    /**
+     * D2: every phase clock time for this medication, ordered by schedule start date,
+     * phase order, then time. Empty in add mode or when no schedule exists.
+     */
+    public val doseTimes: List<LocalTime> = emptyList(),
+    /** Editable "HH:MM" text for the single-phase case; empty otherwise. */
+    public val doseTimeText: String = "",
+    public val doseTimeError: String? = null,
+    /** Earliest schedule id, used by the read-only case's "Edit schedule" link. */
+    public val scheduleId: String? = null,
     public val name: String = "",
     public val doseAmount: String = "",
     public val doseUnit: DoseUnit? = null,
@@ -291,6 +376,12 @@ public data class MedicationEditUiState(
     public val discontinuedAt: Instant? = null,
 ) {
     public val isNew: Boolean get() = medicationId == null
+
+    /**
+     * True only for the D2 common case: one schedule, one phase, one clock time. Every
+     * other shape (taper, multiple doses per day, no schedule, add mode) stays read-only.
+     */
+    public val isSinglePhaseTimeEditable: Boolean get() = !isNew && doseTimes.size == 1
 
     /** True if this medication has been soft-deleted via discontinue. */
     public val isDiscontinued: Boolean get() = discontinuedAt != null

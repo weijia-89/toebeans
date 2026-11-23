@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -39,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -61,12 +64,14 @@ public fun MedicationEditScreen(
     medicationId: String?,
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    onEditSchedule: (petId: String, medicationId: String, scheduleId: String) -> Unit = { _, _, _ -> },
     viewModel: MedicationEditViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDiscontinueDialog by remember { mutableStateOf(false) }
+    var endMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(petId, medicationId) {
         viewModel.prepareRoute(petId, medicationId)
@@ -122,53 +127,62 @@ public fun MedicationEditScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
-                    actions = {
-                        // Extracted to keep MedicationEditScreen's cyclomatic complexity below
-                        // the detekt threshold. The Discontinue/Reactivate/Delete branching
-                        // adds ~3-4 conditional edges that, combined with the dialog visibility
-                        // checks and the form's other branches, push the function over the
-                        // 15-edge cap.
-                        MedicationEditTopBarActions(
-                            isNew = state.isNew,
-                            isDiscontinued = state.isDiscontinued,
-                            onReactivateClick = { scope.launch { viewModel.reactivate() } },
-                            onDiscontinueClick = { showDiscontinueDialog = true },
-                            onDeleteClick = { showDeleteDialog = true },
-                        )
-                    },
-                    // Save moved out of the top bar. Top-right is a thumb-stretch on most
-                    // phones. The new primary Save lives in bottomBar below.
+                    // All medication actions (End + Save) live in the bottom bar. The
+                    // top-right overflow was a thumb-stretch and split the actions across
+                    // two areas; see the D1 decision brief.
                 )
             },
             bottomBar = {
-                // Full-width primary Save button at the bottom, reachable with one thumb.
-                // Wrapped in a Surface so it has the proper Material 3 elevation tone and a
-                // visible separation from the form content above.
+                // D1: imePadding keeps the primary Save action above the on-screen keyboard
+                // instead of letting the keyboard draw over it. "End" is the single trailing
+                // home for Discontinue / Reactivate / Delete, so every medication action sits
+                // in thumb reach and the destructive actions stay one deliberate tap away
+                // from Save.
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 3.dp,
+                    modifier = Modifier.imePadding(),
                 ) {
-                    Button(
-                        enabled = state.name.isNotBlank() && state.doseAmount.isNotBlank(),
-                        onClick = {
-                            scope.launch {
-                                if (viewModel.save()) onSaved()
-                            }
-                        },
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
+                    Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            if (state.isNew) "Save medication" else "Save changes",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
+                        if (!state.isNew) {
+                            EndActionsMenu(
+                                expanded = endMenuExpanded,
+                                onExpand = { endMenuExpanded = true },
+                                onDismiss = { endMenuExpanded = false },
+                                isDiscontinued = state.isDiscontinued,
+                                onReactivate = {
+                                    scope.launch { viewModel.reactivate() }
+                                },
+                                onDiscontinue = { showDiscontinueDialog = true },
+                                onDelete = { showDeleteDialog = true },
+                            )
+                        }
+                        Button(
+                            enabled = state.name.isNotBlank() && state.doseAmount.isNotBlank(),
+                            onClick = {
+                                scope.launch {
+                                    if (viewModel.save()) onSaved()
+                                }
+                            },
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                if (state.isNew) "Save medication" else "Save changes",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
                     }
                 }
             },
@@ -238,6 +252,13 @@ public fun MedicationEditScreen(
                         )
                     }
 
+                    DoseTimeSection(
+                        state = state,
+                        onDoseTimeChange = viewModel::onDoseTimeChange,
+                        onUpdateTime = { scope.launch { viewModel.updateDoseTime() } },
+                        onEditSchedule = onEditSchedule,
+                    )
+
                     OutlinedTextField(
                         value = state.notes,
                         onValueChange = viewModel::onNotesChange,
@@ -263,62 +284,113 @@ public fun MedicationEditScreen(
 }
 
 /**
- * The Edit-mode topBar actions, extracted from [MedicationEditScreen] so the screen
- * function's cyclomatic complexity stays under the detekt cap. Visual hierarchy:
+ * Trailing "End" menu for the edit-mode bottom bar. Extracted so [MedicationEditScreen]'s
+ * branch count stays under the detekt cap.
  *
- * - **Discontinue** (tertiary color, shown when the medication is active): soft, reversible
- *   action. Opens a confirmation dialog before stamping `discontinuedAt`.
+ * - **Discontinue** (active meds) opens a confirmation dialog before stamping
+ *   `discontinuedAt`. **Reactivate** (discontinued meds) clears `discontinuedAt`
+ *   immediately — there is nothing destructive to confirm.
+ * - **Delete** is destructive and irreversible, so it keeps its own confirmation dialog
+ *   and stays last in the menu.
  *
- * - **Reactivate** (primary color, shown when the medication is discontinued): positive
- *   action. Clears `discontinuedAt` immediately without a dialog, because there's nothing
- *   destructive to confirm and an extra confirmation step would feel like punishment for
- *   undoing.
- *
- * - **Delete** (error color, always shown in edit mode): destructive, irreversible. Opens
- *   the [DeleteMedicationDialog] for confirmation. Placed second so the user reaches the
- *   less-destructive action first.
- *
- * In new-medication mode this composable renders nothing, since there is no medication to
- * discontinue or delete; Back is the analogous cancel affordance.
+ * In add mode the caller hides this composable entirely; there is no medication to end.
  */
 @Composable
-private fun MedicationEditTopBarActions(
-    isNew: Boolean,
+private fun EndActionsMenu(
+    expanded: Boolean,
+    onExpand: () -> Unit,
+    onDismiss: () -> Unit,
     isDiscontinued: Boolean,
-    onReactivateClick: () -> Unit,
-    onDiscontinueClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onReactivate: () -> Unit,
+    onDiscontinue: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    if (isNew) return
-    if (isDiscontinued) {
-        TextButton(
-            onClick = onReactivateClick,
-            colors =
-                ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-        ) {
-            Text("Reactivate")
+    Box {
+        TextButton(onClick = onExpand) {
+            Text("End")
         }
-    } else {
-        TextButton(
-            onClick = onDiscontinueClick,
-            colors =
-                ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.tertiary,
-                ),
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismiss,
         ) {
-            Text("Discontinue")
+            if (isDiscontinued) {
+                DropdownMenuItem(
+                    text = { Text("Reactivate") },
+                    onClick = {
+                        onDismiss()
+                        onReactivate()
+                    },
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text("Discontinue") },
+                    onClick = {
+                        onDismiss()
+                        onDiscontinue()
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Delete") },
+                onClick = {
+                    onDismiss()
+                    onDelete()
+                },
+            )
         }
     }
-    TextButton(
-        onClick = onDeleteClick,
-        colors =
-            ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
-            ),
-    ) {
-        Text("Delete")
+}
+
+/**
+ * D2 dose-time surface. Hidden in add mode (no schedule exists yet) and when a medication
+ * has no schedule. Exactly one phase with one time gets an editable "HH:MM" field; any
+ * taper or multi-dose shape stays read-only and links to the schedule editor, which owns
+ * the ascending-order / dose-count validation rules.
+ */
+@Composable
+private fun DoseTimeSection(
+    state: MedicationEditUiState,
+    onDoseTimeChange: (String) -> Unit,
+    onUpdateTime: () -> Unit,
+    onEditSchedule: (petId: String, medicationId: String, scheduleId: String) -> Unit,
+) {
+    if (state.isNew || state.doseTimes.isEmpty()) return
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (state.isSinglePhaseTimeEditable) {
+            OutlinedTextField(
+                value = state.doseTimeText,
+                onValueChange = onDoseTimeChange,
+                label = { Text("Dose time (24-hour HH:MM)") },
+                singleLine = true,
+                isError = state.doseTimeError != null,
+                supportingText = state.doseTimeError?.let { { Text(it) } },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TextButton(onClick = onUpdateTime) {
+                Text("Update time")
+            }
+        } else {
+            Text(
+                text = "Dose times (edit in schedule)",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Spacer(Modifier.height(4.dp))
+            state.doseTimes.forEach { time ->
+                Text(
+                    text = formatLocalTimeHint(time),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            val scheduleId = state.scheduleId
+            val medicationId = state.medicationId
+            if (scheduleId != null && medicationId != null) {
+                TextButton(
+                    onClick = { onEditSchedule(state.petId ?: "", medicationId, scheduleId) },
+                ) {
+                    Text("Edit schedule")
+                }
+            }
+        }
     }
 }
 
@@ -470,7 +542,7 @@ private fun DiscontinuedBanner(discontinuedAt: Instant) {
                 .fillMaxWidth()
                 .clearAndSetSemantics {
                     contentDescription =
-                        "$displayText. Reminders are off. Tap Reactivate in the top bar to resume."
+                        "$displayText. Reminders are off. Open End in the bottom bar and tap Reactivate to resume."
                 },
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {

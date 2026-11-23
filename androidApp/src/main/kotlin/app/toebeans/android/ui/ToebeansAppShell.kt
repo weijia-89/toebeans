@@ -228,6 +228,9 @@ public fun ToebeansAppShell() {
                     medicationId = medId,
                     onBack = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
+                    onEditSchedule = { schedulePetId, scheduleMedId, scheduleId ->
+                        navController.navigate(Destinations.scheduleEdit(schedulePetId, scheduleMedId, scheduleId))
+                    },
                 )
             }
             composable(

@@ -110,7 +110,7 @@ public class ReminderListScrollBenchmark {
     }
 
     /**
-     * Tap the Reminders bottom-nav tab. The tab label is rendered as `Text("Reminders")`
+     * Tap the Med List bottom-nav tab. The tab label is rendered as `Text("Med List")`
      * inside `NavigationBarItem`, so the Compose semantics tree exposes it to UiAutomator
      * via `By.text`.
      */
@@ -119,7 +119,7 @@ public class ReminderListScrollBenchmark {
             device.wait(
                 Until.findObject(By.text(REMINDERS_TAB_LABEL)),
                 UI_TIMEOUT_MS,
-            ) ?: error("Reminders bottom-nav tab not found within $UI_TIMEOUT_MS ms")
+            ) ?: error("Med List bottom-nav tab not found within $UI_TIMEOUT_MS ms")
         remindersTab.click()
         device.waitForIdle()
     }
@@ -167,7 +167,7 @@ public class ReminderListScrollBenchmark {
         const val SWIPE_START_FRACTION = 0.8
         const val SWIPE_END_FRACTION = 0.2
 
-        const val REMINDERS_TAB_LABEL = "Reminders"
+        const val REMINDERS_TAB_LABEL = "Med List"
         const val DIALOG_TIMEOUT_MS = 1_500L
         const val UI_TIMEOUT_MS = 5_000L
     }
