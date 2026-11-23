@@ -129,3 +129,7 @@ Cases already written in git history, pull request test plans, commit messages, 
 - [Travel records which clock the alarm used](manual-qa/cases/soak-travel-record-which-clock.md)
 - [Internal-testing install checks](manual-qa/cases/internal-testing-install-checks.md)
 - [Confirm one reminder from the F-Droid path](manual-qa/cases/fdroid-tester-confirm-one-reminder.md)
+
+### Wide-window navigation
+
+- [Wide-window navigation reach](manual-qa/cases/wide-window-nav-reach.md)
