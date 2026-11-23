@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Note (2026-11-22): the agent contract files were removed from this public repository; references to them mean the local working copies kept in a contributor's checkout.
 # Self-test for scripts/agents_claude_parity.sh.
 #
 # The contract files AGENTS.md and CLAUDE.md are local-only working copies and

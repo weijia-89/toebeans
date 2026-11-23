@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Note (2026-11-22): the agent contract files were removed from this public repository; references to them mean the local working copies kept in a contributor's checkout.
 # Fitness function #1 — No network library may appear in shared/commonMain/ or shared/androidMain/
 # or in the androidApp module's main source set.
 #

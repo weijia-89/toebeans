@@ -22,7 +22,7 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 | Vet-visit and vaccine schema (ADR-0020 F5a): the red schema-contract test is written (`VetVisitSchemaContractTest`, jvmTest; compiles and fails on the missing `VetVisit`, `Vaccine`, `VaccinationGiven` tables, 211 tests with 1 designed failure). Human test review is pending; implementation of the tables, repositories, and migration starts only after the review, per ADR-0020 slice order (F4 style guide, F5a schema, F5b rule pack, F5c scheduler, UI). | vibe-dangerous | blocked-operator-approval |
 | Travel-mode homeTimezone (ADR-0007 timezone gate): the red contract test is written (`TravelModeHomeTimezoneContractTest`, jvmTest; compiles and fails on the missing `Pet.home_timezone` column, 212 tests with 2 designed failures: this red plus the vet-visit red above). The test pins the `STAY_HOME_TZ` caller policy through a domain-layer device-timezone change, no OS broadcast. Human test review is pending; the schema migration and caller-policy implementation start only after the review. ADR-0007 gates G1 and G3 stay out of scope. | vibe-dangerous | blocked-operator-approval |
 | Dose history vs schedule delete. Operator decision 2026-11-22: history is kept. Migration 4 makes `DoseEvent.schedule_id` nullable with ON DELETE SET NULL, so given and pending dose rows survive schedule deletion. The fire path INNER JOINs Schedule, so an orphaned row is invisible to the receiver and its alarm is cancelled. Medication deletion still cascades, so Remove demo data keeps clearing demo rows. `DoseHistorySurvivesScheduleDeleteTest` and `DoseEventMigrationSafetyTest` pin both properties. | vibe-dangerous | Shipped in [#165](https://github.com/weijia-89/toebeans/pull/165), 2026-11-22 |
-| GitHub Actions `ci` is `startup_failure` with zero jobs. Run `42554072648` is on main. Run `42630625548` is on pull request 147. A human checks Actions billing and the repo Actions setting. | n/a | blocked-operator-credential |
+| GitHub Actions `ci` and `pr-body-lint` still fail with `startup_failure` and zero jobs on fresh 2026-11-23 runs (main run `45087583829`). GitHub reports a workflow file issue; CodeQL and Dependency Submission succeed, so this is not an account-wide billing block. A likely cause is a bad action ref in a workflow file. A human reviews and fixes the workflow; local verification stays the gate. | n/a | blocked-operator-approval |
 | F-Droid tester channel for the operator and two private testers. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
@@ -35,8 +35,9 @@ Two `jvmTest` tests stay red by design until their implementation slices get a
 human decision: `VetVisitSchemaContractTest` and
 `TravelModeHomeTimezoneContractTest`. A local full run reports them as designed
 failures. They are not shipped behavior and are not silenced. GitHub Actions
-`ci` was reported as `startup_failure` with zero jobs, so the workflow has not
-given a green result for them; local verification is the current gate.
+`ci` and `pr-body-lint` still fail with `startup_failure` and zero jobs on fresh
+2026-11-23 runs, so the workflow has not given a green result for them; local
+verification is the current gate.
 
 The drug-reference approval gate runs in `scripts/verify_before_push.sh` but is
 not wired into `.github/workflows/ci.yml`. Adding it touches a review-gated

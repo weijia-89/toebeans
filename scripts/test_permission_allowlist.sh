@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Note (2026-11-22): the agent contract files were removed from this public repository; references to them mean the local working copies kept in a contributor's checkout.
 # Fitness function #4 — AndroidManifest permission allowlist.
 # Only the permissions in AGENTS.md may appear in any AndroidManifest.xml file
 # in the repository.

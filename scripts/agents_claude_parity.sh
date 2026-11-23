@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Note (2026-11-22): the agent contract files were removed from this public repository; references to them mean the local working copies kept in a contributor's checkout.
 # Fitness function #6 (parity): when both local contract copies exist, AGENTS.md
 # and CLAUDE.md must hold the same contract. We compare the canonicalized contract
 # block (after the divider that follows the file's preamble). The files are
