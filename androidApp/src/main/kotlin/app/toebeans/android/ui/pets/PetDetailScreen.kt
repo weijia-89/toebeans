@@ -41,9 +41,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.R
+import app.toebeans.android.preferences.WeightUnit
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeHero
+import app.toebeans.android.util.WeightConverter
 import app.toebeans.core.model.HomeTimezone
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
@@ -99,7 +101,7 @@ public fun PetDetailScreen(
                 }
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    PetIdentityCard(pet, Modifier.padding(16.dp))
+                    PetIdentityCard(pet, state.weightUnit, Modifier.padding(16.dp))
                     if (HomeTimezone.isQuarantined(pet)) {
                         Card(
                             modifier =
@@ -208,6 +210,7 @@ private fun BoxScope.PetDetailAddMedicationFab(
 @Composable
 private fun PetIdentityCard(
     pet: Pet,
+    unit: WeightUnit,
     modifier: Modifier = Modifier,
 ) {
     // Compute "today" once per recomposition driven by the pet object. Using
@@ -220,12 +223,12 @@ private fun PetIdentityCard(
         pet.species.name
             .lowercase()
             .replaceFirstChar(Char::titlecase)
-    val weightLabel = pet.weightKg?.let { "%.1f kg".format(it) }
+    val weightLabel = pet.weightKg?.let { WeightConverter.formatWeight(it, unit) }
     val factsLine1 = listOfNotNull(speciesLabel, weightLabel).joinToString(" · ")
 
     // Build the merged accessibility label outside the Composable structure. TalkBack
     // reads this as one prosodic unit instead of the 4 separate Text nodes inside the
-    // card (name + facts + age + notes). "kg" expanded to "kilograms" because
+    // card (name + facts + age + notes). unit abbreviation expanded for TalkBack because
     // TalkBack's abbreviation dictionary doesn't always do it.
     val accessibleLabel =
         buildString {
@@ -234,7 +237,7 @@ private fun PetIdentityCard(
             append(speciesLabel)
             weightLabel?.let {
                 append(", ")
-                append(it.replace(" kg", " kilograms"))
+                append(WeightConverter.expandAbbreviation(it))
             }
             ageString?.let {
                 append(", ")

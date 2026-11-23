@@ -1,0 +1,19 @@
+{
+  "note": "Link-out only: name + source label + source URL. No advice text, no summary, no paraphrase, no dose numbers. This is not an ADR-0019 entry; data/drug-reference/entries/ stays empty and test_drug_reference_approval.sh therefore passes.",
+  "entries": [
+    {
+      "medication": "Methimazole",
+      "source": {
+        "label": "Merck Veterinary Manual",
+        "url": "https://www.merckvetmanual.com/"
+      }
+    },
+    {
+      "medication": "Amoxicillin",
+      "source": {
+        "label": "VCA Animal Hospitals",
+        "url": "https://vcahospitals.com/"
+      }
+    }
+  ]
+}

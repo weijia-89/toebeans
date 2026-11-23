@@ -12,6 +12,7 @@ import app.toebeans.android.data.pets
 import app.toebeans.android.data.phasesByScheduleId
 import app.toebeans.android.data.schedules
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.preferences.UnitPreferences
 import app.toebeans.core.model.DoseStatus
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
@@ -83,6 +84,7 @@ class SettingsClearDemoDataTest {
         viewModel =
             SettingsViewModel(
                 prefs = ThemePreferences(RuntimeEnvironment.getApplication()),
+                unitPreferences = UnitPreferences(RuntimeEnvironment.getApplication()),
                 petRepository = petRepo,
                 medicationRepository = medRepo,
                 scheduleRepository = schedRepo,

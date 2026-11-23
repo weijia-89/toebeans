@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import app.toebeans.android.data.DemoDataIds
 import app.toebeans.android.preferences.ThemeMode
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.preferences.UnitPreferences
+import app.toebeans.android.preferences.WeightUnit
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
  */
 public class SettingsViewModel(
     private val prefs: ThemePreferences,
+    private val unitPreferences: UnitPreferences,
     private val petRepository: PetRepository,
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
@@ -39,9 +42,14 @@ public class SettingsViewModel(
     public val themeMode: StateFlow<ThemeMode> = prefs.themeMode
     public val dynamicColor: StateFlow<Boolean> = prefs.dynamicColor
 
+    /** D6: one app-wide unit, default pounds. Storage stays weight_kg. */
+    public val weightUnit: StateFlow<WeightUnit> = unitPreferences.weightUnit
+
     public fun setThemeMode(mode: ThemeMode): Unit = prefs.setThemeMode(mode)
 
     public fun setDynamicColor(enabled: Boolean): Unit = prefs.setDynamicColor(enabled)
+
+    public fun setWeightUnit(unit: WeightUnit): Unit = unitPreferences.setWeightUnit(unit)
 
     /**
      * Remove the demo data (Rufus and Luna, their medications, schedules, and dose

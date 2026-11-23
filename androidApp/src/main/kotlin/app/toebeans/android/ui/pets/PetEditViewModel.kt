@@ -2,6 +2,8 @@ package app.toebeans.android.ui.pets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.android.preferences.WeightUnit
+import app.toebeans.android.util.WeightConverter
 import app.toebeans.core.data.PetRepository
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.Species
@@ -25,8 +27,11 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 public class PetEditViewModel(
     private val petRepository: PetRepository,
+    private val weightUnit: WeightUnit = WeightUnit.POUNDS,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(PetEditUiState())
+    // The unit is captured when the screen is created. Storage stays weight_kg; the
+    // text field is in the configured unit for this edit session.
+    private val _state = MutableStateFlow(PetEditUiState(unit = weightUnit))
     public val state: StateFlow<PetEditUiState> = _state.asStateFlow()
 
     public fun load(petId: String) {
@@ -38,7 +43,9 @@ public class PetEditViewModel(
                     name = pet.name,
                     species = pet.species,
                     birthdate = pet.birthdate,
-                    weightKgText = pet.weightKg?.let { "%.1f".format(it) } ?: "",
+                    unit = weightUnit,
+                    weightKgText =
+                        pet.weightKg?.let { "%.1f".format(WeightConverter.kgToUnit(it, weightUnit)) } ?: "",
                     notes = pet.notes.orEmpty(),
                 )
         }
@@ -98,11 +105,14 @@ public class PetEditViewModel(
             _state.update { it.copy(nameError = "Required") }
             return false
         }
-        val weightKg = s.weightKgText.toDoubleOrNull()
-        if (s.weightKgText.isNotEmpty() && (weightKg == null || weightKg <= 0.0)) {
+        // The field is in the configured unit; convert to kilograms only here, at the
+        // storage edge. The DB column and Pet model remain kg-only.
+        val enteredWeight = s.weightKgText.toDoubleOrNull()
+        if (s.weightKgText.isNotEmpty() && (enteredWeight == null || enteredWeight <= 0.0)) {
             _state.update { it.copy(weightError = "Must be a positive number") }
             return false
         }
+        val weightKg = enteredWeight?.let { WeightConverter.unitToKg(it, s.unit) }
         // For an existing pet, preserve createdAt and archivedAt from the persisted record.
         // Without this, every edit resets the pet's "created" timestamp and silently
         // un-archives a previously archived pet.
@@ -128,6 +138,7 @@ public data class PetEditUiState(
     public val name: String = "",
     public val species: Species = Species.DOG,
     public val birthdate: LocalDate? = null,
+    public val unit: WeightUnit = WeightUnit.POUNDS,
     public val weightKgText: String = "",
     public val notes: String = "",
     public val nameError: String? = null,

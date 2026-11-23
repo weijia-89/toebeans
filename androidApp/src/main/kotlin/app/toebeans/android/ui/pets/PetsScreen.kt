@@ -29,10 +29,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.toebeans.android.preferences.WeightUnit
 import app.toebeans.android.ui.components.EmptyState
 import app.toebeans.android.ui.components.PetAvatar
 import app.toebeans.android.ui.components.PetAvatarSizeList
 import app.toebeans.android.ui.theme.ToebeansTheme
+import app.toebeans.android.util.WeightConverter
 import app.toebeans.core.model.Pet
 import app.toebeans.core.model.PetAgeFormatter
 import app.toebeans.core.model.Species
@@ -108,6 +110,7 @@ private fun PetsScreenContent(
                         PetRow(
                             pet = pet,
                             medCount = state.medCountByPetId[pet.id] ?: 0,
+                            unit = state.weightUnit,
                             onClick = { onPetClick(pet.id) },
                         )
                     }
@@ -135,6 +138,7 @@ private fun PetsScreenContent(
 private fun PetRow(
     pet: Pet,
     medCount: Int,
+    unit: WeightUnit,
     onClick: () -> Unit,
 ) {
     val today: LocalDate =
@@ -143,7 +147,7 @@ private fun PetRow(
         pet.species.name
             .lowercase()
             .replaceFirstChar(Char::titlecase)
-    val weight = pet.weightKg?.let { "%.1f kg".format(it) }
+    val weight = pet.weightKg?.let { WeightConverter.formatWeight(it, unit) }
     val age = pet.birthdate?.let { PetAgeFormatter.format(it, today) }
     // Med-count fact appears only when > 0 — a pet with no meds yet shouldn't have
     // a hollow "0 meds" string crowding the facts row. Hand-formatted plural because
@@ -166,7 +170,7 @@ private fun PetRow(
             append(pet.name)
             if (facts.isNotEmpty()) {
                 append(", ")
-                append(facts.replace(" · ", ", ").replace(" kg", " kilograms"))
+                append(WeightConverter.expandAbbreviation(facts.replace(" · ", ", ")))
             }
         }
     Card(

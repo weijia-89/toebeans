@@ -9,6 +9,7 @@ import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
 import app.toebeans.android.preferences.FirstLaunchPreferences
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.preferences.UnitPreferences
 import app.toebeans.android.ui.history.HistoryViewModel
 import app.toebeans.android.ui.home.ExactAlarmReliability
 import app.toebeans.android.ui.home.HomeViewModel
@@ -96,6 +97,7 @@ public val appModule =
         // Preferences (SharedPreferences-backed; no new deps per AGENTS.md).
         single { ThemePreferences(androidContext()) }
         single { FirstLaunchPreferences(androidContext()) }
+        single { UnitPreferences(androidContext()) }
 
         // Backup pipeline per ADR-0016. The serializer is stateless (just wraps a
         // configured Json instance); aggregator and importer fan in/out over the
@@ -127,9 +129,15 @@ public val appModule =
                 medicationRepository = get(),
                 scheduleRepository = get(),
                 doseEventRepository = get(),
+                unitPreferences = get(),
             )
         }
-        viewModel { PetEditViewModel(petRepository = get()) }
+        viewModel {
+            PetEditViewModel(
+                petRepository = get(),
+                weightUnit = get<UnitPreferences>().weightUnit.value,
+            )
+        }
         viewModel {
             MedicationEditViewModel(
                 medicationRepository = get(),
@@ -179,6 +187,7 @@ public val appModule =
             PetsViewModel(
                 petRepository = get(),
                 medicationRepository = get(),
+                unitPreferences = get(),
             )
         }
         viewModel {
@@ -191,6 +200,7 @@ public val appModule =
         viewModel {
             SettingsViewModel(
                 prefs = get(),
+                unitPreferences = get(),
                 petRepository = get(),
                 medicationRepository = get(),
                 scheduleRepository = get(),

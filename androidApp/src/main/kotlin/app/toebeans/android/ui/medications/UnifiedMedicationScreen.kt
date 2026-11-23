@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -57,6 +58,7 @@ public fun UnifiedMedicationScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(petId) {
         viewModel.setPetId(petId)
@@ -192,12 +194,20 @@ public fun UnifiedMedicationScreen(
                                 value = state.notes,
                                 onValueChange = viewModel::onNotesChange,
                                 label = { Text("Notes (optional)") },
-                                placeholder = { Text("Storage, special instructions...") },
+                                // D5 option B framing: these are the owner's own words
+                                // (what the vet said), never generated reference text.
+                                placeholder = { Text("What your vet told you, in your own words") },
                                 minLines = 2,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
+
+                    // D5 option A: link-out only. Tapping a source label opens the
+                    // system browser; the app stores no advice text or dose numbers.
+                    DrugReferenceLinkOutCard(
+                        onOpenUrl = { url -> openSourceLink(context, url) },
+                    )
 
                     // Schedule window section
                     Text("Schedule", style = MaterialTheme.typography.titleMedium)

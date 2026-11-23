@@ -2,6 +2,8 @@ package app.toebeans.android.ui.pets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.toebeans.android.preferences.UnitPreferences
+import app.toebeans.android.preferences.WeightUnit
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
@@ -42,11 +44,12 @@ public class PetDetailViewModel(
     private val medicationRepository: MedicationRepository,
     private val scheduleRepository: ScheduleRepository,
     private val doseEventRepository: DoseEventRepository,
+    unitPreferences: UnitPreferences,
 ) : ViewModel() {
     private val petIdFlow = MutableStateFlow<String?>(null)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    public val state: StateFlow<PetDetailUiState> =
+    private val baseState: StateFlow<PetDetailUiState> =
         petIdFlow
             .flatMapLatest { id ->
                 if (id == null) {
@@ -90,6 +93,19 @@ public class PetDetailViewModel(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
                 initialValue = PetDetailUiState(loading = true),
+            )
+
+    /** Observes the app-wide unit so a change in Settings reaches an already-open tab. */
+    public val state: StateFlow<PetDetailUiState> =
+        combine(baseState, unitPreferences.weightUnit) { s, unit -> s.copy(weightUnit = unit) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+                initialValue =
+                    PetDetailUiState(
+                        loading = true,
+                        weightUnit = unitPreferences.weightUnit.value,
+                    ),
             )
 
     public fun load(petId: String) {
@@ -136,6 +152,7 @@ public data class PetDetailUiState(
     public val pet: Pet? = null,
     public val medications: List<MedicationWithStatus> = emptyList(),
     public val loading: Boolean = false,
+    public val weightUnit: WeightUnit = WeightUnit.POUNDS,
 )
 
 /**

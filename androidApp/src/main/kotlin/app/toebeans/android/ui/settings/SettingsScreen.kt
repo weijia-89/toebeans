@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.R
 import app.toebeans.android.crash.LocalCrashLog
 import app.toebeans.android.preferences.ThemeMode
+import app.toebeans.android.preferences.WeightUnit
 import app.toebeans.android.ui.emergency.EmergencyResourcesContent
 import app.toebeans.android.ui.emergency.emergencyDialIntent
 import app.toebeans.android.ui.theme.ToebeansTheme
@@ -94,6 +95,7 @@ public fun SettingsScreen(
     // refactor itself vibe-careful and is deferred per ADR-0016.
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.dynamicColor.collectAsStateWithLifecycle()
+    val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val exportState by exportViewModel.state.collectAsStateWithLifecycle()
     val importState by importViewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -196,6 +198,33 @@ public fun SettingsScreen(
                                     ),
                             ) {
                                 Text(text = mode.displayName)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // D6 app-wide weight unit. Presentation only: entry and display convert at
+            // the UI edge, and the single weight_kg column never changes meaning.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Weight unit",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    WeightUnit.entries.forEachIndexed { index, unit ->
+                        key(unit) {
+                            SegmentedButton(
+                                selected = weightUnit == unit,
+                                onClick = { viewModel.setWeightUnit(unit) },
+                                shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = WeightUnit.entries.size,
+                                    ),
+                            ) {
+                                Text(text = unit.spokenLabel.replaceFirstChar(Char::titlecase))
                             }
                         }
                     }
