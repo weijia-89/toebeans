@@ -6,6 +6,7 @@ import app.toebeans.core.navigation.ToebeansConfig
 import app.toebeans.core.navigation.ToebeansTab
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,5 +55,29 @@ class DecomposeNavigationContractTest {
         component.selectTab(ToebeansTab.SETTINGS)
         component.selectTab(ToebeansTab.PETS)
         assertEquals(120, component.childStack.value.active.instance.scrollOffset)
+    }
+
+    /**
+     * ADR-0023 gap 2: a back event (hardware back, explicit onBack, or onSaved) must
+     * update the shared model, not only the NavHost. [handleBackEvent] is the single path
+     * the shell uses for all three, so this case proves the model stays in sync.
+     */
+    @Test
+    fun backEventKeepsSharedModelInSync() {
+        val component = DefaultToebeansRootComponent()
+        component.openDoseLogging(petId = "pet-1", medicationId = "med-2", scheduleId = "sched-3")
+        assertEquals(DoseDestination.MEDICATION_EDIT, component.activeDoseDestination())
+
+        // A back event that pops the NavHost also pops the shared dose config.
+        val popped = handleBackEvent(component) { true }
+        assertTrue(popped)
+        assertNull(component.activeDoseDestination())
+        assertEquals(1, component.childStack.value.items.size)
+        assertEquals(ToebeansConfig.Tab(ToebeansTab.TODAY), component.childStack.value.active.configuration)
+
+        // A back event with no destination to pop leaves the shared model untouched.
+        val consumed = handleBackEvent(component) { false }
+        assertFalse(consumed)
+        assertEquals(ToebeansConfig.Tab(ToebeansTab.TODAY), component.childStack.value.active.configuration)
     }
 }

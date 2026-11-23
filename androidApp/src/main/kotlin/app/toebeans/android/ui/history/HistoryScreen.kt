@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -66,14 +68,17 @@ public fun HistoryScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(),
+    listState: LazyListState? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val fallbackListState = rememberLazyListState()
     HistoryScreenContent(
         state = state,
         onPetFilterSelect = viewModel::selectPetFilter,
         onClearPetFilter = viewModel::clearPetFilter,
         modifier = modifier,
         contentPadding = contentPadding,
+        listState = listState ?: fallbackListState,
     )
 }
 
@@ -84,7 +89,9 @@ internal fun HistoryScreenContent(
     contentPadding: PaddingValues = PaddingValues(),
     onPetFilterSelect: (String) -> Unit = {},
     onClearPetFilter: () -> Unit = {},
+    listState: LazyListState? = null,
 ) {
+    val fallbackListState = rememberLazyListState()
     Column(
         modifier =
             modifier
@@ -108,7 +115,12 @@ internal fun HistoryScreenContent(
                     body = EMPTY_HISTORY_BODY,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
-            else -> HistoryList(state = state, modifier = Modifier.weight(1f))
+            else ->
+                HistoryList(
+                    state = state,
+                    modifier = Modifier.weight(1f),
+                    listState = listState ?: fallbackListState,
+                )
         }
     }
 }
@@ -132,8 +144,10 @@ private fun LoadingState(modifier: Modifier = Modifier) {
 private fun HistoryList(
     state: HistoryUiState,
     modifier: Modifier = Modifier,
+    listState: LazyListState,
 ) {
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

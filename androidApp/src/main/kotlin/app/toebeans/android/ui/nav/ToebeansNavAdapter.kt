@@ -46,3 +46,21 @@ internal fun doseLoggingRoute(
         DoseDestination.SCHEDULE_CREATE -> Destinations.scheduleCreate(petId, medicationId)
         else -> Destinations.medicationEdit(petId, medicationId)
     }
+
+/**
+ * Applies a back event to the NavHost and the shared model together (ADR-0023 gap 2).
+ *
+ * The model is updated only when the NavHost actually popped a destination, so hardware
+ * back, the explicit `onBack` callback and the `onSaved` callback all leave the shared
+ * model in the same state as the screen.
+ */
+internal fun handleBackEvent(
+    rootComponent: ToebeansRootComponent,
+    popNav: () -> Boolean,
+): Boolean {
+    val popped = popNav()
+    if (popped) {
+        rootComponent.back()
+    }
+    return popped
+}
