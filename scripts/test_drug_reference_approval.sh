@@ -7,8 +7,11 @@
 # and approved the text BEFORE it entered the app. This gate makes that a
 # mechanical check instead of a promise.
 #
-# Scanned path: <root>/data/drug-reference/entries/*.json
-# One file per medication reference item. Text and approval travel together.
+# Scanned path: <root>/androidApp/src/main/assets/drug-reference/entries/*.json
+# This is the SAME directory the Android app reads through AssetManager. One path,
+# no copy step: a gate that scanned a different directory would stay green while
+# the app shipped no data. One file per medication reference item. Text and
+# approval travel together.
 #
 # Required shape:
 #   medication  non-empty string
@@ -43,7 +46,7 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-entries_dir = root / "data" / "drug-reference" / "entries"
+entries_dir = root / "androidApp" / "src" / "main" / "assets" / "drug-reference" / "entries"
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 URL_RE = re.compile(r"^https?://\S+$")
@@ -123,7 +126,7 @@ if errors:
         print(f"test_drug_reference_approval.sh: {error}", file=sys.stderr)
     print(
         f"test_drug_reference_approval.sh: {len(errors)} violation(s) "
-        "in data/drug-reference/entries",
+        "in androidApp/src/main/assets/drug-reference/entries",
         file=sys.stderr,
     )
     sys.exit(1)

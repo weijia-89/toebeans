@@ -604,7 +604,9 @@ private fun DiscontinueMedicationDialog(
 /**
  * Dropdown picker for [DoseUnit]. Uses ExposedDropdownMenuBox for Material 3 compliance.
  * Shows the unit label ("mg", "tablet", etc.) in the collapsed field and a scrollable
- * list of all enum values when expanded.
+ * list of [allowedUnits] when expanded. The default keeps the full 17-value list for
+ * every existing call site; the medication form passes a narrowed, ordered set when
+ * an approved entry exists and offers a separate override back to the full list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -613,6 +615,7 @@ public fun DoseUnitDropdown(
     onSelect: (DoseUnit?) -> Unit,
     isError: Boolean,
     modifier: Modifier = Modifier,
+    allowedUnits: List<DoseUnit> = DoseUnit.entries.toList(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -641,7 +644,7 @@ public fun DoseUnitDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            DoseUnit.entries.forEach { unit ->
+            allowedUnits.forEach { unit ->
                 DropdownMenuItem(
                     text = { Text(unit.label) },
                     onClick = {
