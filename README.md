@@ -185,8 +185,11 @@ lets you load demo data or start with an empty database.
 
 - The two red-by-design tests above still need their implementation slices.
   The operator has not scheduled either one.
-- GitHub Actions `ci` was reported as `startup_failure` with zero jobs. Local
-  verification is the current gate until a human fixes the workflow.
+- GitHub Actions `ci` and `pr-body-lint` still fail with `startup_failure` and
+  zero jobs on fresh runs (2026-11-23, main run `45087583829`). GitHub reports a
+  workflow file issue; CodeQL and Dependency Submission succeed, so this is not
+  an account-wide billing block. A likely cause is a bad action ref in a workflow
+  file. Local verification stays the gate until a human reviews and fixes it.
 - PR 166 removed the em-dash fitness gate at the operator's direction. Voice
   consistency now depends on review rather than a mechanical check.
 
