@@ -54,7 +54,7 @@ class MedicationEditViewModelSaveTest {
         }
 
     @Test
-    fun `single-phase dose time edit writes through ScheduleRepository upsert`() =
+    fun `single-phase dose time edit writes through ScheduleRepository upsert using typed LocalTime API`() =
         runTest {
             val med = seedMed("med-1", "pet-1", "Methimazole")
             val schedule = schedule("s-1", "med-1")
@@ -75,9 +75,7 @@ class MedicationEditViewModelSaveTest {
             assertEquals(listOf(LocalTime(8, 0)), vm.state.value.doseTimes)
             assertTrue(vm.state.value.isSinglePhaseTimeEditable)
 
-            vm.onDoseTimeChange("09:30")
-
-            assertTrue(vm.updateDoseTime())
+            assertTrue(vm.onUpdateTime(LocalTime(9, 30)))
             assertEquals(
                 listOf(LocalTime(9, 30)),
                 scheduleRepo
@@ -87,11 +85,10 @@ class MedicationEditViewModelSaveTest {
                     .doseTimesLocal,
             )
             assertEquals(listOf(LocalTime(9, 30)), vm.state.value.doseTimes)
-            assertEquals("09:30", vm.state.value.doseTimeText)
         }
 
     @Test
-    fun `multi-phase medication exposes read-only dose times and refuses the guarded edit`() =
+    fun `multi-phase medication exposes read-only dose times and refuses the guarded typed edit`() =
         runTest {
             val med = seedMed("med-1", "pet-1", "Methimazole")
             val schedule = schedule("s-1", "med-1")
@@ -116,9 +113,7 @@ class MedicationEditViewModelSaveTest {
             assertEquals(listOf(LocalTime(8, 0), LocalTime(20, 0)), vm.state.value.doseTimes)
             assertFalse(vm.state.value.isSinglePhaseTimeEditable)
 
-            vm.onDoseTimeChange("10:00")
-
-            assertFalse(vm.updateDoseTime())
+            assertFalse(vm.onUpdateTime(LocalTime(10, 0)))
             assertEquals(
                 listOf(LocalTime(8, 0), LocalTime(20, 0)),
                 scheduleRepo.observePhases("s-1").first().flatMap { it.doseTimesLocal },
@@ -126,7 +121,7 @@ class MedicationEditViewModelSaveTest {
         }
 
     @Test
-    fun `add mode has no dose times and refuses the guarded edit`() =
+    fun `add mode has no dose times and refuses the guarded typed edit`() =
         runTest {
             val vm =
                 medicationEditViewModel(
@@ -141,8 +136,7 @@ class MedicationEditViewModelSaveTest {
                     .isEmpty(),
             )
             assertFalse(vm.state.value.isSinglePhaseTimeEditable)
-            vm.onDoseTimeChange("09:30")
-            assertFalse(vm.updateDoseTime())
+            assertFalse(vm.onUpdateTime(LocalTime(9, 30)))
         }
 
     private fun schedule(

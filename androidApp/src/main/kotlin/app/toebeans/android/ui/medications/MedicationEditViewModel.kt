@@ -70,8 +70,6 @@ public class MedicationEditViewModel(
                     petName = null,
                     scheduleHint = null,
                     doseTimes = emptyList(),
-                    doseTimeText = "",
-                    doseTimeError = null,
                     scheduleId = null,
                 )
             }
@@ -100,8 +98,6 @@ public class MedicationEditViewModel(
                     petName = null,
                     scheduleHint = null,
                     doseTimes = emptyList(),
-                    doseTimeText = "",
-                    doseTimeError = null,
                     scheduleId = null,
                 )
             }
@@ -203,8 +199,6 @@ public class MedicationEditViewModel(
                     scheduleHint = scheduleHint,
                     doseTimes = doseTimes,
                     scheduleId = earliest?.id,
-                    doseTimeText = doseTimes.singleOrNull()?.let(::formatLocalTimeInput) ?: "",
-                    doseTimeError = null,
                 )
             }
         }
@@ -226,39 +220,24 @@ public class MedicationEditViewModel(
         _state.update { it.copy(notes = value) }
     }
 
-    public fun onDoseTimeChange(value: String) {
-        _state.update { it.copy(doseTimeText = value, doseTimeError = null) }
-    }
-
     /**
      * D2 guarded write: change the clock time of the single phase held by the single
-     * schedule for this medication. Returns false (no write) in add mode, for a
-     * multi-schedule / multi-phase / multi-time taper, on a malformed time, or if the
-     * schedule or phases changed underneath the loaded snapshot. The screen shows a
-     * read-only list plus an "Edit schedule" link for every case this refuses.
+     * schedule for this medication. The time arrives as a typed [LocalTime] from the
+     * Material 3 time picker, so there is no free-text parse step. Returns false (no
+     * write) in add mode, for a multi-schedule / multi-phase / multi-time taper, or if
+     * the schedule or phases changed underneath the loaded snapshot. The screen shows
+     * a read-only list plus an "Edit schedule" link for every case this refuses.
      *
      * Validation stays where it already lives: copying the phase re-runs
      * [SchedulePhase.init], so a bad time or dose count fails before the upsert.
      */
-    public suspend fun updateDoseTime(): Boolean {
+    public suspend fun onUpdateTime(time: LocalTime): Boolean {
         val s = _state.value
         if (s.isNew || !s.isSinglePhaseTimeEditable) return false
-        val time =
-            parseLocalTimeInput(s.doseTimeText)
-                ?: run {
-                    _state.update { it.copy(doseTimeError = "Use 24-hour HH:MM") }
-                    return false
-                }
         val medicationId = s.medicationId ?: return false
         val (schedule, phase) = resolveSinglePhase(medicationId) ?: return false
         scheduleRepository.upsert(schedule, listOf(phase.copy(doseTimesLocal = listOf(time))))
-        _state.update {
-            it.copy(
-                doseTimes = listOf(time),
-                doseTimeText = formatLocalTimeInput(time),
-                doseTimeError = null,
-            )
-        }
+        _state.update { it.copy(doseTimes = listOf(time)) }
         refreshReferenceContext()
         return true
     }
@@ -354,9 +333,6 @@ public data class MedicationEditUiState(
      * phase order, then time. Empty in add mode or when no schedule exists.
      */
     public val doseTimes: List<LocalTime> = emptyList(),
-    /** Editable "HH:MM" text for the single-phase case; empty otherwise. */
-    public val doseTimeText: String = "",
-    public val doseTimeError: String? = null,
     /** Earliest schedule id, used by the read-only case's "Edit schedule" link. */
     public val scheduleId: String? = null,
     public val name: String = "",
