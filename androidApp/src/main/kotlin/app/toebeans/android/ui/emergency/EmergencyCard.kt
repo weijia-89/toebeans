@@ -35,10 +35,13 @@ import app.toebeans.android.R
  * the app makes no medical claim (ADR-0019 §3): it hands the user a phone number and
  * opens the dialer on tap via a user-initiated ACTION_DIAL (no permission, ADR-0003).
  *
- * Collapsed by default so the Today screen stays glanceable; one tap reveals both
- * verified poison-control hotlines, find-an-emergency-vet guidance, and the
- * no-medical-advice disclaimer. [onCall] receives the tel: [Uri], the caller owns
- * starting the intent, which keeps this composable context-free and testable.
+ * Collapsed by default so the Today screen stays glanceable; one tap reveals only
+ * the two verified poison-control hotline rows. The first-line explanation,
+ * find-an-emergency-vet guidance, and no-medical-advice disclaimer live in the
+ * Settings dialog via [EmergencyResourcesContent], not in this card: an owner in a
+ * panic needs two numbers, not a paragraph. [onCall] receives the tel: [Uri], the
+ * caller owns starting the intent, which keeps this composable context-free and
+ * testable.
  */
 @Composable
 fun EmergencyCard(
@@ -87,16 +90,35 @@ fun EmergencyCard(
                 )
             }
             if (expanded) {
-                EmergencyResourcesContent(onCall = onCall)
+                EmergencyCardHotlineContent(onCall = onCall)
             }
         }
     }
 }
 
 /**
- * The expanded emergency content, shared by the Today card and the Settings dialog so
- * both surfaces always show the same static rows. Rows fire [onCall]; the host screen
- * turns the tel: Uri into the dialer intent.
+ * Card-specific expanded body. Renders only the two tappable hotline rows with the
+ * same padding and spacing as the full content, so the card stays glanceable in a
+ * stressful moment. The explanatory text and disclaimer remain in the Settings
+ * dialog via [EmergencyResourcesContent].
+ */
+@Composable
+private fun EmergencyCardHotlineContent(onCall: (Uri) -> Unit) {
+    Column(
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EmergencyResources.hotlines.forEach { hotline ->
+            EmergencyHotlineRow(hotline = hotline, onCall = onCall)
+        }
+    }
+}
+
+/**
+ * Full emergency content used by the Settings dialog: first-line guidance, the two
+ * hotline rows, find-a-vet guidance, and the no-medical-advice disclaimer (ADR-0019
+ * §3 framing). The Today card deliberately shows only [EmergencyCardHotlineContent].
+ * Rows fire [onCall]; the host screen turns the tel: Uri into the dialer intent.
  */
 @Composable
 internal fun EmergencyResourcesContent(

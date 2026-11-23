@@ -16,9 +16,11 @@ import org.robolectric.annotation.Config
 /**
  * Rendered contract for the Emergency card (ADR-0013 pattern: Robolectric + Compose
  * ui-test, SDK 34, plain Application so Koin never boots). Pins what a user in a
- * panic can observe: collapsed by default, one tap to both verified hotlines, the
- * find-a-vet guidance, and the no-medical-advice disclaimer. Expected display strings
- * are hard-coded here so drift against strings.xml fails at this layer too.
+ * panic can observe: collapsed by default, one tap to exactly the two verified
+ * hotlines and nothing else. The first-line explanation, find-a-vet guidance, and
+ * disclaimer stay in the Settings dialog via [EmergencyResourcesContent]; a separate
+ * test pins that full content. Expected display strings are hard-coded here so drift
+ * against strings.xml fails at this layer too.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -45,18 +47,28 @@ class EmergencyCardRenderTest {
     }
 
     @Test
-    fun `expanding reveals first line, both hotlines, find-a-vet guidance, and disclaimer`() {
+    fun `expanding reveals only the two hotlines and no first-line, find-vet, or disclaimer text`() {
         rule.setContent { EmergencyCard(onCall = {}) }
         expandCard()
-        rule.onNodeWithText(firstLine).assertIsDisplayed()
         rule.onNodeWithText("ASPCA Animal Poison Control").assertIsDisplayed()
         rule.onNodeWithText("(888) 426-4435").assertIsDisplayed()
         rule.onNodeWithText("24/7 · consultation fee may apply").assertIsDisplayed()
         rule.onNodeWithText("Pet Poison Helpline").assertIsDisplayed()
         rule.onNodeWithText("(855) 764-7661").assertIsDisplayed()
         rule.onNodeWithText("24/7 · $99 per incident fee applies").assertIsDisplayed()
+        rule.onNodeWithText(firstLine).assertDoesNotExist()
+        rule.onNodeWithText(findVetGuidance).assertDoesNotExist()
+        rule.onNodeWithText(disclaimer).assertDoesNotExist()
+    }
+
+    @Test
+    fun `settings emergency content still renders first line, find-a-vet guidance, and disclaimer`() {
+        rule.setContent { EmergencyResourcesContent(onCall = {}) }
+        rule.onNodeWithText(firstLine).assertIsDisplayed()
         rule.onNodeWithText(findVetGuidance).assertIsDisplayed()
         rule.onNodeWithText(disclaimer).assertIsDisplayed()
+        rule.onNodeWithText("ASPCA Animal Poison Control").assertIsDisplayed()
+        rule.onNodeWithText("Pet Poison Helpline").assertIsDisplayed()
     }
 
     @Test

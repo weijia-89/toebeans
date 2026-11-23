@@ -2,18 +2,25 @@ package app.toebeans.android.ui.medications
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.Schedule
+import app.toebeans.core.model.SchedulePhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -100,6 +107,22 @@ class MedicationEditBottomActionsRenderTest {
             ).assertIsDisplayed()
     }
 
+    @Test
+    fun `dose time control is a read-only picker trigger, not a free-text field, and opens the time picker`() {
+        val vm = editViewModelWithSinglePhase()
+        rule.setContent { content(vm) }
+
+        rule.onNodeWithText("08:00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Change dose time").assertHasClickAction()
+        rule.onAllNodesWithText("Update time").assertCountEquals(0)
+
+        rule.onNodeWithContentDescription("Change dose time").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("OK").assertIsDisplayed()
+        rule.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
     @androidx.compose.runtime.Composable
     private fun content(vm: MedicationEditViewModel) {
         MaterialTheme {
@@ -137,4 +160,38 @@ class MedicationEditBottomActionsRenderTest {
             pet = seedPet("pet-1", "Luna"),
             scheduleRepo = InMemoryScheduleRepo(),
         )
+
+    private fun editViewModelWithSinglePhase(): MedicationEditViewModel {
+        val schedule =
+            Schedule(
+                id = "s-1",
+                medicationId = "med-1",
+                startDate = LocalDate(2026, 1, 1),
+                endDate = null,
+                createdAt = Instant.fromEpochMilliseconds(1_700_000_000_000L),
+            )
+        val phase =
+            SchedulePhase(
+                id = "p-s-1-0",
+                scheduleId = "s-1",
+                phaseOrder = 0,
+                durationDays = 14,
+                dosesPerDay = 1,
+                doseTimesLocal = listOf(LocalTime(8, 0)),
+                doseAmount = null,
+                doseUnit = DoseUnit.MG,
+            )
+        val vm =
+            medicationEditViewModel(
+                medRepo = InMemoryMedRepo(initial = seedMed(id = "med-1", petId = "pet-1", name = "Methimazole")),
+                pet = seedPet("pet-1", "Luna"),
+                scheduleRepo =
+                    InMemoryScheduleRepo(
+                        initialSchedules = listOf(schedule),
+                        initialPhases = listOf(phase),
+                    ),
+            )
+        vm.load("med-1")
+        return vm
+    }
 }

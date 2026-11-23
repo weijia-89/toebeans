@@ -28,12 +28,16 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +57,7 @@ import app.toebeans.core.model.DoseUnit
 import app.toebeans.core.model.formatDose
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
@@ -254,8 +259,7 @@ public fun MedicationEditScreen(
 
                     DoseTimeSection(
                         state = state,
-                        onDoseTimeChange = viewModel::onDoseTimeChange,
-                        onUpdateTime = { scope.launch { viewModel.updateDoseTime() } },
+                        onUpdateTime = { time -> scope.launch { viewModel.onUpdateTime(time) } },
                         onEditSchedule = onEditSchedule,
                     )
 
@@ -343,31 +347,66 @@ private fun EndActionsMenu(
 
 /**
  * D2 dose-time surface. Hidden in add mode (no schedule exists yet) and when a medication
- * has no schedule. Exactly one phase with one time gets an editable "HH:MM" field; any
- * taper or multi-dose shape stays read-only and links to the schedule editor, which owns
- * the ascending-order / dose-count validation rules.
+ * has no schedule. Exactly one phase with one time gets a read-only 24-hour display that
+ * opens the Material 3 [TimePickerDialog] on tap; the picker's OK button commits the
+ * chosen [LocalTime] through the ViewModel. Any taper or multi-dose shape stays read-only
+ * and links to the schedule editor, which owns the ascending-order / dose-count rules.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DoseTimeSection(
     state: MedicationEditUiState,
-    onDoseTimeChange: (String) -> Unit,
-    onUpdateTime: () -> Unit,
+    onUpdateTime: (LocalTime) -> Unit,
     onEditSchedule: (petId: String, medicationId: String, scheduleId: String) -> Unit,
 ) {
     if (state.isNew || state.doseTimes.isEmpty()) return
     Column(modifier = Modifier.fillMaxWidth()) {
         if (state.isSinglePhaseTimeEditable) {
-            OutlinedTextField(
-                value = state.doseTimeText,
-                onValueChange = onDoseTimeChange,
-                label = { Text("Dose time (24-hour HH:MM)") },
-                singleLine = true,
-                isError = state.doseTimeError != null,
-                supportingText = state.doseTimeError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
+            val time = state.doseTimes.single()
+            var showPicker by remember { mutableStateOf(false) }
+            Text(
+                text = "Dose time (24-hour HH:MM)",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = onUpdateTime) {
-                Text("Update time")
+            Spacer(Modifier.height(4.dp))
+            OutlinedButton(
+                onClick = { showPicker = true },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Change dose time" },
+            ) {
+                Text(formatLocalTimeInput(time))
+            }
+            if (showPicker) {
+                val pickerState =
+                    rememberTimePickerState(
+                        initialHour = time.hour,
+                        initialMinute = time.minute,
+                        is24Hour = true,
+                    )
+                TimePickerDialog(
+                    title = { Text("Select dose time") },
+                    onDismissRequest = { showPicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                onUpdateTime(LocalTime(pickerState.hour, pickerState.minute))
+                                showPicker = false
+                            },
+                        ) {
+                            Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPicker = false }) {
+                            Text("Cancel")
+                        }
+                    },
+                ) {
+                    TimePicker(state = pickerState)
+                }
             }
         } else {
             Text(
