@@ -18,6 +18,7 @@ import app.toebeans.android.data.pets
 import app.toebeans.android.data.phasesByScheduleId
 import app.toebeans.android.data.schedules
 import app.toebeans.android.preferences.ThemePreferences
+import app.toebeans.android.preferences.UnitPreferences
 import app.toebeans.core.backup.BackupAggregator
 import app.toebeans.core.backup.BackupImporter
 import app.toebeans.core.backup.BackupSerializer
@@ -152,6 +153,7 @@ class SettingsRemoveDemoDataRenderTest {
         val viewModel =
             SettingsViewModel(
                 prefs = ThemePreferences(RuntimeEnvironment.getApplication()),
+                unitPreferences = UnitPreferences(RuntimeEnvironment.getApplication()),
                 petRepository = petRepo,
                 medicationRepository = medRepo,
                 scheduleRepository = schedRepo,

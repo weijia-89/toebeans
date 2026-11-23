@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.toebeans.android.R
 import app.toebeans.android.ui.components.DatePickerField
+import app.toebeans.android.util.WeightConverter
 import app.toebeans.core.data.DoseEventRepository
 import app.toebeans.core.data.MedicationRepository
 import app.toebeans.core.data.PetRepository
@@ -219,7 +220,7 @@ public fun PetEditScreen(
             OutlinedTextField(
                 value = state.weightKgText,
                 onValueChange = viewModel::onWeightChange,
-                label = { Text("Weight (kg, optional)") },
+                label = { Text(WeightConverter.fieldLabel(state.unit)) },
                 singleLine = true,
                 isError = state.weightError != null,
                 supportingText = state.weightError?.let { { Text(it) } },
