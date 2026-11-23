@@ -6,7 +6,7 @@
 
 Categories:
   - Sports & Health
-License: AGPL-3.0
+License: AGPL-3.0-or-later
 AuthorName: Wei Jia
 SourceCode: https://github.com/weijia-89/toebeans
 IssueTracker: https://github.com/weijia-89/toebeans/issues
@@ -26,7 +26,9 @@ Repo: https://github.com/weijia-89/toebeans
 Builds:
   - versionName: 0.1.0
     versionCode: 1
-    commit: REPLACE_WITH_RELEASE_TAG
+    # TODO(operator): set this to the real signed release tag before filing.
+    # No tag is cut in this wave, so no tag value is invented here.
+    commit: TODO_OPERATOR_SET_RELEASE_TAG
     gradle:
       - yes
 

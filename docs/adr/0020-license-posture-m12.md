@@ -1,4 +1,4 @@
-# ADR-0020 (M1.2): License posture: AGPL-3.0 for the core repository
+# ADR-0020 (M1.2): License posture: AGPL-3.0-or-later for the core repository
 
 > Note (2026-11-22): The agent contract files were removed from this public repository. References in this document to those files mean the local working copies kept in a contributor's checkout.
 
@@ -20,13 +20,13 @@ Operator lock recorded in a private decision record, removed from the public rep
 
 ## Decision
 
-**The toebeans core repository remains licensed under AGPL-3.0.** The M1.2 license gate is **closed**. M2 public ship may proceed on license posture once other M1.2 gates clear; this ADR does not by itself unblock M2.
+**The toebeans core repository remains licensed under AGPL-3.0-or-later.** The M1.2 license gate is **closed**. M2 public ship may proceed on license posture once other M1.2 gates clear; this ADR does not by itself unblock M2.
 
 ## Rationale
 
 ### Public-good and anti-enclosure posture
 
-AGPL-3.0 aligns with toebeans' stated trust posture (local-first, no training on user data, owner-controlled portability) documented in ADR-0003 and the feasibility dossier's open-core framing (§ 8, trust-and-portability layer vs moat layer). Copyleft makes network-facing forks of the core disclose corresponding source, which supports **public-good** distribution of improvements to the reminder engine, schema, and portability surfaces rather than silent proprietary forks of the same code.
+AGPL-3.0-or-later aligns with toebeans' stated trust posture (local-first, no training on user data, owner-controlled portability) documented in ADR-0003 and the feasibility dossier's open-core framing (§ 8, trust-and-portability layer vs moat layer). Copyleft makes network-facing forks of the core disclose corresponding source, which supports **public-good** distribution of improvements to the reminder engine, schema, and portability surfaces rather than silent proprietary forks of the same code.
 
 ### Acquisition and partnership tension (acknowledged, not resolved away)
 
@@ -40,8 +40,8 @@ Apache-2.0 would ease embedding in proprietary stacks and contributor onboarding
 
 ## Contributor expectations
 
-1. **Inbound contributions** (if the project opens beyond the current personal-maintainer model): contributors must accept that merged work is AGPL-3.0. A Contributor License Agreement (CLA) is **not** in force today; if contribution volume warrants it, add CLA only via a follow-up ADR: do not imply CLA exists in README or CONTRIBUTING without that ADR.
-2. **Copyright headers:** New source files should carry SPDX `AGPL-3.0-or-later` (or project-standard header) consistent with root `LICENSE`. Match surrounding files in each module.
+1. **Inbound contributions** (if the project opens beyond the current personal-maintainer model): contributors must accept that merged work is AGPL-3.0-or-later. A Contributor License Agreement (CLA) is **not** in force today; if contribution volume warrants it, add CLA only via a follow-up ADR: do not imply CLA exists in README or CONTRIBUTING without that ADR.
+2. **Copyright headers:** New source files should carry SPDX `AGPL-3.0-or-later` (or project-standard header) consistent with root `LICENSE`. The LICENSE header names version 3 without an "or later" phrase. Treat the SPDX token `AGPL-3.0-or-later` as the single source of truth for licence wording in source headers and F-Droid metadata. Match surrounding files in each module.
 3. **Dependencies:** Prefer dependencies compatible with AGPL distribution. Flag copyleft-incompatible or proprietary SDK additions in PR review before merge. Network/analytics SDKs remain out of scope per ADR-0003 and project constraints.
 4. **Forks and PRs from employers:** Contributors whose employers block AGPL contribution need written employer clearance or must not contribute code; documentation-only PRs may still trigger policy review on their side.
 
@@ -63,9 +63,9 @@ These are planning assumptions, not legal advice. Confirm with counsel before ou
 ## Non-goals
 
 - **Dual-license or commercial AGPL exception**: not decided; out of scope for M1.2.
-- **Relicensing historical commits**: not required; LICENSE already AGPL-3.0.
+- **Relicensing historical commits**: not required; LICENSE already AGPL-3.0-or-later.
 - **Submodule or asset licensing**: fonts, images, and third-party deps retain their own licenses; this ADR covers the **application source repo** root posture only.
-- **Patent grant strategy**: no change; rely on AGPL-3.0 patent retaliation terms unless counsel advises otherwise.
+- **Patent grant strategy**: no change; rely on AGPL-3.0-or-later patent retaliation terms unless counsel advises otherwise.
 - **Changing vet-visit ADR `0020-vet-visit-domain-model.md`**: unrelated domain decision; no merge or renumber.
 
 ## Consequences
@@ -84,7 +84,7 @@ These are planning assumptions, not legal advice. Confirm with counsel before ou
 ## Verification
 
 - [x] `LICENSE` first lines: "GNU Affero General Public License, version 3" (2026-05-26, branch `docs/adr-0020-agpl-m12`).
-- [x] `docs/ROADMAP.md` M1.2 license row updated to Accepted / AGPL-3.0.
+- [x] `docs/ROADMAP.md` M1.2 license row updated to Accepted / AGPL-3.0-or-later.
 - [x] A private decision record cross-linked this ADR.
 
 ## References
