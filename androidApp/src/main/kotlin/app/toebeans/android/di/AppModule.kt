@@ -4,6 +4,8 @@ import android.app.AlarmManager
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import app.toebeans.android.BuildConfig
+import app.toebeans.android.data.DrugReferenceAssets
+import app.toebeans.android.data.DrugReferenceReader
 import app.toebeans.android.data.SqliteForeignKeysCallback
 import app.toebeans.android.notifications.AndroidNotificationActuator
 import app.toebeans.android.notifications.RequestCodeAllocator
@@ -73,6 +75,9 @@ public val appModule =
         // Medication name index for typeahead search (Item 3, wave2-ui-backlog.md).
         // In-memory, loaded once at app startup.
         single<MedicationNameIndexRepository> { InMemoryMedicationNameIndex() }
+        // D7: approved unit-selection entries, read from the same bundled assets path the
+        // approval gate scans. An empty directory yields "no entry" and changes nothing.
+        single<DrugReferenceReader> { DrugReferenceAssets(androidContext().assets) }
 
         // Schedule calculator (pure, KMP commonMain). Stateless, single instance is correct.
         // Vibe-dangerous per AGENTS.md; the binding is exercised at app startup by HomeViewModel.
@@ -163,6 +168,7 @@ public val appModule =
                 scheduleCalculator = get(),
                 notificationActuator = get(),
                 medicationNameIndex = get(),
+                drugReferenceReader = get(),
             )
         }
         viewModel {

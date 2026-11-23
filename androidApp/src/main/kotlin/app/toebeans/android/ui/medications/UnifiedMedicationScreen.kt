@@ -27,6 +27,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +46,7 @@ import app.toebeans.android.ui.components.DatePickerField
 import app.toebeans.android.ui.components.PillBackground
 import app.toebeans.android.ui.schedule.PhaseEditorCard
 import app.toebeans.core.model.AnchorMode
+import app.toebeans.core.model.DoseUnit
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -187,8 +189,44 @@ public fun UnifiedMedicationScreen(
                                     selected = state.doseUnit,
                                     onSelect = viewModel::onDoseUnitChange,
                                     isError = state.doseUnitError != null,
+                                    allowedUnits = state.effectiveUnits,
                                     modifier = Modifier.weight(1f),
                                 )
+                            }
+                            if (state.suggestedUnits != DoseUnit.entries.toList() || state.showAllUnits) {
+                                TextButton(onClick = { viewModel.onShowAllUnitsChange(!state.showAllUnits) }) {
+                                    Text(if (state.showAllUnits) "Use suggested units" else "Show all units")
+                                }
+                            }
+                            if (state.unitMismatchWarning) {
+                                Surface(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clearAndSetSemantics {
+                                                liveRegion = LiveRegionMode.Polite
+                                                contentDescription = "Check the amount and unit"
+                                            },
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    shape = MaterialTheme.shapes.medium,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text =
+                                                "Amount and unit may not match. " +
+                                                    "Check them if you want; you can still save.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        TextButton(onClick = viewModel::dismissUnitMismatchWarning) {
+                                            Text("Dismiss")
+                                        }
+                                    }
+                                }
                             }
                             OutlinedTextField(
                                 value = state.notes,

@@ -11,6 +11,7 @@
 #   - a missing source URL fails
 #   - a malformed date fails
 #   - an unknown content kind fails
+#   - the old data/drug-reference/entries path is NOT scanned (one path, no drift)
 #
 # Usage: bash scripts/test_test_drug_reference_approval.sh [repo-root]
 
@@ -28,10 +29,10 @@ FAILED=0
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
-entries="$tmpdir/data/drug-reference/entries"
+entries="$tmpdir/androidApp/src/main/assets/drug-reference/entries"
 
 reset_entries() {
-  rm -rf "$tmpdir/data"
+  rm -rf "$tmpdir/androidApp"
   mkdir -p "$entries"
 }
 
@@ -62,7 +63,7 @@ expect_fail() {
 }
 
 # 1. Nothing shipped yet: no entries directory at all.
-rm -rf "$tmpdir/data"
+rm -rf "$tmpdir/androidApp"
 expect_pass "test 1 no entries directory"
 
 # 2. Nothing shipped yet: empty entries directory.
@@ -237,6 +238,30 @@ cat > "$entries/kind.json" <<'JSON'
 }
 JSON
 expect_fail "test 10 unknown kind" "kind.json: kind is not summary or verbatim"
+
+# 11. One path, no drift: a bad entry left in the OLD path must be ignored.
+reset_entries
+old="$tmpdir/data/drug-reference/entries"
+mkdir -p "$old"
+cat > "$old/orphan.json" <<'JSON'
+{
+  "medication": "Orphan",
+  "kind": "scraped",
+  "text": "Copied text.",
+  "source": {
+    "publisher": "Manufacturer label",
+    "url": "https://example.com/label",
+    "retrieved": "2026-11-16"
+  },
+  "approval": {
+    "approver": "Wei Jia",
+    "date": "2026-11-16",
+    "decision": "pending",
+    "rationale": "Fine."
+  }
+}
+JSON
+expect_pass "test 11 old path is not scanned"
 
 if [[ "$FAILED" -eq 0 ]]; then
   echo "OK drug-reference approval fitness-function self-test passed."

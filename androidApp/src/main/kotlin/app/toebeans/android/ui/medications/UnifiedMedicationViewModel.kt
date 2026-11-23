@@ -2,6 +2,8 @@ package app.toebeans.android.ui.medications
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import app.toebeans.android.data.DrugReferenceReader
+import app.toebeans.android.data.EmptyDrugReferenceReader
 import app.toebeans.android.ui.schedule.MidnightStraddleDetection
 import app.toebeans.android.ui.schedule.PhaseDraft
 import app.toebeans.core.data.DoseEventRepository
@@ -11,6 +13,7 @@ import app.toebeans.core.data.PetRepository
 import app.toebeans.core.data.ScheduleRepository
 import app.toebeans.core.model.AnchorMode
 import app.toebeans.core.model.DoseUnit
+import app.toebeans.core.model.DoseUnitReference
 import app.toebeans.core.model.Medication
 import app.toebeans.core.model.Schedule
 import app.toebeans.core.model.SchedulePhase
@@ -58,7 +61,18 @@ public data class UnifiedMedicationUiState(
     public val phases: List<PhaseDraft> = listOf(blankPhaseDraft()),
     public val isSaving: Boolean = false,
     public val formError: String? = null,
-)
+    public val suggestedUnits: List<DoseUnit> = DoseUnit.entries.toList(),
+    public val showAllUnits: Boolean = false,
+    public val doseUnitManuallySet: Boolean = false,
+    public val unitMismatchWarning: Boolean = false,
+) {
+    /**
+     * The list the picker actually shows. The override always reaches all 17 units,
+     * so a compounded preparation is never hidden by a narrowed suggestion.
+     */
+    public val effectiveUnits: List<DoseUnit>
+        get() = if (showAllUnits) DoseUnit.entries.toList() else suggestedUnits
+}
 
 @OptIn(ExperimentalUuidApi::class)
 @Suppress("LongParameterList")
@@ -71,6 +85,7 @@ public class UnifiedMedicationViewModel(
     public val medicationNameIndex: MedicationNameIndexRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val petRepository: PetRepository? = null,
+    private val drugReferenceReader: DrugReferenceReader = EmptyDrugReferenceReader,
 ) : ViewModel(),
     KoinComponent {
     // See ScheduleCreateViewModel: AppModule does not inject the pet repository in this slice.
@@ -95,15 +110,67 @@ public class UnifiedMedicationViewModel(
     }
 
     public fun onNameChange(value: String) {
-        _state.update { it.copy(name = value, nameError = null, formError = null) }
+        // A reader failure is treated as "no entry": it must never stop the form.
+        val entry = runCatching { drugReferenceReader.find(value) }.getOrNull()
+        _state.update { current ->
+            val narrowed =
+                entry
+                    ?.let { DoseUnitReference.unitsForFormulation(it.formulation) }
+                    ?.toMutableList()
+                    ?: DoseUnit.entries.toMutableList()
+            val defaultUnit = entry?.defaultUnit
+            // The preselected unit is always visible, even for an unexpected formulation.
+            if (defaultUnit != null && defaultUnit !in narrowed) {
+                narrowed.add(0, defaultUnit)
+            }
+            // No usable entry means no preselection: the unit returns to unset unless
+            // the owner has deliberately chosen one.
+            val nextUnit = if (current.doseUnitManuallySet) current.doseUnit else defaultUnit
+            current.copy(
+                name = value,
+                nameError = null,
+                formError = null,
+                suggestedUnits = narrowed.toList(),
+                showAllUnits = false,
+                doseUnit = nextUnit,
+                unitMismatchWarning = looksDimensionallyMismatched(current.doseAmount, nextUnit),
+            )
+        }
     }
 
     public fun onDoseAmountChange(value: String) {
-        _state.update { it.copy(doseAmount = value, doseAmountError = null, doseUnitError = null, formError = null) }
+        _state.update { current ->
+            current.copy(
+                doseAmount = value,
+                doseAmountError = null,
+                doseUnitError = null,
+                formError = null,
+                unitMismatchWarning = looksDimensionallyMismatched(value, current.doseUnit),
+            )
+        }
     }
 
     public fun onDoseUnitChange(value: DoseUnit?) {
-        _state.update { it.copy(doseUnit = value, doseUnitError = null, doseAmountError = null, formError = null) }
+        _state.update { current ->
+            current.copy(
+                doseUnit = value,
+                doseUnitError = null,
+                doseAmountError = null,
+                formError = null,
+                doseUnitManuallySet = true,
+                unitMismatchWarning = looksDimensionallyMismatched(current.doseAmount, value),
+            )
+        }
+    }
+
+    /** Override path. Switching back is non-destructive to the typed amount. */
+    public fun onShowAllUnitsChange(value: Boolean) {
+        _state.update { it.copy(showAllUnits = value) }
+    }
+
+    /** Soft prompt only: dismissing never changes validation or blocks save. */
+    public fun dismissUnitMismatchWarning() {
+        _state.update { it.copy(unitMismatchWarning = false) }
     }
 
     public fun onNotesChange(value: String) {
@@ -429,6 +496,36 @@ public class UnifiedMedicationViewModel(
             "This schedule isn't valid: ${e.message ?: e.code}"
         }
     }
+}
+
+/**
+ * Discrete units count whole items, so a decimal or fraction beside one is a prompt
+ * worth showing. This only inspects the text pattern: it converts no number, computes
+ * no dose, and says nothing about whether the amount is safe or correct.
+ */
+private val countUnits =
+    setOf(
+        DoseUnit.TABLET,
+        DoseUnit.CAPSULE,
+        DoseUnit.PILL,
+        DoseUnit.PATCH,
+        DoseUnit.SACHET,
+        DoseUnit.SCOOP,
+        DoseUnit.PUMP,
+        DoseUnit.SPRAY,
+        DoseUnit.DROP,
+        DoseUnit.UNIT,
+        DoseUnit.IU,
+    )
+
+internal fun looksDimensionallyMismatched(
+    amount: String,
+    unit: DoseUnit?,
+): Boolean {
+    if (unit == null || unit !in countUnits) return false
+    val trimmed = amount.trim()
+    return trimmed.isNotEmpty() &&
+        (trimmed.contains('.') || trimmed.contains(',') || trimmed.contains('/'))
 }
 
 private fun blankPhaseDraft(): PhaseDraft =
