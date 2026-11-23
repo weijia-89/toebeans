@@ -42,4 +42,4 @@ README: no cloud, no telemetry, no third-party services. MP is hosted SaaS.
 ## Related
 
 - README § Design review
-- `~/Projects/docs/framer-prototype-toebeans-buds.md` (Framer HTML in-repo only)
+- `docs/style-lab/` (local design surface)

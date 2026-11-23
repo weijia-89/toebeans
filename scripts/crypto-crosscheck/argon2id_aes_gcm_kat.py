@@ -42,18 +42,18 @@ VECTOR SOURCES
 --------------
 
 KAT vector (Argon2idKdfTest.kt `known-answer test matches the cross-checked reference`):
-  inputs at @/Users/wjia/Projects/toebeans/shared/src/commonTest/kotlin/app/toebeans/core/backup/Argon2idKdfTest.kt:107-108
+  inputs at shared/src/commonTest/kotlin/app/toebeans/core/backup/Argon2idKdfTest.kt:107-108
   expected output at the same file, lines 118-152.
 
 AAD-order vector (BackupCipherV2Test.kt `synthetic AAD-order vector pins magic-salt-iv construction`):
-  inputs at @/Users/wjia/Projects/toebeans/shared/src/jvmTest/kotlin/app/toebeans/core/backup/BackupCipherV2Test.kt:233-236
+  inputs at shared/src/jvmTest/kotlin/app/toebeans/core/backup/BackupCipherV2Test.kt:233-236
   expected output at the same file, lines 253-296.
 """
 
 import sys
 
 # Argon2id parameters per ADR-0018 § Decision § Parameter set, pinned in
-# @/Users/wjia/Projects/toebeans/shared/src/commonMain/kotlin/app/toebeans/core/backup/Argon2idKdf.kt:12-26
+# shared/src/commonMain/kotlin/app/toebeans/core/backup/Argon2idKdf.kt:12-26
 ARGON2ID_MEMORY_COST_KIB = 65_536   # 64 MiB
 ARGON2ID_ITERATIONS = 3              # three passes
 ARGON2ID_PARALLELISM = 1             # one lane

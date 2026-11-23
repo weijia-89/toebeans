@@ -197,7 +197,7 @@ This ADR moves to Superseded if any of:
 
 - `AGENTS.md` § Vibe-impossible. The refusal list this ADR carves out from, pending Followup F1.
 - `CLAUDE.md` § Vibe-impossible. Same; CI parity gate at `tests/agents_claude_parity.sh`.
-- `docs/superpowers/specs/2026-05-14-toebeans-mvp-design.md` § 8.1 and § 12 (positioning + threat model). The original anti-AI-vet posture.
+- The superseded MVP design spec § 8.1 (positioning) and SECURITY.md (threat model). The original anti-AI-vet posture.
 - Internal feasibility analysis (removed from the public repository): moat candidates, positioning, and the veterinary advisory board decision.
 - `docs/ROADMAP.md` M4 line 159. The drug-interaction precedent ("STRICTLY rule-based, vet-curated, NO LLM").
 - ADR-0005 (`docs/adr/0005-vibe-dangerous-reminder-firing.md`). The vibe-dangerous classification this framework inherits the posture from.

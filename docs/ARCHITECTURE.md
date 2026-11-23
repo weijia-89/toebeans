@@ -53,7 +53,7 @@ triggers a refactor, with an ADR.
 
 ## Dose-log path (working today)
 
-The user has the in-memory dose-log surface working on the Pet Detail screen.
+The user has the SQLDelight-backed dose-log surface working on the Pet Detail screen.
 Tapping `Log dose now` writes a synthetic GIVEN `DoseEvent` against the
 medication's most recent schedule. The repository's
 `observeLastGivenForMedication` flow re-emits and the row recomposes.
@@ -64,7 +64,7 @@ sequenceDiagram
     participant UI as Compose UI
     participant VM as PetDetailViewModel
     participant Repo as DoseEventRepository
-    participant Store as In-memory store
+    participant Store as SQLDelight store
 
     Owner->>UI: tap "Log dose now"
     UI->>VM: logDose(medicationId, activeScheduleId)
