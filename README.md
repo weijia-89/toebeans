@@ -183,13 +183,13 @@ lets you load demo data or start with an empty database.
 
 ## Open questions
 
-- The two red-by-design tests above still need their implementation slices.
-  The operator has not scheduled either one.
-- GitHub Actions `ci` and `pr-body-lint` still fail with `startup_failure` and
-  zero jobs on fresh runs (2026-11-23, main run `45087583829`). GitHub reports a
-  workflow file issue; CodeQL and Dependency Submission succeed, so this is not
-  an account-wide billing block. A likely cause is a bad action ref in a workflow
-  file. Local verification stays the gate until a human reviews and fixes it.
+- GitHub Actions `ci` and `pr-body-lint` stop before any job starts. The run page
+  says the repository allows actions only from repositories owned by `weijia-89`.
+  A bad action ref was a second defect and has a proposed fix in an open pull request.
+  The operator chose to change the repository setting; local verification is the gate
+  until a fresh GitHub run succeeds.
+- The vet-visit and travel-mode database contract tests are green. Their implementation
+  slices landed, and a local full run reports one case each with zero failures.
 - PR 166 removed the em-dash fitness gate at the operator's direction. Voice
   consistency now depends on review rather than a mechanical check.
 

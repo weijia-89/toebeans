@@ -18,11 +18,11 @@ History: [#134](https://github.com/weijia-89/toebeans/pull/134) replaces the Pla
 
 | Item | Tier | Status |
 |---|---|---|
-| AGP 9. The closed pull request 141 change is relanded on the Gradle `9.9.0` wrapper: AGP is `9.5.1` and `gradle.properties` sets `android.builtInKotlin=false` and `android.newDsl=false`, because AGP 9 built-in Kotlin and the new DSL forbid the main-tracked build files (`org.jetbrains.kotlin.android` in the app module, `org.jetbrains.kotlin.multiplatform` plus `com.android.library` in the shared module). Both opt-outs are removed in AGP 10; migrating to built-in Kotlin and the KMP Android library plugin is the follow-up. Local verify is green: `:shared:jvmTest` 210 passed, `:shared:testDebugUnitTest` 120 passed, `:androidApp:checkDebugAarMetadata` and `:androidApp:assembleDebug` exit 0. The reland pull request is labelled `needs-human-test-review`; the operator reviews and merges. | vibe-dangerous | blocked-operator-approval |
-| Vet-visit and vaccine schema (ADR-0020 F5a): the red schema-contract test is written (`VetVisitSchemaContractTest`, jvmTest; compiles and fails on the missing `VetVisit`, `Vaccine`, `VaccinationGiven` tables, 211 tests with 1 designed failure). Human test review is pending; implementation of the tables, repositories, and migration starts only after the review, per ADR-0020 slice order (F4 style guide, F5a schema, F5b rule pack, F5c scheduler, UI). | vibe-dangerous | blocked-operator-approval |
-| Travel-mode homeTimezone (ADR-0007 timezone gate): the red contract test is written (`TravelModeHomeTimezoneContractTest`, jvmTest; compiles and fails on the missing `Pet.home_timezone` column, 212 tests with 2 designed failures: this red plus the vet-visit red above). The test pins the `STAY_HOME_TZ` caller policy through a domain-layer device-timezone change, no OS broadcast. Human test review is pending; the schema migration and caller-policy implementation start only after the review. ADR-0007 gates G1 and G3 stay out of scope. | vibe-dangerous | blocked-operator-approval |
+| AGP 9.5.1 is live on the Gradle 9.9.0 wrapper. Built-in Kotlin and the KMP Android library plugin are the follow-up before AGP 10 removes the opt-outs. Local verify is green. | vibe-dangerous | Shipped in the 2026-11-22 build wave |
+| Vet-visit and vaccine schema (ADR-0020 F5a). The schema, migration, and `VetVisitSchemaContractTest` are in main; one jvmTest case runs green with zero failures. | vibe-dangerous | Shipped in the 2026-11-22 schema wave |
+| Travel-mode homeTimezone (ADR-0007 timezone gate). The column, caller policy, and `TravelModeHomeTimezoneContractTest` are in main; one jvmTest case runs green with zero failures. ADR-0007 gates G1 and G3 stay out of scope. | vibe-dangerous | Shipped in the 2026-11-22 timezone wave |
 | Dose history vs schedule delete. Operator decision 2026-11-22: history is kept. Migration 4 makes `DoseEvent.schedule_id` nullable with ON DELETE SET NULL, so given and pending dose rows survive schedule deletion. The fire path INNER JOINs Schedule, so an orphaned row is invisible to the receiver and its alarm is cancelled. Medication deletion still cascades, so Remove demo data keeps clearing demo rows. `DoseHistorySurvivesScheduleDeleteTest` and `DoseEventMigrationSafetyTest` pin both properties. | vibe-dangerous | Shipped in [#165](https://github.com/weijia-89/toebeans/pull/165), 2026-11-22 |
-| GitHub Actions `ci` and `pr-body-lint` still fail with `startup_failure` and zero jobs on fresh 2026-11-23 runs (main run `45087583829`). GitHub reports a workflow file issue; CodeQL and Dependency Submission succeed, so this is not an account-wide billing block. A likely cause is a bad action ref in a workflow file. A human reviews and fixes the workflow; local verification stays the gate. | n/a | blocked-operator-approval |
+| GitHub Actions `ci` and `pr-body-lint` stop before any job starts. The run page states that the repository allows only actions from repositories owned by `weijia-89`. CodeQL and Dependency Submission succeed, so this is not an account-wide billing block. A bad action ref was a second defect and has a proposed fix in an open pull request. The operator chose to change the repository setting; local verification stays the gate until a fresh GitHub run succeeds. | n/a | blocked-operator-approval |
 | F-Droid tester channel for the operator and two private testers. Tutorial: `docs/fdroid-tester-tutorial.md`. This run does not publish a release. | n/a | blocked-operator-runtime |
 | Public F-Droid listing. The operator files the fdroiddata merge request later. This run does not file it. | n/a | blocked-operator-runtime |
 | Day-14 adoption read. The developer reads the soak log in `docs/soak-test-protocol.md`. The app does not collect analytics. | n/a | blocked-operator-runtime |
@@ -31,13 +31,13 @@ Not this run.
 ADR-0007 G1 and G3 stay in `docs/issues/v0.1-followups.md` item 2.
 Argon2id stays unwired until an ADR-0016 v2 trigger.
 
-Two `jvmTest` tests stay red by design until their implementation slices get a
-human decision: `VetVisitSchemaContractTest` and
-`TravelModeHomeTimezoneContractTest`. A local full run reports them as designed
-failures. They are not shipped behavior and are not silenced. GitHub Actions
-`ci` and `pr-body-lint` still fail with `startup_failure` and zero jobs on fresh
-2026-11-23 runs, so the workflow has not given a green result for them; local
-verification is the current gate.
+`VetVisitSchemaContractTest` and `TravelModeHomeTimezoneContractTest` run green
+in a local full run, one case each with zero failures. Their earlier red state was
+part of the 2026-11-22 test-first wave and is no longer current.
+
+GitHub Actions `ci` and `pr-body-lint` stop before any job starts because of the
+repository action-owner policy. Local verification is the current gate until a
+fresh GitHub run succeeds.
 
 The drug-reference approval gate runs in `scripts/verify_before_push.sh` but is
 not wired into `.github/workflows/ci.yml`. Adding it touches a review-gated
