@@ -64,6 +64,20 @@ jobs:
         run: bash scripts/test_manual_qa_catalog.sh .
       - name: Manual QA catalog fitness-function self-test
         run: bash scripts/test_test_manual_qa_catalog.sh .
+      - name: Drug-reference approval gate (ADR-0019)
+        # Every shipped drug-reference entry must carry provenance and a human
+        # approval record. Scans the same assets directory the Android app reads.
+        run: bash scripts/test_drug_reference_approval.sh .
+      - name: Drug-reference approval fitness-function self-test
+        run: bash scripts/test_test_drug_reference_approval.sh .
+      - name: Workflow action refs resolve to real tags
+        # A bad uses ref stops the whole workflow before any job starts, so the
+        # red build carries no per-job log. Check every ref against GitHub tags.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/test_workflow_action_refs.sh .
+      - name: Workflow action refs fitness-function self-test
+        run: bash scripts/test_test_workflow_action_refs.sh .
       - name: Removed review gate absence guard
         run: bash scripts/test_no_trainer_gate.sh .
       - name: Removed weekend scheduler absence guard
@@ -122,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Run dependency-review-action
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@v5.0.1
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
