@@ -85,6 +85,26 @@ run_check "Fitness: Decompose navigation migration" \
     bash scripts/test_decompose_nav_migration.sh .
 run_check "Fitness: Decompose navigation migration self-test" \
     bash scripts/test_test_decompose_nav_migration.sh .
+run_check "Fitness: U2 toolchain record" \
+    bash scripts/test_posture_u2_toolchain_adr.sh .
+run_check "Fitness: U2 toolchain record self-test" \
+    bash scripts/test_test_posture_u2_toolchain_adr.sh .
+run_check "Fitness: U6 additive migration" \
+    bash scripts/test_posture_u6_additive_migration.sh .
+run_check "Fitness: U6 additive migration self-test" \
+    bash scripts/test_test_posture_u6_additive_migration.sh .
+run_check "Fitness: M2 failing test first" \
+    bash scripts/test_posture_m2_failing_test_first.sh .
+run_check "Fitness: M2 failing test first self-test" \
+    bash scripts/test_test_posture_m2_failing_test_first.sh .
+run_check "Fitness: S5 database guarantees" \
+    bash scripts/test_posture_s5_db_guarantees.sh .
+run_check "Fitness: S5 database guarantees self-test" \
+    bash scripts/test_test_posture_s5_db_guarantees.sh .
+run_check "Fitness: S6 history preservation" \
+    bash scripts/test_posture_s6_history_preservation.sh .
+run_check "Fitness: S6 history preservation self-test" \
+    bash scripts/test_test_posture_s6_history_preservation.sh .
 
 # ---------------------------------------------------------------------------
 # 2. Vibe-dangerous check (local mirror of CI gate)

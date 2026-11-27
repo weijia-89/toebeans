@@ -56,6 +56,26 @@ jobs:
         run: bash scripts/test_decompose_nav_migration.sh .
       - name: Decompose navigation migration gate self-test
         run: bash scripts/test_test_decompose_nav_migration.sh .
+      - name: U2 toolchain-record gate
+        run: bash scripts/test_posture_u2_toolchain_adr.sh .
+      - name: U2 toolchain-record self-test
+        run: bash scripts/test_test_posture_u2_toolchain_adr.sh .
+      - name: U6 additive-migration gate
+        run: bash scripts/test_posture_u6_additive_migration.sh .
+      - name: U6 additive-migration self-test
+        run: bash scripts/test_test_posture_u6_additive_migration.sh .
+      - name: M2 failing-test-first gate
+        run: bash scripts/test_posture_m2_failing_test_first.sh .
+      - name: M2 failing-test-first self-test
+        run: bash scripts/test_test_posture_m2_failing_test_first.sh .
+      - name: S5 database-guarantee gate
+        run: bash scripts/test_posture_s5_db_guarantees.sh .
+      - name: S5 database-guarantee self-test
+        run: bash scripts/test_test_posture_s5_db_guarantees.sh .
+      - name: S6 history-preservation gate
+        run: bash scripts/test_posture_s6_history_preservation.sh .
+      - name: S6 history-preservation self-test
+        run: bash scripts/test_test_posture_s6_history_preservation.sh .
       - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)
         run: bash scripts/test_pre_commit_hook.sh .
       - name: Duplicate-private fitness-function self-test
