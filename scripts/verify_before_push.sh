@@ -62,6 +62,10 @@ run_check "Fitness: drug-reference-approval" \
     bash scripts/test_drug_reference_approval.sh .
 run_check "Fitness: drug-reference-approval self-test" \
     bash scripts/test_test_drug_reference_approval.sh .
+run_check "Fitness: workflow-action-refs" \
+    bash scripts/test_workflow_action_refs.sh .
+run_check "Fitness: workflow-action-refs self-test" \
+    bash scripts/test_test_workflow_action_refs.sh .
 run_check "Fitness: no-duplicate-private-test-class-names" \
     bash scripts/test_no_duplicate_private_test_class_names.sh .
 # The contract files are local-only working copies; parity skips when absent.
