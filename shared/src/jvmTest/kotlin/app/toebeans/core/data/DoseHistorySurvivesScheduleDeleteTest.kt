@@ -15,6 +15,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * Test-as-spec for the operator decision of 2026-11-22: dose history must survive
@@ -39,58 +40,128 @@ class DoseHistorySurvivesScheduleDeleteTest {
     @Test
     fun `dose history survives schedule delete`() =
         runTest {
-            val freshDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-            ToebeansDatabase.Schema.create(freshDriver)
-            freshDriver.execute(null, "PRAGMA foreign_keys=ON", 0)
-            val localDb = ToebeansDatabase(freshDriver)
-            val createdAt = Instant.parse("2026-05-19T00:00:00Z")
-            seedPetAndMedication(localDb, createdAt)
-            val scheduleRepository =
-                SqlDelightScheduleRepository(
-                    database = localDb,
-                    dispatcher = unconfinedTestDispatcher(),
-                )
-            val doseEventRepository =
-                SqlDelightDoseEventRepository(
-                    database = localDb,
-                    dispatcher = unconfinedTestDispatcher(),
-                )
-            val schedule =
-                Schedule(
-                    id = "sched-hist",
-                    medicationId = "m-hist",
-                    startDate = LocalDate.parse("2026-05-01"),
-                    endDate = null,
-                    createdAt = createdAt,
-                )
-            scheduleRepository.upsert(
-                schedule,
-                listOf(
-                    SchedulePhase(
-                        id = "phase-hist",
-                        scheduleId = schedule.id,
-                        phaseOrder = 0,
-                        durationDays = 7,
-                        dosesPerDay = 2,
-                        doseTimesLocal = listOf(LocalTime.parse("08:00"), LocalTime.parse("20:00")),
-                        doseAmount = "1",
-                        doseUnit = DoseUnit.MG,
-                    ),
-                ),
-            )
-            val (givenEvent, pendingEvent) = sampleEvents(schedule.id)
-            doseEventRepository.upsert(givenEvent)
-            doseEventRepository.upsert(pendingEvent)
+            val fixture = seedFixture()
 
-            scheduleRepository.delete(schedule.id)
+            fixture.scheduleRepository.delete(fixture.schedule.id)
 
-            val surviving = doseEventRepository.observeAll().first()
+            val surviving = fixture.doseEventRepository.observeAll().first()
             assertEquals(
-                setOf(givenEvent.id, pendingEvent.id),
+                setOf(fixture.given.id, fixture.pending.id),
                 surviving.map { it.id }.toSet(),
                 "dose history for the deleted schedule must survive, not be cascade-wiped",
             )
         }
+
+    @Test
+    fun `deleted schedule nulls the dose row's schedule id and hides it from the receiver fire path`() =
+        runTest {
+            val fixture = seedFixture()
+            val givenBefore =
+                fixture.db.doseEventQueries
+                    .selectDoseEventById(fixture.given.id)
+                    .executeAsOne()
+            assertEquals(
+                fixture.schedule.id,
+                givenBefore.schedule_id,
+                "precondition: the given row must still point at the schedule",
+            )
+
+            fixture.scheduleRepository.delete(fixture.schedule.id)
+
+            val givenAfter =
+                fixture.db.doseEventQueries
+                    .selectDoseEventById(fixture.given.id)
+                    .executeAsOne()
+            assertEquals(fixture.given.id, givenAfter.id, "history must keep the row, not just the count")
+            assertNull(
+                givenAfter.schedule_id,
+                "ON DELETE SET NULL must detach the row instead of cascading it away",
+            )
+            assertEquals(fixture.given.medicationId, givenAfter.medication_id, "denormalized med id must survive")
+            assertEquals(DoseStatus.GIVEN.wireName, givenAfter.status, "the recorded outcome must survive")
+            val survivingIds =
+                fixture.doseEventRepository
+                    .observeAll()
+                    .first()
+                    .map { it.id }
+                    .toSet()
+            assertEquals(
+                setOf(fixture.given.id, fixture.pending.id),
+                survivingIds,
+                "both history rows must still be readable after the schedule delete",
+            )
+            assertNull(
+                fixture.db.doseEventQueries
+                    .selectEnrichedReminderById(fixture.given.id)
+                    .executeAsOneOrNull(),
+                "an orphaned given row must not be delivered by the receiver fire path",
+            )
+            assertNull(
+                fixture.db.doseEventQueries
+                    .selectEnrichedReminderById(fixture.pending.id)
+                    .executeAsOneOrNull(),
+                "an orphaned pending row must not fire an alarm for a deleted schedule",
+            )
+        }
+
+    private class Fixture(
+        val db: ToebeansDatabase,
+        val scheduleRepository: SqlDelightScheduleRepository,
+        val doseEventRepository: SqlDelightDoseEventRepository,
+        val schedule: Schedule,
+        val given: DoseEvent,
+        val pending: DoseEvent,
+    )
+
+    private suspend fun seedFixture(): Fixture {
+        val db = freshDatabase()
+        val createdAt = Instant.parse("2026-05-19T00:00:00Z")
+        seedPetAndMedication(db, createdAt)
+        val scheduleRepository =
+            SqlDelightScheduleRepository(
+                database = db,
+                dispatcher = unconfinedTestDispatcher(),
+            )
+        val doseEventRepository =
+            SqlDelightDoseEventRepository(
+                database = db,
+                dispatcher = unconfinedTestDispatcher(),
+            )
+        val schedule =
+            Schedule(
+                id = "sched-hist",
+                medicationId = "m-hist",
+                startDate = LocalDate.parse("2026-05-01"),
+                endDate = null,
+                createdAt = createdAt,
+            )
+        scheduleRepository.upsert(
+            schedule,
+            listOf(
+                SchedulePhase(
+                    id = "phase-hist",
+                    scheduleId = schedule.id,
+                    phaseOrder = 0,
+                    durationDays = 7,
+                    dosesPerDay = 2,
+                    doseTimesLocal = listOf(LocalTime.parse("08:00"), LocalTime.parse("20:00")),
+                    doseAmount = "1",
+                    doseUnit = DoseUnit.MG,
+                ),
+            ),
+        )
+        val (given, pending) = sampleEvents(schedule.id)
+        doseEventRepository.upsert(given)
+        doseEventRepository.upsert(pending)
+        return Fixture(db, scheduleRepository, doseEventRepository, schedule, given, pending)
+    }
+
+    private fun freshDatabase(): ToebeansDatabase {
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        ToebeansDatabase.Schema.create(driver)
+        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
+        return ToebeansDatabase(driver)
+    }
 
     private fun seedPetAndMedication(
         db: ToebeansDatabase,
