@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.junit.After
@@ -28,6 +29,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * ADR-0011 acceptance 5 at the ViewModel level: the History surface exposes no write
@@ -121,6 +124,9 @@ class HistoryViewModelNoWritePathTest {
 
         /** Seed one GIVEN row so the read path has something to project. */
         fun seedReadRow() {
+            // Anchor to the test run time. A fixed 2026-10-24 date leaves the app's
+            // 30-day history window after that date and makes the test fail with 0 rows.
+            val scheduled = Clock.System.now().minus(1.days)
             events.value =
                 mapOf(
                     "d-1" to
@@ -128,9 +134,9 @@ class HistoryViewModelNoWritePathTest {
                             id = "d-1",
                             scheduleId = "sched-x",
                             medicationId = "med-luna",
-                            scheduledAt = Instant.parse("2026-10-24T12:00:00Z"),
+                            scheduledAt = scheduled,
                             firedAt = null,
-                            resolvedAt = Instant.parse("2026-10-24T12:05:00Z"),
+                            resolvedAt = scheduled.plus(5.minutes),
                             status = DoseStatus.GIVEN,
                             note = null,
                         ),
