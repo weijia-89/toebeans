@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -104,6 +106,7 @@ public fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
     onEditPet: (petId: String) -> Unit = {},
     onPetClick: (petId: String) -> Unit = {},
+    listState: LazyListState? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exactAlarmDenied by viewModel.exactAlarmDenied.collectAsStateWithLifecycle()
@@ -123,6 +126,7 @@ public fun HomeScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    val effectiveListState = rememberEffectiveListState(listState)
     HomeScreenContent(
         state = state,
         exactAlarmDenied = exactAlarmDenied,
@@ -141,7 +145,15 @@ public fun HomeScreen(
         onPetClick = onPetClick,
         modifier = modifier,
         contentPadding = contentPadding,
+        listState = effectiveListState,
     )
+}
+
+/** Resolves the shell-provided list state, creating a local one for callers that pass none. */
+@Composable
+private fun rememberEffectiveListState(listState: LazyListState?): LazyListState {
+    val fallback = rememberLazyListState()
+    return listState ?: fallback
 }
 
 /** ADR-0007 quarantine: persistent, visible, and tappable through to pet edit. */
@@ -201,7 +213,9 @@ internal fun HomeScreenContent(
     onCallEmergency: (Uri) -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    listState: LazyListState? = null,
 ) {
+    val effectiveListState = rememberEffectiveListState(listState)
     if (state.pets.isEmpty() && !state.loading) {
         Column(modifier = modifier.fillMaxSize().padding(contentPadding)) {
             if (exactAlarmDenied) {
@@ -264,6 +278,7 @@ internal fun HomeScreenContent(
                 bottom = 88.dp,
             )
         LazyColumn(
+            state = effectiveListState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = listContentPadding,
             verticalArrangement = Arrangement.spacedBy(16.dp),

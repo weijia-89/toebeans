@@ -23,6 +23,9 @@ androidx-compose-material = "1.7.8"
 androidx-lifecycle = "2.8.6"
 androidx-navigation = "2.10.2"
 androidx-work = "2.12.0"
+# Navigation (ADR-0023). Decompose is pure KMP; no AndroidX, network, analytics or AI artifact.
+# First seen 2021-03-28, publisher Arkadii Ivanov, Apache-2.0. Re-vetted at adoption.
+decompose = "3.6.2"
 # Coroutines + datetime
 kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
@@ -82,6 +85,9 @@ sqldelight-driver-native = { group = "app.cash.sqldelight", name = "native-drive
 # — pinned to the same SQLDelight version as the other drivers. Added to back the
 # DatabaseFactory.jvm actual + SchemaSmokeTest per feat/sqldelight-queries-split.
 sqldelight-driver-jvm = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+
+# Decompose (ADR-0023). Consumed by :shared/commonMain so the navigation model is shared.
+decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

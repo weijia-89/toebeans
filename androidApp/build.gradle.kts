@@ -109,6 +109,8 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    // ADR-0023: direct use of the shared navigation model and its Decompose stack types.
+    implementation(libs.decompose)
 
     // Compose
     implementation(compose.runtime)

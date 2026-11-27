@@ -67,6 +67,9 @@ kotlin {
                 // a `Pet`, `Instant`, etc. needs to resolve the symbols.
                 api(libs.kotlinx.datetime)
                 api(libs.kotlinx.serialization.json)
+                // ADR-0023: Decompose types appear in the public navigation API, so this is
+                // `api` not `implementation` - :androidApp must resolve ChildStack and Value.
+                api(libs.decompose)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)

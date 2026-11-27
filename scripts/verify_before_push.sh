@@ -80,6 +80,11 @@ run_check "Fitness: AGP-9 built-in-Kotlin migration" \
     bash scripts/test_agp9_builtin_kotlin_migration.sh .
 run_check "Fitness: AGP-9 built-in-Kotlin migration self-test" \
     bash scripts/test_test_agp9_builtin_kotlin_migration.sh .
+# Decompose navigation migration gate (ADR-0023). Wired here only once GREEN.
+run_check "Fitness: Decompose navigation migration" \
+    bash scripts/test_decompose_nav_migration.sh .
+run_check "Fitness: Decompose navigation migration self-test" \
+    bash scripts/test_test_decompose_nav_migration.sh .
 
 # ---------------------------------------------------------------------------
 # 2. Vibe-dangerous check (local mirror of CI gate)

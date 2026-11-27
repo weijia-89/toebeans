@@ -51,6 +51,11 @@ jobs:
         run: bash scripts/test_agp9_builtin_kotlin_migration.sh .
       - name: AGP-9 built-in-Kotlin migration self-test
         run: bash scripts/test_test_agp9_builtin_kotlin_migration.sh .
+      # ADR-0023: wired only after the migration gate turned GREEN.
+      - name: Decompose navigation migration gate
+        run: bash scripts/test_decompose_nav_migration.sh .
+      - name: Decompose navigation migration gate self-test
+        run: bash scripts/test_test_decompose_nav_migration.sh .
       - name: Pre-commit hook self-test (secrets regex + vibe-dangerous pattern sync)
         run: bash scripts/test_pre_commit_hook.sh .
       - name: Duplicate-private fitness-function self-test

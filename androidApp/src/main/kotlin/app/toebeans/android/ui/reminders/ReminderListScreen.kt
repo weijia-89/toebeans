@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -67,14 +69,17 @@ public fun ReminderListScreen(
     onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
     viewModel: ReminderListViewModel = koinViewModel(),
+    listState: LazyListState? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val fallbackListState = rememberLazyListState()
     ReminderListContent(
         state = state,
         onScheduleClick = onScheduleClick,
         onNeedsScheduleClick = onNeedsScheduleClick,
         onAddReminder = onAddReminder,
         contentPadding = contentPadding,
+        listState = listState ?: fallbackListState,
     )
 }
 
@@ -89,10 +94,12 @@ internal fun ReminderListContent(
     onNeedsScheduleClick: (petId: String, medicationId: String) -> Unit,
     onAddReminder: (ReminderAddAction) -> Unit,
     contentPadding: PaddingValues,
+    listState: LazyListState? = null,
 ) {
     // D4: expand/collapse state lives in the screen; the toggle itself is a pure helper
     // on the ViewModel companion so the expansion contract is unit-testable.
     var expandedGroups by remember { mutableStateOf(setOf<String>()) }
+    val fallbackListState = rememberLazyListState()
     Box(
         modifier =
             Modifier
@@ -104,6 +111,7 @@ internal fun ReminderListContent(
             state.rows.isEmpty() -> RemindersEmptyState(addAction = state.addAction, onAddReminder = onAddReminder)
             else ->
                 LazyColumn(
+                    state = listState ?: fallbackListState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),

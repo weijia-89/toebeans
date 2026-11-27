@@ -1,7 +1,9 @@
 package app.toebeans.android.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
@@ -12,10 +14,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -30,10 +35,15 @@ import app.toebeans.android.ui.icons.HistoryIcon
 import app.toebeans.android.ui.icons.PawIcon
 import app.toebeans.android.ui.medications.MedicationEditScreen
 import app.toebeans.android.ui.medications.UnifiedMedicationScreen
+import app.toebeans.android.ui.nav.ApplyRestoredScroll
 import app.toebeans.android.ui.nav.BottomNavItem
 import app.toebeans.android.ui.nav.Destinations
-import app.toebeans.android.ui.nav.PetDetailMedicationDestination
-import app.toebeans.android.ui.nav.resolvePetDetailMedicationDestination
+import app.toebeans.android.ui.nav.SCROLLING_TABS
+import app.toebeans.android.ui.nav.createToebeansRootComponent
+import app.toebeans.android.ui.nav.doseLoggingRoute
+import app.toebeans.android.ui.nav.handleBackEvent
+import app.toebeans.android.ui.nav.saveTabScrollPosition
+import app.toebeans.android.ui.nav.toTab
 import app.toebeans.android.ui.pets.PetDetailScreen
 import app.toebeans.android.ui.pets.PetEditScreen
 import app.toebeans.android.ui.pets.PetsScreen
@@ -42,6 +52,7 @@ import app.toebeans.android.ui.reminders.ReminderListScreen
 import app.toebeans.android.ui.schedule.ScheduleCreateScreen
 import app.toebeans.android.ui.schedule.ScheduleDetailScreen
 import app.toebeans.android.ui.settings.SettingsScreen
+import app.toebeans.core.navigation.ToebeansTab
 
 /**
  * Top-level app shell: a [Scaffold] hosting the bottom navigation bar and the [NavHost].
@@ -59,6 +70,40 @@ public fun ToebeansAppShell() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
 
+    // ADR-0023: the shared Decompose model is the authority for tab identity, dose
+    // destination and back-state restoration. The NavHost below still renders the screens,
+    // which keeps the medication-critical composables untouched by this migration.
+    val rootComponent = remember { createToebeansRootComponent() }
+    var selectedTab by remember { mutableStateOf(rootComponent.selectedTab.value) }
+    DisposableEffect(rootComponent) {
+        val cancellation = rootComponent.selectedTab.subscribe { selectedTab = it }
+        onDispose { cancellation.cancel() }
+    }
+
+    // ADR-0023 gap 1: the shell owns one remembered LazyListState per scrolling tab and
+    // passes it down, so a position saved in the shared model reaches the real list.
+    val scrollStates = remember { SCROLLING_TABS.associateWith { LazyListState() } }
+    val scrollIndices = remember { mutableMapOf<ToebeansTab, Int>() }
+    val popBack: () -> Unit = {
+        handleBackEvent(rootComponent) { navController.popBackStack() }
+    }
+
+    // ADR-0023 gap 2: hardware back goes through the same model-update path as the
+    // explicit onBack and onSaved callbacks. Disabled at a root tab so the system can
+    // still leave the app.
+    BackHandler(enabled = navController.previousBackStackEntry != null) {
+        popBack()
+    }
+
+    scrollStates[selectedTab]?.let { listState ->
+        ApplyRestoredScroll(
+            listState = listState,
+            restoredIndex = scrollIndices[selectedTab] ?: 0,
+            restoredOffset = rootComponent.childStack.value.active.instance.scrollOffset,
+            restoreKey = selectedTab,
+        )
+    }
+
     // Bottom NavigationBar shows only on the top-level tab destinations. Detail and
     // edit screens hide it so their own bottomBar (e.g. Save button) sits at the true
     // bottom of the viewport and isn't occluded by the tab strip. Standard Android pattern.
@@ -70,11 +115,14 @@ public fun ToebeansAppShell() {
             if (showBottomNav) {
                 NavigationBar {
                     BottomNavItem.entries.forEach { item ->
-                        val selected =
-                            backStack?.destination?.hierarchy?.any { it.route == item.route } == true
+                        val selected = item.toTab() == selectedTab
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
+                                scrollStates[selectedTab]?.let { listState ->
+                                    saveTabScrollPosition(rootComponent, scrollIndices, selectedTab, listState)
+                                }
+                                rootComponent.selectTab(item.toTab())
                                 navController.navigate(item.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -105,12 +153,16 @@ public fun ToebeansAppShell() {
                 HomeScreen(
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     onAddReminder = { navigateReminderAddAction(navController, it) },
-                    onEditDose = { petId, medicationId, _ ->
-                        navController.navigate(Destinations.medicationEdit(petId, medicationId))
+                    onEditDose = { petId, medicationId, scheduleId ->
+                        rootComponent.openDoseLogging(petId, medicationId, scheduleId)
+                        val route =
+                            doseLoggingRoute(rootComponent.activeDoseDestination(), petId, medicationId)
+                        navController.navigate(route)
                     },
                     onEditPet = { petId -> navController.navigate(Destinations.petEdit(petId)) },
                     onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     contentPadding = innerPadding,
+                    listState = scrollStates[ToebeansTab.TODAY],
                 )
             }
             composable(
@@ -129,6 +181,7 @@ public fun ToebeansAppShell() {
                     },
                     onAddReminder = { navigateReminderAddAction(navController, it) },
                     contentPadding = innerPadding,
+                    listState = scrollStates[ToebeansTab.MED_LIST],
                 )
             }
             composable(
@@ -142,6 +195,7 @@ public fun ToebeansAppShell() {
                     onPetClick = { petId -> navController.navigate(Destinations.petDetail(petId)) },
                     onAddPet = { navController.navigate(Destinations.PET_NEW_ROUTE) },
                     contentPadding = innerPadding,
+                    listState = scrollStates[ToebeansTab.PETS],
                 )
             }
             composable(
@@ -160,15 +214,18 @@ public fun ToebeansAppShell() {
                 popEnterTransition = { EnterTransition.None },
                 popExitTransition = { ExitTransition.None },
             ) {
-                HistoryScreen(contentPadding = innerPadding)
+                HistoryScreen(
+                    contentPadding = innerPadding,
+                    listState = scrollStates[ToebeansTab.HISTORY],
+                )
             }
             // ----- Stacked destinations. ContentPadding intentionally NOT forwarded; these
             // screens host their own TopAppBar in a Scaffold and consume insets themselves.
             composable(Destinations.PET_NEW_ROUTE) {
                 PetEditScreen(
                     petId = null,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                 )
             }
             composable(
@@ -178,16 +235,13 @@ public fun ToebeansAppShell() {
                 val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
                 PetDetailScreen(
                     petId = petId,
-                    onBack = { navController.popBackStack() },
+                    onBack = popBack,
                     onEditPet = { navController.navigate(Destinations.petEdit(petId)) },
                     onAddMedication = { navController.navigate(Destinations.medicationNew(petId)) },
                     onMedicationClick = { medId, activeScheduleId ->
-                        when (resolvePetDetailMedicationDestination(activeScheduleId)) {
-                            PetDetailMedicationDestination.MEDICATION_EDIT ->
-                                navController.navigate(Destinations.medicationEdit(petId, medId))
-                            PetDetailMedicationDestination.SCHEDULE_CREATE ->
-                                navController.navigate(Destinations.scheduleCreate(petId, medId))
-                        }
+                        rootComponent.openDoseLogging(petId, medId, activeScheduleId)
+                        val route = doseLoggingRoute(rootComponent.activeDoseDestination(), petId, medId)
+                        navController.navigate(route)
                     },
                 )
             }
@@ -198,8 +252,8 @@ public fun ToebeansAppShell() {
                 val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
                 PetEditScreen(
                     petId = petId,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                 )
             }
             composable(
@@ -209,8 +263,8 @@ public fun ToebeansAppShell() {
                 val petId = entry.arguments?.getString(Destinations.Args.PET_ID) ?: return@composable
                 UnifiedMedicationScreen(
                     petId = petId,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                 )
             }
             composable(
@@ -226,8 +280,8 @@ public fun ToebeansAppShell() {
                 MedicationEditScreen(
                     petId = petId,
                     medicationId = medId,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                     onEditSchedule = { schedulePetId, scheduleMedId, scheduleId ->
                         navController.navigate(Destinations.scheduleEdit(schedulePetId, scheduleMedId, scheduleId))
                     },
@@ -246,8 +300,8 @@ public fun ToebeansAppShell() {
                 ScheduleCreateScreen(
                     petId = petId,
                     medicationId = medId,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                 )
             }
             composable(
@@ -258,7 +312,7 @@ public fun ToebeansAppShell() {
                     entry.arguments?.getString(Destinations.Args.SCHEDULE_ID) ?: return@composable
                 ScheduleDetailScreen(
                     scheduleId = scheduleId,
-                    onBack = { navController.popBackStack() },
+                    onBack = popBack,
                     onEdit = { petId, medId ->
                         navController.navigate(Destinations.scheduleEdit(petId, medId, scheduleId))
                     },
@@ -275,8 +329,8 @@ public fun ToebeansAppShell() {
             ) { entry ->
                 ScheduleEditDestination(
                     entry = entry,
-                    onBack = { navController.popBackStack() },
-                    onSaved = { navController.popBackStack() },
+                    onBack = popBack,
+                    onSaved = { popBack() },
                 )
             }
         }

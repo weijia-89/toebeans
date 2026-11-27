@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
@@ -52,14 +54,17 @@ public fun PetsScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: PetsViewModel = koinViewModel(),
+    listState: LazyListState? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val fallbackListState = rememberLazyListState()
     PetsScreenContent(
         state = state,
         onPetClick = onPetClick,
         onAddPet = onAddPet,
         modifier = modifier,
         contentPadding = contentPadding,
+        listState = listState ?: fallbackListState,
     )
 }
 
@@ -70,7 +75,9 @@ private fun PetsScreenContent(
     onAddPet: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    listState: LazyListState? = null,
 ) {
+    val fallbackListState = rememberLazyListState()
     Box(modifier = modifier.fillMaxSize().padding(contentPadding)) {
         if (state.pets.isEmpty() && !state.loading) {
             EmptyState(
@@ -102,6 +109,7 @@ private fun PetsScreenContent(
                     }
                 }
                 LazyColumn(
+                    state = listState ?: fallbackListState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = petListArrangement,

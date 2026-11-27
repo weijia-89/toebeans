@@ -126,3 +126,24 @@ PASS test_test_decompose_nav_migration: all fixtures behaved as documented
 ```
 
 The self-test proves the gate is RED on a tree without the migration, GREEN on a migrated tree, and RED again if compileSdk is bumped to 36. No Gradle task was run in this slice. No dependency was added, so there is no new classpath to prove or fail.
+
+## Implementation note (2026-11-23)
+
+This note records what the implementation slice consumed. It does not change the decision state: Status stays Proposed and Wei Jia stays the pending decider. The planning sentences above describe the original proposal and are superseded where this note differs.
+
+Exact coordinate consumed: `com.arkivanov.decompose:decompose:3.6.2`, declared in `gradle/libs.versions.toml`, consumed by `:shared/commonMain` as `api` and by `:androidApp` as `implementation`. No Compose extension coordinate was added, so no second coordinate needed vetting.
+
+Adoption vetting: Maven Central POM read in full. Publisher Arkadii Ivanov, license Apache-2.0, declared dependencies Essenty lifecycle, state-keeper, instance-keeper and back-handler 2.7.1, kotlinx-serialization-core 1.6.3, and kotlin-stdlib managed to 2.3.21. The artifact line starts at 0.2.0, first seen 2021-03-28, which passes the >=30-day rule at adoption.
+
+Resolved graph result from `./gradlew --refresh-dependencies` plus `:shared:dependencies --configuration jvmCompileClasspath` and `:androidApp:dependencies --configuration debugCompileClasspath`:
+
+- `com.arkivanov.decompose:decompose:3.6.2` resolves with its `-jvm` and `-android` variants. Essenty modules resolve at 2.7.1.
+- Forward resolution is proven by the graph and by compilation: `kotlinx-serialization-core:1.6.3 -> 1.11.0` and `kotlin-stdlib:2.3.21 -> 2.4.21`.
+- The no-network and no-analytics gates pass on the source tree, and a literal scan of both resolved graphs found no network, analytics, or inference artifact.
+- compileSdk stays 35 and targetSdk stays 34. No manifest permission was added.
+
+Migration shape: the child-stack model lives in `shared/src/commonMain/kotlin/app/toebeans/core/navigation/`. `ToebeansAppShell.kt` reads the shared component for tab identity, dose destination, and back-state handling, while the existing NavHost still renders every screen. This keeps the medication-critical composables on their existing path.
+
+The two limits first recorded here were closed in phase 29. The shell now holds one remembered `LazyListState` per scrolling tab and passes it into Today, Med List, Pets and History through an optional parameter. Leaving a tab saves the first-visible index and pixel offset; entering it replays both. Hardware back and the saved callbacks route through `handleBackEvent`, which updates the shared model only when the NavHost actually popped. `TabScrollRestorationTest` proves a restored offset reaches a real `LazyColumn`.
+
+Residual limits after phase 29: the shared model stores one Int offset, and the first-visible item index lives in shell-local remembered state, so a full position survives tab switches but not process death. The model tracks one dose config, while stacked routes such as MedicationEdit to ScheduleEdit can put two destinations on the NavHost; back presses converge to a consistent state, but the model clears its dose config on the first pop of that pair. Neither limit is hidden by this note.
